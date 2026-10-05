@@ -20,9 +20,24 @@ export default function HomePage() {
     }
   };
 
-  const featuredEvents = events.filter((e) => e.featured);
-  const upcomingEvents = events.filter((e) => e.status !== "COMPLETED").slice(0, 4);
-  const recommendedEvents = events.filter((e) => ["Technology", "Workshop"].includes(e.category)).slice(0, 3);
+  const upcomingEvents = events
+    .filter((event) => event.status !== "COMPLETED")
+    .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)));
+  const homeEvents = upcomingEvents.slice(0, 3);
+  const programTerms = (userProfile.program || "")
+    .toLowerCase()
+    .match(/[a-z0-9]+/g)
+    ?.filter((term) => term.length > 3 && !["bachelor", "program", "major", "science", "information"].includes(term)) || [];
+  const homeEventIds = new Set(homeEvents.map((event) => event.id));
+  const recommendedEvents = programTerms.length
+    ? upcomingEvents
+      .filter((event) => {
+        if (homeEventIds.has(event.id)) return false;
+        const searchableText = `${event.title} ${event.description} ${event.category}`.toLowerCase();
+        return programTerms.some((term) => searchableText.includes(term));
+      })
+      .slice(0, 3)
+    : [];
 
   const activeRegistrations = registrations.filter((r) => r.status === "Confirmed");
 
@@ -39,7 +54,7 @@ export default function HomePage() {
           </div>
 
           <h1 className="home-hero__title">
-            DISCOVER, ATTEND & EXCEL IN CAMPUS EVENTS.
+            FIND CAMPUS EVENTS.
           </h1>
 
           <p className="home-hero__lead">
@@ -52,6 +67,7 @@ export default function HomePage() {
               <Icon name="search" size={18} />
               <input
                 type="text"
+                aria-label="Search events"
                 placeholder="Search by topic, speaker, or keyword (e.g. AI, Figma, Hackathon)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -79,7 +95,7 @@ export default function HomePage() {
       </section>
 
       {/* Category Filter Chips */}
-      <section className="categories-strip">
+      <section className="categories-strip" id="browse-categories" aria-label="Browse events by category">
         <div className="categories-strip__inner">
           <div className="categories-strip__label">BROWSE BY CATEGORY:</div>
           <div className="categories-strip__scroll">
@@ -96,83 +112,49 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Events Showcase */}
-      <section className="home-section">
+      <section className="home-section home-section--events">
         <div className="home-section__inner">
           <div className="section-head">
             <div>
-              <span className="section-head__eyebrow">HANDPICKED HIGHLIGHTS</span>
-              <h2 className="section-head__title">FEATURED CAMPUS EXPERIENCES</h2>
+              <span className="section-head__eyebrow">START HERE</span>
+              <h2 className="section-head__title">UPCOMING CAMPUS EVENTS</h2>
             </div>
             <Link to="/events" className="section-head__link">
-              View all {events.length} events →
+              View all {upcomingEvents.length} events →
             </Link>
           </div>
 
-          <div className="featured-events-grid">
-            {featuredEvents.map((event) => (
-              <div key={event.id} className="featured-card-wrapper">
-                <EventCard event={event} />
+          {homeEvents.length > 0 ? (
+            <div className="home-events-grid">
+              {homeEvents.map((event) => <EventCard key={event.id} event={event} />)}
+            </div>
+          ) : (
+            <div className="home-empty-state">
+              <span className="section-head__eyebrow">NOTHING ON THE CALENDAR YET</span>
+              <h3>No events are published right now.</h3>
+              <p>Check back soon, or browse event categories to see what you are interested in.</p>
+              <a className="home-empty-state__link" href="#browse-categories">Browse event categories ↓</a>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {recommendedEvents.length > 0 && (
+        <section className="home-section home-section--alt">
+          <div className="home-section__inner">
+            <div className="section-head">
+              <div>
+                <span className="section-head__eyebrow">MATCHED TO YOUR PROFILE</span>
+                <h2 className="section-head__title">MORE TO EXPLORE</h2>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Recommended for You based on Profile Track */}
-      <section className="home-section home-section--alt">
-        <div className="home-section__inner">
-          <div className="section-head">
-            <div>
-              <span className="section-head__eyebrow">CURATED DISCOVERY</span>
-              <h2 className="section-head__title">RECOMMENDED FOR {userProfile.program.toUpperCase()}</h2>
+              <span className="section-head__note">Related to {userProfile.program}</span>
             </div>
-            <span className="section-head__note">Based on software & engineering tracks</span>
-          </div>
-
-          <div className="events-grid">
-            {recommendedEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Upcoming Events Carousel/Grid */}
-      <section className="home-section">
-        <div className="home-section__inner">
-          <div className="section-head">
-            <div>
-              <span className="section-head__eyebrow">NEXT ON THE CALENDAR</span>
-              <h2 className="section-head__title">UPCOMING THIS TERM</h2>
+            <div className="home-events-grid">
+              {recommendedEvents.map((event) => <EventCard key={event.id} event={event} />)}
             </div>
-            <Link to="/events" className="section-head__link">
-              Filter by date & venue →
-            </Link>
           </div>
-
-          <div className="events-grid">
-            {upcomingEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Attendee Call To Action Banner */}
-      <section className="home-cta-strip">
-        <div className="home-cta-strip__inner">
-          <div className="home-cta-strip__content">
-            <h3>READY TO JOIN THE NEXT TECH SUMMIT OR SPRINT?</h3>
-            <p>
-              Claim your digital ticket in seconds. Digital passes include reserved seating, QR check-in codes, and official participation certificates.
-            </p>
-          </div>
-          <Link to="/events" className="home-cta-strip__btn">
-            Browse All Events Now
-          </Link>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="home-footer">

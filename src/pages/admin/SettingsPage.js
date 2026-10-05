@@ -61,7 +61,7 @@ export default function SettingsPage() {
       return;
     }
 
-    logAction("Changed admin password", user?.email || "admin@eventify.local");
+    logAction("Changed admin password", user?.email || "Admin");
     toast("Password updated successfully.");
     setPasswords({ current: "", newPass: "", confirmPass: "" });
   };
@@ -276,7 +276,7 @@ export default function SettingsPage() {
                 className="input"
                 readOnly
                 disabled
-                value={user?.name || "Admin Dela Cruz"}
+                value={user?.name || ""}
               />
             </FormField>
             <FormField label="EMAIL ACCOUNT">
@@ -284,7 +284,7 @@ export default function SettingsPage() {
                 className="input"
                 readOnly
                 disabled
-                value={user?.email || "admin@eventify.local"}
+                value={user?.email || ""}
               />
             </FormField>
             <div style={{ marginTop: "12px" }}>

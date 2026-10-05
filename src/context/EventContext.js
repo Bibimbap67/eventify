@@ -11,8 +11,6 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: "eventify_notifications_v3",
 };
 
-const profileKey = (userId) => `eventify_profile_v3_${userId || "guest"}`;
-
 function blankProfile(user) {
   return {
     id: user?.id || "guest",
@@ -124,11 +122,7 @@ export function EventProvider({ children }) {
   );
 
   useEffect(() => {
-    const storedProfile = loadStored(profileKey(user?.id), null);
-    const isSeedName = ["Eventify Admin", "Maya Santos", "Eventify User"].includes(storedProfile?.name);
-    setUserProfile(storedProfile
-      ? isSeedName ? { ...storedProfile, name: user?.name || storedProfile.name } : storedProfile
-      : blankProfile(user));
+    setUserProfile(blankProfile(user));
   }, [user]);
 
   // Sync to localStorage
@@ -147,10 +141,6 @@ export function EventProvider({ children }) {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(allNotifications));
   }, [allNotifications]);
-
-  useEffect(() => {
-    if (user) localStorage.setItem(profileKey(user.id), JSON.stringify(userProfile));
-  }, [user, userProfile]);
 
   useEffect(() => {
     const completedEventIds = new Set([

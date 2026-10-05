@@ -19,7 +19,7 @@ export default function ProfilePage() {
     e.preventDefault();
     updateProfile(form);
     setIsEditing(false);
-    showToast("Profile details updated successfully.");
+    showToast("Profile changes are temporary until backend saving is connected.");
   };
 
   const confirmedCount = registrations.filter((r) => r.status === "Confirmed").length;

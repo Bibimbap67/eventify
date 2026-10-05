@@ -28,7 +28,8 @@ export default function EventCard({ event }) {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
       navigate(eventPath);
     }
   };
@@ -38,6 +39,7 @@ export default function EventCard({ event }) {
       className="event-card"
       style={{ "--accent": event.accent }}
       onClick={handleCardClick}
+      aria-label={`View event details for ${event.title}`}
       role="button"
       tabIndex={0}
       onKeyDown={handleKeyDown}
@@ -86,6 +88,7 @@ export default function EventCard({ event }) {
             <Icon name="pin" size={14} /> {event.location.split("·")[0]}
           </span>
         </div>
+        <span className="event-card__action">View event details <Icon name="arrow" size={14} /></span>
       </div>
     </article>
   );

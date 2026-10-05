@@ -184,7 +184,7 @@ export function AdminProvider({ children }) {
     ...collections,
     events: [...allEvents.map(toAdminEvent), ...manager.allManagerEvents.map(toManagerAdminEvent)],
     registrations: [...allRegistrations, ...manager.allManagerRegistrations].map(toAdminRegistration),
-    users: accounts.filter((account) => !["account-admin", "account-manager", "account-user"].includes(account.id)).map((account) => ({
+    users: accounts.map((account) => ({
       ...account,
       status: "Active",
       role: account.role === "admin" ? "Admin" : account.role === "manager" ? "Event Manager" : "Attendee",
@@ -276,7 +276,7 @@ export function AdminProvider({ children }) {
     }));
   }, [deleteCertificate, deleteEvent, deleteRegistration, manager]);
 
-  const logAction = useCallback((action, record, admin = "Admin Dela Cruz") => {
+  const logAction = useCallback((action, record, admin = "System") => {
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 10);
     const timeStr = now.toTimeString().slice(0, 5);
