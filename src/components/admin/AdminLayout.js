@@ -5,6 +5,7 @@ import { useAdmin } from "../../context/AdminContext.js";
 import Logo from "../Logo.js";
 import Icon from "../Icon.js";
 import Toast from "../Toast.js";
+import SoundToggle from "../SoundToggle.js";
 import { PageTransition } from "../Motion.js";
 
 const NAV = [
@@ -127,6 +128,7 @@ export default function AdminLayout() {
           <h1 className="topbar__title">{title}</h1>
 
           <div className="topbar__right">
+            <SoundToggle className="icon-btn" />
             <div className="menu-wrap">
               <button className="btn-sm" onClick={handleNotifClick}>
                 Activity ({notes.length})
