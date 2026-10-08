@@ -76,7 +76,13 @@ export default function ProfilePage() {
         {/* Top Profile Card */}
         <section className="profile-identity-card">
           <div className="profile-avatar-wrap">
-            <img src={userProfile.avatar} alt={userProfile.name} className="profile-large-avatar" />
+            {userProfile.avatar ? (
+              <img src={userProfile.avatar} alt={userProfile.name} className="profile-large-avatar" />
+            ) : (
+              <span className="profile-large-avatar profile-large-avatar--initials" aria-hidden="true">
+                {(userProfile.name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("")}
+              </span>
+            )}
             <span className="profile-badge-pill">{userProfile.role}</span>
           </div>
 
@@ -106,13 +112,13 @@ export default function ProfilePage() {
 
           <div className="p-stat-card">
             <span className="p-stat-icon"><Icon name="check" size={20} /></span>
-            <strong style={{ color: "var(--color-blue)" }}>{attendedCount}</strong>
+            <strong>{attendedCount}</strong>
             <small>Events Attended & Verified</small>
           </div>
 
           <div className="p-stat-card">
             <span className="p-stat-icon"><Icon name="certificate" size={20} /></span>
-            <strong style={{ color: "var(--color-yellow)" }}>{certificates.length}</strong>
+            <strong>{certificates.length}</strong>
             <small>Official Certificates Earned</small>
           </div>
 

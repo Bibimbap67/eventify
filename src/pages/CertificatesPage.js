@@ -38,7 +38,7 @@ export default function CertificatesPage() {
               Certificates of participation are automatically generated and issued once you attend and complete your registered campus events.
             </p>
             <Link to="/events" className="btn-sm btn-sm--yellow">
-              Browse Upcoming Events →
+              Browse Upcoming Events <Icon name="arrow-right" size={16} />
             </Link>
           </div>
         ) : (
@@ -46,7 +46,7 @@ export default function CertificatesPage() {
             {certificates.map((cert) => (
               <article key={cert.id} className="certificate-card">
                 <div className="cert-card__top">
-                  <span className="sbadge sbadge--issued">✓ VERIFIED PARTICIPATION</span>
+                  <span className="sbadge sbadge--issued"><Icon name="check" size={16} /> VERIFIED PARTICIPATION</span>
                   <span className="cert-card__id">{cert.credentialId}</span>
                 </div>
 

@@ -118,7 +118,7 @@ export default function SchedulePage() {
             <h3>No events in your schedule yet</h3>
             <p>Once you register for campus events, their detailed schedules and speaker sessions will automatically populate your itinerary here.</p>
             <Link to="/events" className="btn-sm btn-sm--yellow">
-              Explore Open Events →
+              Explore Open Events <Icon name="arrow-right" size={16} />
             </Link>
           </div>
         ) : (
@@ -212,7 +212,7 @@ export default function SchedulePage() {
                             </p>
                           </div>
                           <Link to={`/events/${item.registration.eventId}`} className="btn-sm">
-                            Event Page →
+                            Event Page <Icon name="arrow-right" size={16} />
                           </Link>
                         </div>
 

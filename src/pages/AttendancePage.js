@@ -45,7 +45,7 @@ export default function AttendancePage() {
           </div>
 
           <Link to="/my-events" className="btn-sm">
-            ← Back to My Events
+            <Icon name="arrow-left" size={16} /> Back to My Events
           </Link>
         </div>
 
@@ -61,7 +61,7 @@ export default function AttendancePage() {
           </div>
           <div className="att-stat-box">
             <span>PENDING ON-SITE CHECK-IN</span>
-            <strong style={{ color: "var(--color-pink)" }}>{pendingCount}</strong>
+            <strong className="att-stat-box__value--alert">{pendingCount}</strong>
           </div>
         </div>
 
@@ -72,7 +72,7 @@ export default function AttendancePage() {
             <h3>No event registrations to check in for</h3>
             <p>Register for upcoming events to view your check-in credentials here.</p>
             <Link to="/events" className="btn-sm btn-sm--yellow">
-              Browse Events →
+              Browse Events <Icon name="arrow-right" size={16} />
             </Link>
           </div>
         ) : (
@@ -91,7 +91,7 @@ export default function AttendancePage() {
                       }`}
                     >
                       {reg.attendanceStatus === "Attended" || reg.attendanceStatus?.toLowerCase() === "checked in"
-                        ? "✓ " + reg.attendanceStatus.toUpperCase()
+                        ? <><Icon name="check" size={16} /> {reg.attendanceStatus.toUpperCase()}</>
                         : "NOT CHECKED IN"}
                     </span>
                     <span className="attendance-card__date">{reg.fullDate || reg.date} · {reg.time}</span>
@@ -128,7 +128,7 @@ export default function AttendancePage() {
                       className="btn-sm btn-sm--blue"
                       onClick={() => handleSimulateCheckIn(reg)}
                     >
-                      ✓ Check In
+                      <Icon name="check" size={16} /> Check In
                     </button>
                   ) : reg.attendanceStatus?.toLowerCase() === "checked in" && events.find((event) => event.id === reg.eventId)?.status === "COMPLETED" ? (
                     <button

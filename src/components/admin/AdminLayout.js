@@ -141,7 +141,7 @@ export default function AdminLayout() {
 
             <div className="menu-wrap">
               <button className="btn-sm btn-sm--yellow" onClick={handleProfileMenuClick}>
-                {userName} ▾
+                {userName} <Icon name="caret" size={16} />
               </button>
               {openMenu === "profile" && (
                 <div className="dropdown">

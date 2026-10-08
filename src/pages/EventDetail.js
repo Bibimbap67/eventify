@@ -59,7 +59,7 @@ export default function EventDetail() {
           <h2>Event not found</h2>
           <p>The event you are looking for does not exist or has been archived.</p>
           <Link to="/events" className="btn-sm btn-sm--yellow" style={{ marginTop: "16px", display: "inline-block" }}>
-            ← Back to all events
+            <Icon name="arrow-left" size={16} /> Back to all events
           </Link>
         </main>
       </div>
@@ -137,7 +137,7 @@ export default function EventDetail() {
       <header className="event-hero-banner" style={{ "--hero-bg": event.heroBg || "var(--sky)" }}>
         <div className="event-hero-banner__inner">
           <Link to="/events" className="event-hero__back-link">
-            ← Back to all events
+            <Icon name="arrow-left" size={16} /> Back to all events
           </Link>
 
           <div className="event-hero__badges">
@@ -234,7 +234,7 @@ export default function EventDetail() {
                     <span>Registered</span>
                   </div>
                   <div className="cap-stat">
-                    <strong style={{ color: capacityColor }}>{spotsRemaining}</strong>
+                    <strong className={`cap-stat__value--${capacityLevel}`}>{spotsRemaining}</strong>
                     <span>Seats Remaining</span>
                   </div>
                   <div className="cap-stat">
@@ -413,7 +413,7 @@ export default function EventDetail() {
                       </div>
 
                       {regError && (
-                        <p style={{ color: "var(--color-pink)", fontSize: "12px", fontWeight: "bold", margin: "6px 0 10px" }}>
+                        <p className="form-error" role="alert">
                           {regError}
                         </p>
                       )}
@@ -436,7 +436,7 @@ export default function EventDetail() {
                   /* Confirmed Digital Ticket Pass */
                   <div className="digital-ticket-pass">
                     <div className="ticket-pass__header">
-                      <span>✓ CONFIRMED TICKET</span>
+                      <span><Icon name="check" size={16} /> CONFIRMED TICKET</span>
                       <b>#{existingReg.ticketCode}</b>
                     </div>
                     <div className="ticket-pass__body">
@@ -453,16 +453,14 @@ export default function EventDetail() {
 
                     <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                       <Link to="/my-events" className="btn-sm btn-sm--yellow btn-block" style={{ textAlign: "center", textDecoration: "none" }}>
-                        View in My Events →
+                        View in My Events <Icon name="arrow-right" size={16} />
                       </Link>
                     </div>
                   </div>
                 )}
 
                 <div className="ticket-security-notice">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  </svg>
+                  <Icon name="shield" size={16} />
                   <span>Registration availability and duplicate sign-ups are checked automatically.</span>
                 </div>
               </div>

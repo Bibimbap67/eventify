@@ -106,7 +106,7 @@ export default function MyEventsPage() {
                 <h3>No upcoming event registrations</h3>
                 <p>You haven't reserved tickets for any upcoming events yet. Explore open conferences and workshops today!</p>
                 <Link to="/events" className="btn-sm btn-sm--yellow">
-                  Browse Campus Events →
+                  Browse Campus Events <Icon name="arrow-right" size={16} />
                 </Link>
               </div>
             ) : (
@@ -121,7 +121,7 @@ export default function MyEventsPage() {
                             reg.attendanceStatus?.toLowerCase() === "checked in" ? "sbadge--checked-in" : "sbadge--not-checked-in"
                           }`}
                         >
-                          {reg.attendanceStatus?.toLowerCase() === "checked in" ? "✓ CHECKED IN" : "NOT CHECKED IN"}
+                          {reg.attendanceStatus?.toLowerCase() === "checked in" ? <><Icon name="check" size={16} /> CHECKED IN</> : "NOT CHECKED IN"}
                         </span>
                       </div>
                       <span className="reg-card__code">#{reg.ticketCode}</span>
@@ -259,7 +259,7 @@ export default function MyEventsPage() {
                             <Icon name="message" size={16} /> Give Feedback
                           </button>
                         ) : (
-                          <span className="feedback-done-chip">✓ Feedback Submitted</span>
+                          <span className="feedback-done-chip"><Icon name="check" size={16} /> Feedback Submitted</span>
                         )}
 
                         <Link to={`/events/${reg.eventId}`} className="btn-sm">

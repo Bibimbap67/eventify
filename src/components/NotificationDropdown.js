@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useEventContext } from "../context/EventContext.js";
+import Icon from "./Icon.js";
 
 export default function NotificationDropdown({ onClose }) {
   const { notifications, markNotificationRead, markAllNotificationsRead } = useEventContext();
@@ -47,7 +48,7 @@ export default function NotificationDropdown({ onClose }) {
 
       <div className="notif-dropdown__footer">
         <Link to="/notifications" onClick={onClose} className="notif-dropdown__view-all">
-          View all notifications →
+          View all notifications <Icon name="arrow-right" size={16} />
         </Link>
       </div>
     </div>

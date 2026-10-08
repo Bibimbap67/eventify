@@ -99,7 +99,7 @@ export default function NotificationsPage() {
                       className="notif-card__action"
                       onClick={() => markNotificationRead(notif.id)}
                     >
-                      View Details →
+                      View Details <Icon name="arrow-right" size={16} />
                     </Link>
                     {!notif.read && <span className="notif-unread-pill">NEW</span>}
                   </div>

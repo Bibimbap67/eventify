@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAdmin } from "../../context/AdminContext.js";
 import { ORGANIZERS } from "../../data/options.js";
+import Icon from "../../components/Icon.js";
 import { DataTable, StatusBadge, Modal, FormField, ConfirmModal } from "../../components/admin/ui.js";
 
 // Allowed status transitions: action label -> [from statuses, to status]
@@ -132,7 +133,7 @@ export default function EventsAdmin() {
           ))}
         </select>
         <button className="btn-sm" onClick={() => setSortDesc(!sortDesc)}>
-          Date {sortDesc ? "↓" : "↑"}
+          Date <Icon name={sortDesc ? "arrow-down" : "arrow-up"} label={sortDesc ? "newest first" : "oldest first"} size={16} />
         </button>
         <button className="btn-sm btn-sm--yellow" onClick={() => openForm(null)}>
           + Create event

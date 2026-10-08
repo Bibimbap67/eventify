@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useAdmin } from "../../context/AdminContext.js";
 import { StatusBadge } from "../../components/admin/ui.js";
+import Icon from "../../components/Icon.js";
 
 const STATUSES = ["Pending", "Approved", "Published", "Completed", "Rejected", "Cancelled", "Archived"];
 
@@ -55,7 +56,7 @@ export default function AdminDashboard() {
           {[...db.registrations].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5).map((r) => (
             <div className="row" key={r.id}><span>{r.name}<small>{eventTitle(r.eventId)} · {r.date}</small></span><StatusBadge value={r.status} /></div>
           ))}
-          <Link className="link" to="/admin/registrations">All registrations →</Link>
+          <Link className="link" to="/admin/registrations">All registrations <Icon name="arrow-right" size={16} /></Link>
         </section>
       </div>
     </>

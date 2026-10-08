@@ -140,7 +140,7 @@ export default function Navbar() {
           >
             <span className="navbar__avatar-initials">{userInitials}</span>
             <span className="navbar__user-name">{displayName.split(" ")[0]}</span>
-            <span className="navbar__caret">▾</span>
+            <span className="navbar__caret"><Icon name="caret" size={16} /></span>
           </button>
 
           {profileOpen && (

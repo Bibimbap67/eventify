@@ -110,7 +110,7 @@ export default function FeedbackModal({ registration, onSubmit, onClose }) {
             </div>
 
             {error && (
-              <p style={{ color: "var(--color-pink)", fontSize: "12px", fontWeight: "bold", margin: "8px 0" }}>
+              <p className="form-error" role="alert">
                 {error}
               </p>
             )}
