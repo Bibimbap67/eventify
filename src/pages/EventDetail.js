@@ -91,23 +91,23 @@ export default function EventDetail() {
       : "Registration closed";
 
   // Dynamic capacity state & color logic (Green -> Yellow -> Red)
-  let capacityColor = "var(--color-blue)";
+  let capacityColor = "var(--capacity-low)";
   let capacityLevel = "open";
   let capacityBadgeText = `${spotsRemaining} SPOTS AVAILABLE`;
   let urgencyText = "Seats are available. Claim your free admission pass below.";
 
   if (percentFilled >= 100) {
-    capacityColor = "var(--color-pink)";
+    capacityColor = "var(--capacity-high)";
     capacityLevel = "full";
     capacityBadgeText = "CAPACITY REACHED";
     urgencyText = "This event is fully booked. Additional registrations are placed on standby.";
   } else if (percentFilled >= 85) {
-    capacityColor = "var(--color-pink)";
+    capacityColor = "var(--capacity-high)";
     capacityLevel = "urgent";
     capacityBadgeText = `ALMOST FULL (${spotsRemaining} SEATS LEFT)`;
     urgencyText = `Hurry! Over ${percentFilled}% of venue capacity has already been filled.`;
   } else if (percentFilled >= 60) {
-    capacityColor = "var(--color-yellow)";
+    capacityColor = "var(--capacity-mid)";
     capacityLevel = "filling";
     capacityBadgeText = `FILLING FAST (${percentFilled}% FILLED)`;
     urgencyText = "High student interest recorded. Secure your reservation early.";

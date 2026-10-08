@@ -3,8 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { useEventContext } from "../context/EventContext.js";
 import Icon from "./Icon.js";
 
-export default function EventCard({ event }) {
+// Top-band colors. Cards cycle through them by position so neighbours never match.
+const CARD_ACCENTS = [
+  "var(--pink)",
+  "var(--sky)",
+  "var(--yellow)",
+  "var(--violet)",
+  "var(--mint)",
+];
+
+export default function EventCard({ event, accentIndex }) {
   const navigate = useNavigate();
+  const accent = accentIndex === undefined ? event.accent : CARD_ACCENTS[accentIndex % CARD_ACCENTS.length];
   const { isEventRegistered } = useEventContext();
   const eventPath = "/events/" + event.id;
 
@@ -13,13 +23,17 @@ export default function EventCard({ event }) {
   const pct = Math.min(100, Math.round((registered / capacity) * 100));
   const isRegistered = Boolean(isEventRegistered(event.id));
 
-  let capacityColor = "var(--color-blue)";
+  // Green while there is room, yellow when filling fast, red when (almost) full.
+  let capacityColor = "var(--capacity-low)";
   let capacityBadge = "Spots Available";
-  if (pct >= 85) {
-    capacityColor = "var(--color-pink)";
+  if (pct >= 100) {
+    capacityColor = "var(--capacity-high)";
+    capacityBadge = "Full";
+  } else if (pct >= 85) {
+    capacityColor = "var(--capacity-high)";
     capacityBadge = "Almost Full";
   } else if (pct >= 60) {
-    capacityColor = "var(--color-yellow)";
+    capacityColor = "var(--capacity-mid)";
     capacityBadge = "Filling Fast";
   }
 
@@ -37,7 +51,7 @@ export default function EventCard({ event }) {
   return (
     <article
       className="event-card"
-      style={{ "--accent": event.accent }}
+      style={{ "--accent": accent }}
       onClick={handleCardClick}
       aria-label={`View event details for ${event.title}`}
       role="button"
