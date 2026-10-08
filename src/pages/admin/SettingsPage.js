@@ -341,7 +341,7 @@ export default function SettingsPage() {
                 />
               </FormField>
               {passError && (
-                <p style={{ color: "var(--color-pink)", fontWeight: "bold", fontSize: "12px", margin: "6px 0 12px" }}>
+                <p className="form-error" role="alert">
                   {passError}
                 </p>
               )}
@@ -396,7 +396,7 @@ export default function SettingsPage() {
 
           <section className="panel">
             <h2>Maintenance</h2>
-            <p style={{ fontSize: "14px", lineHeight: "1.5", margin: "0 0 16px" }}>
+            <p className="panel__text">
               Review system activity and manage audit history.
             </p>
             <button type="button" className="btn-sm" onClick={() => setShowClearLogsConfirm(true)}>

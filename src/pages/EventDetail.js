@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.js";
 import Navbar from "../components/Navbar.js";
 import Icon from "../components/Icon.js";
+import { EventDetailSkeleton, useSkeleton } from "../components/Skeleton.js";
 import { useEventContext } from "../context/EventContext.js";
 import { useManager } from "../context/ManagerContext.js";
 
@@ -50,16 +51,27 @@ export default function EventDetail() {
   const [formStudentId, setFormStudentId] = useState(userProfile?.studentId || "");
   const [ticketType, setTicketType] = useState("Student Attendee");
   const [regError, setRegError] = useState("");
+  // Only while the event list itself hasn't arrived; a missing event in a loaded list shows "not found" at once.
+  const loadingEvent = useSkeleton(!event && events.length === 0, id);
+
+  if (loadingEvent) {
+    return (
+      <div className="event-detail-page">
+        <Navbar />
+        <EventDetailSkeleton />
+      </div>
+    );
+  }
 
   if (!event) {
     return (
       <div className="event-detail-page">
         <Navbar />
-        <main className="event-detail" style={{ textAlign: "center", padding: "80px 20px" }}>
+        <main className="event-detail event-detail--missing">
           <h2>Event not found</h2>
           <p>The event you are looking for does not exist or has been archived.</p>
-          <Link to="/events" className="btn-sm btn-sm--yellow" style={{ marginTop: "16px", display: "inline-block" }}>
-            ← Back to all events
+          <Link to="/events" className="btn-sm btn-sm--yellow">
+            <Icon name="arrow-left" size={16} /> Back to all events
           </Link>
         </main>
       </div>
@@ -79,28 +91,23 @@ export default function EventDetail() {
       : "Registration closed";
 
   // Dynamic capacity state & color logic (Green -> Yellow -> Red)
-  // capacityColor fills the bar; capacityInk is the readable text version of the same color.
   let capacityColor = "var(--capacity-low)";
-  let capacityInk = "var(--capacity-low-ink)";
   let capacityLevel = "open";
   let capacityBadgeText = `${spotsRemaining} SPOTS AVAILABLE`;
   let urgencyText = "Seats are available. Claim your free admission pass below.";
 
   if (percentFilled >= 100) {
     capacityColor = "var(--capacity-high)";
-    capacityInk = "var(--capacity-high-ink)";
     capacityLevel = "full";
     capacityBadgeText = "CAPACITY REACHED";
     urgencyText = "This event is fully booked. Additional registrations are placed on standby.";
   } else if (percentFilled >= 85) {
     capacityColor = "var(--capacity-high)";
-    capacityInk = "var(--capacity-high-ink)";
     capacityLevel = "urgent";
     capacityBadgeText = `ALMOST FULL (${spotsRemaining} SEATS LEFT)`;
     urgencyText = `Hurry! Over ${percentFilled}% of venue capacity has already been filled.`;
   } else if (percentFilled >= 60) {
     capacityColor = "var(--capacity-mid)";
-    capacityInk = "var(--capacity-mid-ink)";
     capacityLevel = "filling";
     capacityBadgeText = `FILLING FAST (${percentFilled}% FILLED)`;
     urgencyText = "High student interest recorded. Secure your reservation early.";
@@ -139,10 +146,10 @@ export default function EventDetail() {
       <Navbar />
 
       {/* TOP HERO BANNER */}
-      <header className="event-hero-banner" style={{ "--hero-bg": event.heroBg || "var(--color-blue)" }}>
+      <header className="event-hero-banner" style={{ "--hero-bg": event.heroBg || "var(--sky)" }}>
         <div className="event-hero-banner__inner">
           <Link to="/events" className="event-hero__back-link">
-            ← Back to all events
+            <Icon name="arrow-left" size={16} /> Back to all events
           </Link>
 
           <div className="event-hero__badges">
@@ -239,7 +246,7 @@ export default function EventDetail() {
                     <span>Registered</span>
                   </div>
                   <div className="cap-stat">
-                    <strong style={{ color: capacityInk }}>{spotsRemaining}</strong>
+                    <strong className={`cap-stat__value--${capacityLevel}`}>{spotsRemaining}</strong>
                     <span>Seats Remaining</span>
                   </div>
                   <div className="cap-stat">
@@ -418,7 +425,7 @@ export default function EventDetail() {
                       </div>
 
                       {regError && (
-                        <p style={{ color: "var(--color-pink)", fontSize: "12px", fontWeight: "bold", margin: "6px 0 10px" }}>
+                        <p className="form-error" role="alert">
                           {regError}
                         </p>
                       )}
@@ -441,7 +448,7 @@ export default function EventDetail() {
                   /* Confirmed Digital Ticket Pass */
                   <div className="digital-ticket-pass">
                     <div className="ticket-pass__header">
-                      <span>✓ CONFIRMED TICKET</span>
+                      <span><Icon name="check" size={16} /> CONFIRMED TICKET</span>
                       <b>#{existingReg.ticketCode}</b>
                     </div>
                     <div className="ticket-pass__body">
@@ -456,18 +463,16 @@ export default function EventDetail() {
                       <small>VERIFIED QR / CHECK-IN PASS</small>
                     </div>
 
-                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
-                      <Link to="/my-events" className="btn-sm btn-sm--yellow btn-block" style={{ textAlign: "center", textDecoration: "none" }}>
-                        View in My Events →
+                    <div className="ticket-pass__actions">
+                      <Link to="/my-events" className="btn-sm btn-sm--yellow btn-block">
+                        View in My Events <Icon name="arrow-right" size={16} />
                       </Link>
                     </div>
                   </div>
                 )}
 
                 <div className="ticket-security-notice">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  </svg>
+                  <Icon name="shield" size={16} />
                   <span>Registration availability and duplicate sign-ups are checked automatically.</span>
                 </div>
               </div>

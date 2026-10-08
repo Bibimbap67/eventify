@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Icon from "./Icon.js";
+import { Modal } from "./admin/ui.js";
 
 export default function FeedbackModal({ registration, onSubmit, onClose }) {
   const [overall, setOverall] = useState(5);
@@ -26,16 +27,9 @@ export default function FeedbackModal({ registration, onSubmit, onClose }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal feedback-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal__head">
-          <h2>EVENT FEEDBACK & REVIEW</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">
-            <Icon name="close" size={18} />
-          </button>
-        </div>
-
-        <div className="modal__body">
+    <Modal title="EVENT FEEDBACK & REVIEW" onClose={onClose} className="feedback-modal">
+      {(close) => (
+        <>
           <p className="feedback-event-name">
             Rating for: <b>{registration.eventTitle}</b>
           </p>
@@ -50,6 +44,8 @@ export default function FeedbackModal({ registration, onSubmit, onClose }) {
                     type="button"
                     className={`star-btn ${overall >= num ? "star-btn--active" : ""}`}
                     onClick={() => setOverall(num)}
+                    aria-label={`${num} star${num > 1 ? "s" : ""}`}
+                    aria-pressed={overall >= num}
                   >
                     <Icon name="star" size={20} />
                   </button>
@@ -93,8 +89,8 @@ export default function FeedbackModal({ registration, onSubmit, onClose }) {
               </div>
             </div>
 
-            <div style={{ marginTop: "14px" }}>
-              <label style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: "11px", fontWeight: "800", marginBottom: "6px" }}>
+            <div className="rating-group feedback-comment">
+              <label>
                 WRITTEN TAKEAWAYS & SUGGESTIONS
               </label>
               <textarea
@@ -110,13 +106,13 @@ export default function FeedbackModal({ registration, onSubmit, onClose }) {
             </div>
 
             {error && (
-              <p style={{ color: "var(--color-pink)", fontSize: "12px", fontWeight: "bold", margin: "8px 0" }}>
+              <p className="form-error" role="alert">
                 {error}
               </p>
             )}
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "18px" }}>
-              <button type="button" className="btn-sm" onClick={onClose}>
+            <div className="action-row">
+              <button type="button" className="btn-sm" onClick={close}>
                 Cancel
               </button>
               <button type="submit" className="btn-sm btn-sm--yellow">
@@ -124,8 +120,8 @@ export default function FeedbackModal({ registration, onSubmit, onClose }) {
               </button>
             </div>
           </form>
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+    </Modal>
   );
 }

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar.js";
 import EventCard from "../components/EventCard.js";
 import Icon from "../components/Icon.js";
+import { EventCardSkeleton, useSkeleton } from "../components/Skeleton.js";
 import Reveal from "../components/landing/Reveal.js";
 import ScrollProgress from "../components/landing/ScrollProgress.js";
 import CategoryMarquee from "../components/landing/CategoryMarquee.js";
@@ -43,6 +44,7 @@ export default function HomePage() {
     .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)));
   const homeEvents = upcomingEvents.slice(0, 3);
   const nextEvent = homeEvents[0];
+  const loadingEvents = useSkeleton(events.length === 0, "home");
   const programTerms = (userProfile.program || "")
     .toLowerCase()
     .match(/[a-z0-9]+/g)
@@ -141,7 +143,7 @@ export default function HomePage() {
 
             <Reveal className="landing-hero__actions" delay={STAGGER_MS * 4}>
               <Link to="/events" className="landing-btn landing-btn--primary">
-                Browse events <Icon name="arrowRight" size={16} />
+                Browse events <Icon name="arrow-right" size={16} />
               </Link>
               <Link to={secondaryAction.to} className="landing-btn landing-btn--ghost">
                 <Icon name={secondaryAction.icon} size={16} /> {secondaryAction.label}
@@ -156,7 +158,7 @@ export default function HomePage() {
                   <b>{activeRegistrations.length} upcoming registered {activeRegistrations.length === 1 ? "event" : "events"}</b>.
                 </div>
                 <Link to="/my-events" className="status-banner__link">
-                  View Ticket Pass <Icon name="arrowRight" size={14} />
+                  View Ticket Pass <Icon name="arrow-right" size={14} />
                 </Link>
               </Reveal>
             )}
@@ -182,7 +184,7 @@ export default function HomePage() {
                     <span className="landing-ticket__seats">
                       <b>{seatsLeft.toLocaleString()}</b> {seatsLeft === 1 ? "seat" : "seats"} left
                     </span>
-                    <span className="landing-ticket__cta">View event <Icon name="arrowRight" size={16} /></span>
+                    <span className="landing-ticket__cta">View event <Icon name="arrow-right" size={16} /></span>
                   </span>
                 </Link>
               </Reveal>
@@ -208,12 +210,18 @@ export default function HomePage() {
                 </span>
               )}
               <Link to="/events" className="section-head__link">
-                View all {upcomingEvents.length} events <Icon name="arrowRight" size={14} />
+                View all {upcomingEvents.length} events <Icon name="arrow-right" size={14} />
               </Link>
             </div>
           </Reveal>
 
-          {homeEvents.length > 0 ? (
+          {loadingEvents ? (
+            <div className="home-events-grid" aria-busy="true" aria-label="Loading events">
+              <EventCardSkeleton />
+              <EventCardSkeleton />
+              <EventCardSkeleton />
+            </div>
+          ) : homeEvents.length > 0 ? (
             <div className="home-events-grid home-events-grid--rail" ref={railRef} onScroll={handleRailScroll}>
               {homeEvents.map((event, index) => (
                 <Reveal key={event.id} className="landing-card-slot" delay={index * STAGGER_MS}>
@@ -226,7 +234,7 @@ export default function HomePage() {
               <span className="section-head__eyebrow">NOTHING ON THE CALENDAR YET</span>
               <h3>No events are published right now.</h3>
               <p>Check back soon, or browse event categories to see what you are interested in.</p>
-              <a className="home-empty-state__link" href="#browse-categories">Browse event categories ↑</a>
+              <a className="home-empty-state__link" href="#browse-categories">Browse event categories <Icon name="arrow-up" size={16} /></a>
             </Reveal>
           )}
         </div>
@@ -298,7 +306,7 @@ export default function HomePage() {
           <h2 id="cta-title">Your next event is one click away.</h2>
           <div className="landing-hero__actions">
             <Link to="/events" className="landing-btn landing-btn--dark">
-              Browse events <Icon name="arrowRight" size={16} />
+              Browse events <Icon name="arrow-right" size={16} />
             </Link>
             <Link to={secondaryAction.to} className="landing-btn landing-btn--light">
               <Icon name={secondaryAction.icon} size={16} /> {secondaryAction.label}

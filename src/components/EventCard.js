@@ -5,11 +5,11 @@ import Icon from "./Icon.js";
 
 // Top-band colors. Cards cycle through them by position so neighbours never match.
 const CARD_ACCENTS = [
-  "var(--color-pink)",
-  "var(--color-sky)",
-  "var(--color-yellow)",
-  "var(--color-violet)",
-  "var(--color-mint)",
+  "var(--pink)",
+  "var(--sky)",
+  "var(--yellow)",
+  "var(--violet)",
+  "var(--mint)",
 ];
 
 export default function EventCard({ event, accentIndex }) {
@@ -63,7 +63,7 @@ export default function EventCard({ event, accentIndex }) {
         <div className="event-card__top">
           <div className="event-card__badges-group">
             <span className="event-card__badge">{event.category || event.status}</span>
-            {isRegistered && <span className="event-card__reg-tag">✓ REGISTERED</span>}
+            {isRegistered && <span className="event-card__reg-tag"><Icon name="check" size={16} /> REGISTERED</span>}
           </div>
           <span className="event-card__arrow" aria-hidden="true"><Icon name="arrow" size={18} /></span>
         </div>

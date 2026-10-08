@@ -4,6 +4,9 @@ import { useAuth } from "../../context/AuthContext.js";
 import { useAdmin } from "../../context/AdminContext.js";
 import Logo from "../Logo.js";
 import Icon from "../Icon.js";
+import Toast from "../Toast.js";
+import SoundToggle from "../SoundToggle.js";
+import { PageTransition } from "../Motion.js";
 
 const NAV = [
   { label: "Dashboard", path: "/admin" },
@@ -125,6 +128,7 @@ export default function AdminLayout() {
           <h1 className="topbar__title">{title}</h1>
 
           <div className="topbar__right">
+            <SoundToggle className="icon-btn" />
             <div className="menu-wrap">
               <button className="btn-sm" onClick={handleNotifClick}>
                 Activity ({notes.length})
@@ -141,7 +145,7 @@ export default function AdminLayout() {
 
             <div className="menu-wrap">
               <button className="btn-sm btn-sm--yellow" onClick={handleProfileMenuClick}>
-                {userName} ▾
+                {userName} <Icon name="caret" size={16} />
               </button>
               {openMenu === "profile" && (
                 <div className="dropdown">
@@ -154,15 +158,13 @@ export default function AdminLayout() {
         </header>
 
         <main className="admin__content">
-          <Outlet />
+          <PageTransition>
+            <Outlet />
+          </PageTransition>
         </main>
       </div>
 
-      {toastMsg && (
-        <div className="toast" role="status">
-          {toastMsg}
-        </div>
-      )}
+      <Toast message={toastMsg} />
     </div>
   );
 }

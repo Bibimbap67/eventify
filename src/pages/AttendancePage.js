@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar.js";
 import Icon from "../components/Icon.js";
+import { useEntering } from "../components/Motion.js";
 import { useEventContext } from "../context/EventContext.js";
 import TicketPassModal from "../components/TicketPassModal.js";
 
 export default function AttendancePage() {
+  const entering = useEntering();
   const { events, registrations, checkInAttendee, completeAttendance } = useEventContext();
   const [selectedPass, setSelectedPass] = useState(null);
   const [toastMsg, setToastMsg] = useState("");
@@ -26,7 +28,7 @@ export default function AttendancePage() {
   };
 
   const confirmedRegs = registrations.filter((r) => r.status === "Confirmed");
-  const checkedInCount = confirmedRegs.filter((r) => ["Checked In", "Attended"].includes(r.attendanceStatus)).length;
+  const checkedInCount = confirmedRegs.filter((r) => ["checked in", "attended"].includes(r.attendanceStatus?.toLowerCase())).length;
   const pendingCount = confirmedRegs.filter((r) => r.attendanceStatus === "Not Checked In").length;
 
   return (
@@ -45,7 +47,7 @@ export default function AttendancePage() {
           </div>
 
           <Link to="/my-events" className="btn-sm">
-            ← Back to My Events
+            <Icon name="arrow-left" size={16} /> Back to My Events
           </Link>
         </div>
 
@@ -57,11 +59,11 @@ export default function AttendancePage() {
           </div>
           <div className="att-stat-box">
             <span>VERIFIED & ATTENDED</span>
-            <strong style={{ color: "var(--color-blue)" }}>{checkedInCount}</strong>
+            <strong>{checkedInCount}</strong>
           </div>
           <div className="att-stat-box">
             <span>PENDING ON-SITE CHECK-IN</span>
-            <strong style={{ color: "var(--color-pink)" }}>{pendingCount}</strong>
+            <strong className="att-stat-box__value--alert">{pendingCount}</strong>
           </div>
         </div>
 
@@ -72,24 +74,26 @@ export default function AttendancePage() {
             <h3>No event registrations to check in for</h3>
             <p>Register for upcoming events to view your check-in credentials here.</p>
             <Link to="/events" className="btn-sm btn-sm--yellow">
-              Browse Events →
+              Browse Events <Icon name="arrow-right" size={16} />
             </Link>
           </div>
         ) : (
-          <div className="attendance-list">
+          <div className={`attendance-list${entering ? " stagger" : ""}`}>
             {confirmedRegs.map((reg) => (
               <div key={reg.id} className="attendance-card">
                 <div className="attendance-card__left">
                   <div className="attendance-card__status-line">
                     <span
                       className={`sbadge ${
-                        reg.attendanceStatus === "Attended" || reg.attendanceStatus === "Checked In"
+                        reg.attendanceStatus === "Attended"
+                          ? "sbadge--attended"
+                          : reg.attendanceStatus?.toLowerCase() === "checked in"
                           ? "sbadge--checked-in"
-                          : "sbadge--pending"
+                          : "sbadge--not-checked-in"
                       }`}
                     >
-                      {reg.attendanceStatus === "Attended" || reg.attendanceStatus === "Checked In"
-                        ? "✓ " + reg.attendanceStatus.toUpperCase()
+                      {reg.attendanceStatus === "Attended" || reg.attendanceStatus?.toLowerCase() === "checked in"
+                        ? <><Icon name="check" size={16} /> {reg.attendanceStatus.toUpperCase()}</>
                         : "NOT CHECKED IN"}
                     </span>
                     <span className="attendance-card__date">{reg.fullDate || reg.date} · {reg.time}</span>
@@ -126,9 +130,9 @@ export default function AttendancePage() {
                       className="btn-sm btn-sm--blue"
                       onClick={() => handleSimulateCheckIn(reg)}
                     >
-                      ✓ Check In
+                      <Icon name="check" size={16} /> Check In
                     </button>
-                  ) : reg.attendanceStatus === "Checked In" && events.find((event) => event.id === reg.eventId)?.status === "COMPLETED" ? (
+                  ) : reg.attendanceStatus?.toLowerCase() === "checked in" && events.find((event) => event.id === reg.eventId)?.status === "COMPLETED" ? (
                     <button
                       type="button"
                       className="btn-sm btn-sm--blue"
@@ -136,7 +140,7 @@ export default function AttendancePage() {
                     >
                       Mark attendance complete
                     </button>
-                  ) : reg.attendanceStatus === "Checked In" ? (
+                  ) : reg.attendanceStatus?.toLowerCase() === "checked in" ? (
                     <button type="button" className="btn-sm" disabled>Awaiting event completion</button>
                   ) : (
                     <Link to="/certificates" className="btn-sm">

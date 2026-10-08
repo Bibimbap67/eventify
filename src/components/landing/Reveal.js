@@ -12,7 +12,7 @@ export default function Reveal({ as: Tag = "div", delay = 0, className = "", sty
   return (
     <Tag
       ref={ref}
-      className={`reveal${shown ? " is-in" : ""}${className ? ` ${className}` : ""}`}
+      className={`landing-reveal${shown ? " is-in" : ""}${className ? ` ${className}` : ""}`}
       style={delay && shown ? { ...style, transitionDelay: `${delay}ms` } : style}
       {...rest}
     >

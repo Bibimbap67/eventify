@@ -21,11 +21,16 @@ import ManagerScreen from "./pages/manager/ManagerScreen.js";
 import { AdminProvider } from "./context/AdminContext.js";
 import ProtectedRoute from "./components/ProtectedRoute.js";
 import SyncErrorToast from "./components/SyncErrorToast.js";
+import { PageTransition } from "./components/Motion.js";
+
+// Attendee pages carry their own navbar; admin and manager layouts animate their own outlet.
+const PAGE_TARGETS = ":scope > :not(.admin, .manager-shell) > :not(.navbar)";
 
 export default function App() {
   return (
     <>
       <SyncErrorToast />
+      <PageTransition targets={PAGE_TARGETS}>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -73,6 +78,7 @@ export default function App() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </PageTransition>
     </>
   );
 }

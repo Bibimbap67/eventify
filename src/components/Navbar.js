@@ -5,6 +5,7 @@ import { useEventContext } from "../context/EventContext.js";
 import Logo from "./Logo.js";
 import NotificationDropdown from "./NotificationDropdown.js";
 import Icon from "./Icon.js";
+import SoundToggle from "./SoundToggle.js";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -115,6 +116,8 @@ export default function Navbar() {
 
       {/* Right Controls: Notifications & Profile */}
       <div className="navbar__right">
+        <SoundToggle className="navbar__icon-btn" />
+
         {/* Notification Icon & Dropdown */}
         <div className="menu-wrap" ref={notifRef}>
           <button
@@ -140,7 +143,7 @@ export default function Navbar() {
           >
             <span className="navbar__avatar-initials">{userInitials}</span>
             <span className="navbar__user-name">{displayName.split(" ")[0]}</span>
-            <span className="navbar__caret">▾</span>
+            <span className="navbar__caret"><Icon name="caret" size={16} /></span>
           </button>
 
           {profileOpen && (
