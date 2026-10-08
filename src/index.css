@@ -2986,10 +2986,10 @@ textarea.input {
   display: grid;
   gap: 14px;
   padding: 22px;
-  color: var(--color-cream);
-  background: var(--color-black);
+  color: var(--color-black);
+  background: var(--color-white);
   border: var(--border-w) solid var(--color-black);
-  box-shadow: 8px 8px 0 var(--color-pink);
+  box-shadow: 8px 8px 0 var(--color-black);
   text-decoration: none;
   rotate: -2deg;
   transition: transform var(--duration-fast) var(--ease-out);
@@ -3028,7 +3028,7 @@ textarea.input {
 .landing-ticket__perf {
   position: relative;
   margin: 2px -22px;
-  border-top: 2px dashed var(--color-cream);
+  border-top: 2px dashed var(--color-black);
 }
 
 .landing-ticket__perf::before,
@@ -3066,7 +3066,7 @@ textarea.input {
   justify-content: space-between;
   gap: 8px 12px;
   padding-top: 12px;
-  border-top: 2px solid var(--color-cream);
+  border-top: 2px solid var(--color-black);
   font-size: 13px;
 }
 
@@ -3076,7 +3076,6 @@ textarea.input {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--color-yellow);
   font-family: var(--font-display);
   font-size: 13px;
   text-transform: uppercase;
