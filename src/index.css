@@ -2185,6 +2185,13 @@ textarea.input {
 .skeleton--cell { width: 70%; height: 14px; }
 .event-card--skeleton { cursor: default; pointer-events: none; }
 .event-card--skeleton .event-card__accent { background: var(--neutral-bg); }
+.event-card--skeleton { min-height: 408px; } /* typical real card height */
+.skeleton--heading { width: 50%; height: 46px; margin-bottom: var(--space-5); }
+.skeleton--stat { height: 96px; }
+.skeleton--panel { height: 260px; margin-top: var(--space-5); }
+.skeleton--ticket { height: 420px; }
+.shell-skeleton__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--space-4); }
+.event-hero-banner .skeleton { background: rgba(255, 255, 255, 0.55); }
 
 /* Reveal: children rise in once, 60ms apart, capped so the last starts by 240ms. */
 

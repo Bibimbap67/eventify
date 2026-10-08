@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Logo from "./Logo.js";
 
 // A grey block with a shimmer. Always decorative: the region around it sets aria-busy.
 export default function Skeleton({ className = "", style }) {
@@ -41,6 +42,75 @@ export function TableSkeleton({ columns, rows = 5 }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+// The frame of the page that is about to appear, built from the real layout classes,
+// shown while a saved session is being verified.
+export function ShellSkeleton({ role }) {
+  if (role === "admin" || role === "manager") {
+    const shell = role === "admin"
+      ? { root: "admin", side: "sidebar", logo: "sidebar__logo", link: "sidebar__link", main: "admin__main", bar: "topbar", content: "admin__content" }
+      : { root: "manager-shell", side: "manager-sidebar", logo: "manager-brand", link: "manager-nav__link", main: "manager-main", bar: "manager-topbar", content: "manager-content" };
+    return (
+      <div className={`${shell.root} shell-skeleton`} aria-busy="true" aria-label="Loading">
+        <aside className={shell.side}>
+          <div className={shell.logo}><Logo /></div>
+          {Array.from({ length: 8 }, (_, i) => <div key={i} className={shell.link}><Skeleton style={{ width: `${50 + (i % 3) * 15}%` }} /></div>)}
+        </aside>
+        <div className={shell.main}>
+          <header className={shell.bar}><Skeleton className="skeleton--title" style={{ width: 180, margin: 0 }} /></header>
+          <main className={shell.content}>
+            <div className="shell-skeleton__stats">
+              {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="skeleton--stat" />)}
+            </div>
+            <Skeleton className="skeleton--panel" />
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="events-page shell-skeleton" aria-busy="true" aria-label="Loading">
+      <header className="navbar"><Logo /></header>
+      <main className="explore-main">
+        <Skeleton style={{ width: 140, marginBottom: 12 }} />
+        <Skeleton className="skeleton--heading" />
+        <div className="events-grid">
+          <EventCardSkeleton />
+          <EventCardSkeleton />
+          <EventCardSkeleton />
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// Event page while the event list is still loading (direct link / refresh).
+export function EventDetailSkeleton() {
+  return (
+    <div aria-busy="true" aria-label="Loading event">
+      <header className="event-hero-banner">
+        <div className="event-hero-banner__inner">
+          <Skeleton style={{ width: 170, height: 32, marginBottom: 20 }} />
+          <Skeleton style={{ width: 260, height: 26, marginBottom: 16 }} />
+          <Skeleton className="skeleton--heading" style={{ width: "70%" }} />
+          <Skeleton style={{ width: 240, height: 18 }} />
+        </div>
+      </header>
+      <main className="event-detail-body">
+        <div className="event-detail-container event-detail-grid">
+          <div>
+            <Skeleton className="skeleton--line" />
+            <Skeleton className="skeleton--line" />
+            <Skeleton className="skeleton--line" style={{ width: "60%" }} />
+            <Skeleton className="skeleton--panel" />
+          </div>
+          <Skeleton className="skeleton--ticket" />
+        </div>
+      </main>
     </div>
   );
 }

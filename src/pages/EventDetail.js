@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.js";
 import Navbar from "../components/Navbar.js";
 import Icon from "../components/Icon.js";
+import { EventDetailSkeleton, useSkeleton } from "../components/Skeleton.js";
 import { useEventContext } from "../context/EventContext.js";
 import { useManager } from "../context/ManagerContext.js";
 
@@ -50,6 +51,17 @@ export default function EventDetail() {
   const [formStudentId, setFormStudentId] = useState(userProfile?.studentId || "");
   const [ticketType, setTicketType] = useState("Student Attendee");
   const [regError, setRegError] = useState("");
+  // Only while the event list itself hasn't arrived; a missing event in a loaded list shows "not found" at once.
+  const loadingEvent = useSkeleton(!event && events.length === 0, id);
+
+  if (loadingEvent) {
+    return (
+      <div className="event-detail-page">
+        <Navbar />
+        <EventDetailSkeleton />
+      </div>
+    );
+  }
 
   if (!event) {
     return (
