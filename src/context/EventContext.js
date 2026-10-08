@@ -1,28 +1,32 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react";
+import React, { createContext, useContext, useCallback, useEffect, useMemo } from "react";
 import { useAuth } from "./AuthContext.js";
 import { useManager } from "./ManagerContext.js";
+import { newId } from "../api.js";
+import { useServerStore, liveRegisteredCount } from "./useServerStore.js";
 
 const EventContext = createContext(null);
 
-const STORAGE_KEYS = {
-  EVENTS: "eventify_events_v3",
-  REGISTRATIONS: "eventify_registrations_v3",
-  CERTIFICATES: "eventify_certificates_v3",
-  NOTIFICATIONS: "eventify_notifications_v3",
+// State key -> MongoDB-backed API resource (see server/controllers/dataController.js).
+const EVENT_RESOURCES = {
+  events: "events",
+  registrations: "registrations",
+  certificates: "certificates",
+  notifications: "notifications",
 };
 
+// The profile fields are stored on the user document in MongoDB.
 function blankProfile(user) {
   return {
     id: user?.id || "guest",
     name: user?.name || "Guest User",
     email: user?.email || "",
-    studentId: "",
+    studentId: user?.studentId || "",
     role: user?.role === "admin" ? "Administrator" : user?.role === "manager" ? "Event Manager" : "Student Attendee",
-    department: "",
-    program: "",
-    phone: "",
-    avatar: "",
-    yearLevel: "",
+    department: user?.department || "",
+    program: user?.program || "",
+    phone: user?.phone || "",
+    avatar: user?.avatar || "",
+    yearLevel: user?.yearLevel || "",
   };
 }
 
@@ -30,30 +34,38 @@ function belongsToUser(record, user) {
   return record.userId ? record.userId === user?.id : Boolean(user?.email && record.email === user.email);
 }
 
-function loadStored(key, fallback) {
-  try {
-    const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : fallback;
-  } catch (err) {
-    return fallback;
-  }
-}
-
 export function EventProvider({ children }) {
-  const { user } = useAuth();
+  const { user, updateProfile: saveProfile } = useAuth();
   const {
     allManagerEvents: managerEvents,
     allManagerRegistrations: managerRegistrations,
+    loadedManagerRegistrations,
     sessions: managerSessions,
     addAttendeeRegistration,
     submitAttendeeFeedback,
     updateRegistration: updateManagerRegistration,
   } = useManager();
-  const [allEvents, setEvents] = useState(() => loadStored(STORAGE_KEYS.EVENTS, []));
-  const [allRegistrations, setRegistrations] = useState(() => loadStored(STORAGE_KEYS.REGISTRATIONS, []));
-  const [allCertificates, setCertificates] = useState(() => loadStored(STORAGE_KEYS.CERTIFICATES, []));
-  const [allNotifications, setNotifications] = useState(() => loadStored(STORAGE_KEYS.NOTIFICATIONS, []));
-  const [userProfile, setUserProfile] = useState(() => blankProfile(null));
+  const { data, setData, loaded, ready } = useServerStore(EVENT_RESOURCES, user?.id || "guest");
+  const {
+    events: allEvents,
+    registrations: allRegistrations,
+    certificates: allCertificates,
+    notifications: allNotifications,
+  } = data;
+  // Setters that work like the old useState setters, one per collection.
+  const { setEvents, setRegistrations, setCertificates, setNotifications } = useMemo(() => {
+    const setter = (key) => (update) => setData((current) => ({
+      ...current,
+      [key]: typeof update === "function" ? update(current[key]) : update,
+    }));
+    return {
+      setEvents: setter("events"),
+      setRegistrations: setter("registrations"),
+      setCertificates: setter("certificates"),
+      setNotifications: setter("notifications"),
+    };
+  }, [setData]);
+  const userProfile = useMemo(() => blankProfile(user), [user]);
 
   const events = useMemo(() => {
     const publicStatus = {
@@ -84,7 +96,7 @@ export function EventProvider({ children }) {
           time: `${event.startTime} - ${event.endTime}`,
           location: event.venue.toUpperCase(),
           fullLocation: event.venue,
-          registered: managerRegistrations.filter((registration) => registration.eventId === event.id && registration.status === "Confirmed").length,
+          registered: liveRegisteredCount(event, loadedManagerRegistrations, managerRegistrations),
           speakers,
           agenda: sessions.map((session) => ({
             time: `${session.startTime} - ${session.endTime}`,
@@ -101,10 +113,10 @@ export function EventProvider({ children }) {
       .filter((event) => ["REGISTRATION OPEN", "OPENS SOON", "COMPLETED"].includes(event.status))
       .map((event) => ({
         ...event,
-        registered: allRegistrations.filter((registration) => registration.eventId === event.id && registration.status === "Confirmed").length,
+        registered: liveRegisteredCount(event, loaded.registrations, allRegistrations),
       }));
     return [...new Map([...managerEventRows, ...localEventRows].map((event) => [event.id, event])).values()];
-  }, [allEvents, allRegistrations, managerEvents, managerRegistrations, managerSessions]);
+  }, [allEvents, allRegistrations, loaded.registrations, loadedManagerRegistrations, managerEvents, managerRegistrations, managerSessions]);
   const registrations = useMemo(
     () => [
       ...allRegistrations.filter((registration) => belongsToUser(registration, user)),
@@ -121,28 +133,11 @@ export function EventProvider({ children }) {
     [allNotifications, user]
   );
 
+  // Issue certificates for attended, completed events. Waits for the server data so it never
+  // duplicates a certificate that already exists. Managers cannot issue certificates.
+  const canIssueCertificates = ready && ["user", "admin"].includes(user?.role);
   useEffect(() => {
-    setUserProfile(blankProfile(user));
-  }, [user]);
-
-  // Sync to localStorage
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(allEvents));
-  }, [allEvents]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.REGISTRATIONS, JSON.stringify(allRegistrations));
-  }, [allRegistrations]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.CERTIFICATES, JSON.stringify(allCertificates));
-  }, [allCertificates]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(allNotifications));
-  }, [allNotifications]);
-
-  useEffect(() => {
+    if (!canIssueCertificates) return;
     const completedEventIds = new Set([
       ...managerEvents.filter((event) => event.status === "Completed").map((event) => event.id),
       ...allEvents.filter((event) => ["Completed", "COMPLETED"].includes(event.status)).map((event) => event.id),
@@ -160,7 +155,7 @@ export function EventProvider({ children }) {
         const now = new Date();
         const credentialId = `CERT-NU-${now.getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
         return {
-          id: `cert-${Date.now()}-${registration.userId}`,
+          id: newId("cert"),
           userId: registration.userId,
           credentialId,
           eventId: registration.eventId,
@@ -182,24 +177,7 @@ export function EventProvider({ children }) {
         return additions.length ? [...additions, ...current] : current;
       });
     }
-  }, [allCertificates, allEvents, allRegistrations, managerEvents, managerRegistrations]);
-
-  useEffect(() => {
-    const availableEvents = [...allEvents, ...managerEvents];
-    const eventIds = new Set(availableEvents.map((event) => event.id));
-    const eventTitles = availableEvents.map((event) => event.title).filter(Boolean);
-    setNotifications((current) => {
-      const filtered = current.filter((notification) => {
-        if (notification.eventId) return eventIds.has(notification.eventId);
-        const eventSpecific = ["registration", "attendance", "certificate", "feedback"].includes(notification.type) ||
-          /^(Registration Confirmed|Registration Cancelled|Checked In:|Feedback Received:)/.test(notification.title || "");
-        if (!eventSpecific) return true;
-        const content = `${notification.title || ""} ${notification.message || ""}`;
-        return eventTitles.some((title) => content.includes(title));
-      });
-      return filtered.length === current.length ? current : filtered;
-    });
-  }, [allEvents, managerEvents]);
+  }, [allCertificates, allEvents, allRegistrations, canIssueCertificates, managerEvents, managerRegistrations, setCertificates]);
 
   // Check if current user is registered for an event
   const isEventRegistered = useCallback(
@@ -231,11 +209,8 @@ export function EventProvider({ children }) {
         };
       }
 
-      const confirmedCount = [
-        ...allRegistrations,
-        ...managerRegistrations,
-      ].filter((r) => r.eventId === eventId && r.status === "Confirmed").length;
-      if (confirmedCount >= targetEvent.capacity) {
+      // targetEvent.registered counts every attendee (from the server), not only this user.
+      if (targetEvent.registered >= targetEvent.capacity) {
         return { success: false, message: "Sorry, this event has reached maximum capacity." };
       }
 
@@ -246,7 +221,7 @@ export function EventProvider({ children }) {
       } · Seat ${Math.floor(Math.random() * 30) + 1}`;
 
       const newRegistration = {
-        id: `reg-${Date.now()}`,
+        id: newId("reg"),
         userId: user.id,
         eventId: targetEvent.id,
         eventTitle: targetEvent.title,
@@ -274,14 +249,9 @@ export function EventProvider({ children }) {
         setRegistrations((prev) => [newRegistration, ...prev]);
       }
 
-      // Increment event registration count
-      if (!managerEvents.some((event) => event.id === eventId)) {
-        setEvents((prev) => prev.map((ev) => (ev.id === eventId ? { ...ev, registered: ev.registered + 1 } : ev)));
-      }
-
       // Add notification
       const newNotif = {
-        id: `notif-${Date.now()}`,
+        id: newId("notif"),
         userId: user.id,
         eventId: targetEvent.id,
         type: "registration",
@@ -296,7 +266,7 @@ export function EventProvider({ children }) {
 
       return { success: true, registration: newRegistration };
     },
-    [allRegistrations, addAttendeeRegistration, events, managerEvents, managerRegistrations, registrations, userProfile, user]
+    [addAttendeeRegistration, events, managerEvents, registrations, setNotifications, setRegistrations, userProfile, user]
   );
 
   // Cancel an existing registration
@@ -309,19 +279,10 @@ export function EventProvider({ children }) {
       if (managerRegistrations.some((item) => item.id === registrationId)) updateManagerRegistration(registrationId, patch);
       else setRegistrations((prev) => prev.map((item) => item.id === registrationId ? { ...item, ...patch } : item));
 
-      // Decrement event registered count if it was confirmed
-      if (reg.status === "Confirmed") {
-        setEvents((prev) =>
-          prev.map((ev) =>
-            ev.id === reg.eventId ? { ...ev, registered: Math.max(0, ev.registered - 1) } : ev
-          )
-        );
-      }
-
       // Add cancellation notification
       setNotifications((prev) => [
         {
-          id: `notif-${Date.now()}`,
+          id: newId("notif"),
           userId: user?.id,
           eventId: reg.eventId,
           type: "reminder",
@@ -337,7 +298,7 @@ export function EventProvider({ children }) {
 
       return true;
     },
-    [managerRegistrations, registrations, updateManagerRegistration, user]
+    [managerRegistrations, registrations, setNotifications, setRegistrations, updateManagerRegistration, user]
   );
 
   // Simulate attendee check-in
@@ -356,7 +317,7 @@ export function EventProvider({ children }) {
       // Add notifications
       setNotifications((prev) => [
         {
-          id: `notif-${Date.now()}-1`,
+          id: newId("notif"),
           userId: reg.userId,
           eventId: reg.eventId,
           type: "attendance",
@@ -372,7 +333,7 @@ export function EventProvider({ children }) {
 
       return true;
     },
-    [managerRegistrations, registrations, updateManagerRegistration]
+    [managerRegistrations, registrations, setNotifications, setRegistrations, updateManagerRegistration]
   );
 
   const completeAttendance = useCallback(
@@ -387,7 +348,7 @@ export function EventProvider({ children }) {
 
       return true;
     },
-    [allEvents, managerEvents, managerRegistrations, registrations, updateManagerRegistration]
+    [allEvents, managerEvents, managerRegistrations, registrations, setRegistrations, updateManagerRegistration]
   );
 
   // Submit post-event feedback
@@ -412,7 +373,7 @@ export function EventProvider({ children }) {
         if (managerRegistrations.some((item) => item.id === registrationId)) submitAttendeeFeedback(registrationId, feedbackData);
         setNotifications((prev) => [
           {
-            id: `notif-${Date.now()}`,
+            id: newId("notif"),
             userId: reg.userId,
             eventId: reg.eventId,
             type: "feedback",
@@ -429,63 +390,61 @@ export function EventProvider({ children }) {
 
       return true;
     },
-    [managerRegistrations, registrations, submitAttendeeFeedback]
+    [managerRegistrations, registrations, setNotifications, setRegistrations, submitAttendeeFeedback]
   );
 
   // Notification actions
   const markNotificationRead = useCallback((notifId) => {
     setNotifications((prev) => prev.map((n) => (n.id === notifId ? { ...n, read: true } : n)));
-  }, []);
+  }, [setNotifications]);
 
   const markAllNotificationsRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, []);
+    setNotifications((prev) => prev.map((n) => (n.read ? n : { ...n, read: true })));
+  }, [setNotifications]);
 
-  // Profile update
+  // Profile update: saved to the user's document in MongoDB. Returns a promise.
   const updateProfile = useCallback((patch) => {
-    setUserProfile((prev) => ({ ...prev, ...patch }));
-  }, []);
+    const fields = ["name", "email", "studentId", "department", "program", "yearLevel", "phone", "avatar"];
+    return saveProfile(Object.fromEntries(fields.filter((key) => key in patch).map((key) => [key, patch[key]])));
+  }, [saveProfile]);
 
+  // Admin "reset": deletes these records from the database (the sync sends the deletes).
   const resetToDefaultSeed = useCallback(() => {
-    setEvents([]);
-    setRegistrations([]);
-    setCertificates([]);
-    setNotifications([]);
-    setUserProfile(blankProfile(user));
-  }, [user]);
+    setData({ events: [], registrations: [], certificates: [], notifications: [] });
+  }, [setData]);
 
   const updateEvent = useCallback((eventId, patch) => {
     setEvents((current) => current.map((event) => event.id === eventId ? { ...event, ...patch } : event));
-  }, []);
+  }, [setEvents]);
 
   const addEvent = useCallback((event) => {
     setEvents((current) => [event, ...current]);
-  }, []);
+  }, [setEvents]);
 
   const deleteEvent = useCallback((eventId) => {
     setEvents((current) => current.filter((event) => event.id !== eventId));
     setRegistrations((current) => current.filter((registration) => registration.eventId !== eventId));
     setCertificates((current) => current.filter((certificate) => certificate.eventId !== eventId));
     setNotifications((current) => current.filter((notification) => notification.eventId !== eventId));
-  }, []);
+  }, [setCertificates, setEvents, setNotifications, setRegistrations]);
 
   const deleteCertificate = useCallback((certificateId) => {
     setCertificates((current) => current.filter((certificate) => certificate.id !== certificateId));
-  }, []);
+  }, [setCertificates]);
 
   const updateRegistration = useCallback((registrationId, patch) => {
     setRegistrations((current) => current.map((registration) => registration.id === registrationId
       ? { ...registration, ...patch }
       : registration));
-  }, []);
+  }, [setRegistrations]);
 
   const addRegistration = useCallback((registration) => {
     setRegistrations((current) => [registration, ...current]);
-  }, []);
+  }, [setRegistrations]);
 
   const deleteRegistration = useCallback((registrationId) => {
     setRegistrations((current) => current.filter((registration) => registration.id !== registrationId));
-  }, []);
+  }, [setRegistrations]);
 
   return (
     <EventContext.Provider

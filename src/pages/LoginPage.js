@@ -115,9 +115,6 @@ export default function LoginPage() {
               {mode === "signin" ? "WELCOME BACK" : "CREATE YOUR ACCOUNT"}
             </h2>
 
-            <p className="auth-card__error" role="status">
-              Sign-in and account creation are temporarily unavailable while backend authentication is being configured.
-            </p>
             {formError && <p className="auth-card__error">{formError}</p>}
 
             <form onSubmit={handleSubmit} noValidate>

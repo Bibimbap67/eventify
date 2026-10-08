@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAdmin } from "../../context/AdminContext.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { FormField, ConfirmModal, StatusBadge } from "../../components/admin/ui.js";
@@ -14,7 +14,7 @@ const TIMEZONES = [
 
 export default function SettingsPage() {
   const { db, settings, updateSettings, clearAuditLogs, logAction, toast } = useAdmin();
-  const { user } = useAuth();
+  const { user, changePassword } = useAuth();
 
   const [activeTab, setActiveTab] = useState("general");
   const [form, setForm] = useState({ ...settings });
@@ -33,6 +33,11 @@ export default function SettingsPage() {
   };
 
   // Save settings handler
+  // Show the saved settings once they load from the server.
+  useEffect(() => {
+    setForm({ ...settings });
+  }, [settings]);
+
   const handleSave = (e) => {
     e.preventDefault();
     updateSettings({
@@ -44,7 +49,7 @@ export default function SettingsPage() {
   };
 
   // Change password handler
-  const handlePasswordChange = (e) => {
+  const handlePasswordChange = async (e) => {
     e.preventDefault();
     setPassError("");
 
@@ -61,6 +66,12 @@ export default function SettingsPage() {
       return;
     }
 
+    try {
+      await changePassword(passwords.current, passwords.newPass);
+    } catch (err) {
+      setPassError(err.message);
+      return;
+    }
     logAction("Changed admin password", user?.email || "Admin");
     toast("Password updated successfully.");
     setPasswords({ current: "", newPass: "", confirmPass: "" });

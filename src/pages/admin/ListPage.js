@@ -157,7 +157,7 @@ const PAGES = (c) => ({
     getItemLabel: (r) => r.name,
     form: {
       createLabel: "+ Add User",
-      defaults: { name: "", email: "", role: "Attendee", status: "Active" },
+      defaults: { name: "", email: "", password: "", role: "Attendee", status: "Active" },
       fields: [
         { key: "name", label: "FULL NAME", type: "text", required: true },
         {
@@ -168,10 +168,18 @@ const PAGES = (c) => ({
           validate: (v) => (/\S+@\S+\.\S+/.test(v) ? null : "Valid email required."),
         },
         {
+          key: "password",
+          label: "TEMPORARY PASSWORD",
+          type: "password",
+          required: true,
+          createOnly: true,
+          validate: (v) => (v.length >= 6 ? null : "Use at least 6 characters."),
+        },
+        {
           key: "role",
           label: "ROLE",
           type: "select",
-          options: ["Admin", "Event Manager", "Staff", "Attendee"],
+          options: ["Admin", "Event Manager", "Attendee"],
           required: true,
         },
         {
@@ -496,6 +504,7 @@ export default function ListPage() {
 
   const cfg = PAGES(ctx)[page];
   if (!cfg) return <Navigate to="/admin" replace />;
+  const formFields = (cfg.form?.fields || []).filter((field) => editingItem === "new" || !field.createOnly);
 
   const isAttendance = page === "attendance";
   const opts = isAttendance
@@ -550,7 +559,7 @@ export default function ListPage() {
   function openEdit(record) {
     const initial = {};
     if (cfg.form?.fields) {
-      cfg.form.fields.forEach((fld) => {
+      cfg.form.fields.filter((fld) => !fld.createOnly).forEach((fld) => {
         initial[fld.key] = record[fld.key] !== undefined ? String(record[fld.key]) : "";
       });
     }
@@ -571,7 +580,7 @@ export default function ListPage() {
   function validateForm() {
     if (!cfg.form?.fields) return true;
     const errs = {};
-    cfg.form.fields.forEach((field) => {
+    formFields.forEach((field) => {
       const val = formData[field.key];
       if (field.required && (val === undefined || val === null || String(val).trim() === "")) {
         errs[field.key] = "Required.";
@@ -717,7 +726,7 @@ export default function ListPage() {
           onClose={() => setEditingItem(null)}
         >
           <form onSubmit={handleSave} noValidate>
-            {cfg.form?.fields.map((field) => {
+            {formFields.map((field) => {
               if (field.type === "select") {
                 return (
                   <FormField key={field.key} label={field.label} error={errors[field.key]}>

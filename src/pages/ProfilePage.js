@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar.js";
 import Icon from "../components/Icon.js";
 import { useEventContext } from "../context/EventContext.js";
@@ -8,18 +8,31 @@ export default function ProfilePage() {
 
   const [form, setForm] = useState({ ...userProfile });
   const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
+
+  // Show the saved profile once it loads (or after saving).
+  useEffect(() => {
+    if (!isEditing) setForm({ ...userProfile });
+  }, [isEditing, userProfile]);
 
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(""), 3000);
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    updateProfile(form);
-    setIsEditing(false);
-    showToast("Profile changes are temporary until backend saving is connected.");
+    setSaving(true);
+    try {
+      await updateProfile(form);
+      setIsEditing(false);
+      showToast("Profile saved.");
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const confirmedCount = registrations.filter((r) => r.status === "Confirmed").length;
@@ -197,8 +210,8 @@ export default function ProfilePage() {
               >
                 Cancel
               </button>
-              <button type="submit" className="btn-sm btn-sm--yellow">
-                Save Profile Changes
+              <button type="submit" className="btn-sm btn-sm--yellow" disabled={saving}>
+                {saving ? "Saving..." : "Save Profile Changes"}
               </button>
             </div>
           </form>

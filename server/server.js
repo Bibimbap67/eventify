@@ -1,34 +1,40 @@
+require("dotenv").config();
 const express = require("express");
-const mongoose = require("mongoose");
 const cors = require("cors");
-const userRoutes = require('./routes/userRoutes');
+const connectDB = require("./config/db");
+const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
+const dataRoutes = require("./routes/dataRoutes");
+
+if (!process.env.JWT_SECRET) {
+  console.error("JWT_SECRET is not set. Copy server/.env.example to server/.env and fill it in.");
+  process.exit(1);
+}
+
 const app = express();
-app.use(cors());
+app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:3000" }));
+app.use(express.json({ limit: "2mb" }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-mongoose.connect("mongodb://localhost:27017/test");
+app.get("/api/health", (req, res) => res.json({ ok: true }));
+app.use("/api/auth", authRoutes);
 app.use("/api", userRoutes);
+app.use("/api", dataRoutes);
 
-const { faker } = require("@faker-js/faker");
+app.use((req, res) => res.status(404).json({ message: "Route not found." }));
 
-app.listen(3000, () => {
-  console.log("Server is running on http://localhost:3000");
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ message: "Internal server error." });
 });
 
-// app.get("/api/tryserver", (req, res) => {
-//     res.json({ message: "Test api" });
-// });
+const PORT = process.env.PORT || 5000;
 
-// app.get("/api/showperson", (req, res ) => {
-//     res.json ({
-//         firstName: faker.name.firstName(),
-//         lastName: faker.name.lastName(),
-//         email: faker.internet.email()
-//     })
-// })
-
-// app.get("/api/fiend", (req, res) => {
-//     res.json({ fiend })
-// })
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
+  })
+  .catch((err) => {
+    console.error("Failed to connect to MongoDB:", err.message);
+    process.exit(1);
+  });

@@ -2,22 +2,36 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { useAuth } from "./AuthContext.js";
 import { useEventContext } from "./EventContext.js";
 import { useManager } from "./ManagerContext.js";
+import { api, newId } from "../api.js";
+import { useServerStore } from "./useServerStore.js";
 
 const Ctx = createContext(null);
 
-const ADMIN_DATA_KEY = "eventify_admin_data_v3";
-const ADMIN_SETTINGS_KEY = "eventify_admin_settings_v3";
+// State key -> MongoDB-backed API resource (see server/controllers/dataController.js).
+const ADMIN_RESOURCES = {
+  venues: "venues",
+  sessions: "sessions",
+  announcements: "announcements",
+  feedback: "feedback",
+  auditLogs: "audit-logs",
+};
 
 function emptyAdminData() {
   return { venues: [], sessions: [], announcements: [], feedback: [], auditLogs: [] };
 }
 
-function loadStored(key, fallback) {
-  try {
-    return JSON.parse(localStorage.getItem(key)) || fallback;
-  } catch {
-    return fallback;
-  }
+// Admin > Users labels <-> the role/status values stored on the user document.
+const ROLE_LABELS = { admin: "Admin", manager: "Event Manager", user: "Attendee" };
+const ROLE_VALUES = Object.fromEntries(Object.entries(ROLE_LABELS).map(([value, label]) => [label, value]));
+
+function toUserPayload(row) {
+  const payload = {};
+  ["name", "email", "password"].forEach((key) => {
+    if (row[key] !== undefined && row[key] !== "") payload[key] = row[key];
+  });
+  if (row.role !== undefined) payload.role = ROLE_VALUES[row.role] || row.role;
+  if (row.status !== undefined) payload.status = String(row.status).toLowerCase();
+  return payload;
 }
 
 const PUBLIC_STATUS = {
@@ -166,19 +180,23 @@ export const initialSettings = {
 };
 
 export function AdminProvider({ children }) {
-  const { user, accounts } = useAuth();
+  const { user, accounts, createAccount, updateAccount, deleteAccount } = useAuth();
   const manager = useManager();
   const {
     allEvents, allRegistrations, allCertificates,
     updateEvent, addEvent, deleteEvent, deleteCertificate, updateRegistration, addRegistration, deleteRegistration,
     resetToDefaultSeed,
   } = useEventContext();
-  const [collections, setCollections] = useState(() => loadStored(ADMIN_DATA_KEY, emptyAdminData()));
-  const [settings, setSettings] = useState(() => loadStored(ADMIN_SETTINGS_KEY, initialSettings));
+  const { data: collections, setData: setCollections } = useServerStore(ADMIN_RESOURCES, user?.id || "guest");
+  const [settings, setSettings] = useState(initialSettings);
   const [toastMsg, setToastMsg] = useState("");
 
-  useEffect(() => localStorage.setItem(ADMIN_DATA_KEY, JSON.stringify(collections)), [collections]);
-  useEffect(() => localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(settings)), [settings]);
+  // Settings live in one MongoDB document; the defaults apply until an admin saves once.
+  useEffect(() => {
+    api("/settings")
+      .then((res) => setSettings({ ...initialSettings, ...res.settings }))
+      .catch(() => {});
+  }, []);
 
   const db = {
     ...collections,
@@ -186,8 +204,8 @@ export function AdminProvider({ children }) {
     registrations: [...allRegistrations, ...manager.allManagerRegistrations].map(toAdminRegistration),
     users: accounts.map((account) => ({
       ...account,
-      status: "Active",
-      role: account.role === "admin" ? "Admin" : account.role === "manager" ? "Event Manager" : "Attendee",
+      status: account.status === "inactive" ? "Inactive" : "Active",
+      role: ROLE_LABELS[account.role] || "Attendee",
     })),
     certificates: allCertificates.map((certificate) => ({
       ...certificate,
@@ -202,6 +220,10 @@ export function AdminProvider({ children }) {
   }, []);
 
   const update = useCallback((coll, id, patch) => {
+    if (coll === "users") {
+      updateAccount(id, toUserPayload(patch)).catch((err) => toast(err.message));
+      return;
+    }
     if (coll === "events") {
       if (manager.allManagerEvents.some((event) => event.id === id)) {
         manager.updateEvent(id, toManagerEventPatch(patch, collections.venues));
@@ -228,10 +250,14 @@ export function AdminProvider({ children }) {
       ...current,
       [coll]: (current[coll] || []).map((record) => record.id === id ? { ...record, ...patch } : record),
     }));
-  }, [collections.venues, manager, updateEvent, updateRegistration]);
+  }, [collections.venues, manager, setCollections, toast, updateAccount, updateEvent, updateRegistration]);
 
   const add = useCallback((coll, row) => {
-    const id = row.id || `${coll[0]}${Date.now()}`;
+    if (coll === "users") {
+      createAccount(toUserPayload(row)).catch((err) => toast(err.message));
+      return row;
+    }
+    const id = row.id || newId(coll);
     const newRecord = { ...row, id };
     if (coll === "events") {
       addEvent(makePublicEvent(newRecord, collections.venues));
@@ -252,9 +278,13 @@ export function AdminProvider({ children }) {
       }));
     }
     return newRecord;
-  }, [accounts, addEvent, addRegistration, allEvents, collections.venues]);
+  }, [accounts, addEvent, addRegistration, allEvents, collections.venues, createAccount, setCollections, toast]);
 
   const remove = useCallback((coll, id) => {
+    if (coll === "users") {
+      deleteAccount(id).catch((err) => toast(err.message));
+      return;
+    }
     if (coll === "events") {
       if (manager.allManagerEvents.some((event) => event.id === id)) manager.deleteEvent(id);
       deleteEvent(id);
@@ -274,7 +304,7 @@ export function AdminProvider({ children }) {
       ...current,
       [coll]: (current[coll] || []).filter((record) => record.id !== id),
     }));
-  }, [deleteCertificate, deleteEvent, deleteRegistration, manager]);
+  }, [deleteAccount, deleteCertificate, deleteEvent, deleteRegistration, manager, setCollections, toast]);
 
   const logAction = useCallback((action, record, admin = "System") => {
     const now = new Date();
@@ -285,7 +315,7 @@ export function AdminProvider({ children }) {
       ...current,
       auditLogs: [
         {
-          id: `l${Date.now()}`,
+          id: newId("log"),
           action,
           admin: user?.name || admin,
           record: String(record || "System"),
@@ -294,21 +324,26 @@ export function AdminProvider({ children }) {
         ...(current.auditLogs || []),
       ],
     }));
-  }, [user]);
+  }, [setCollections, user]);
+
+  const saveSettings = useCallback((next) => {
+    setSettings(next);
+    api("/settings", { method: "PUT", body: next }).catch((err) => toast(err.message));
+  }, [toast]);
 
   const updateSettings = useCallback((patch) => {
-    setSettings((s) => ({ ...s, ...patch }));
-  }, []);
+    saveSettings({ ...settings, ...patch });
+  }, [saveSettings, settings]);
 
   const resetDb = useCallback(() => {
     resetToDefaultSeed();
     setCollections(emptyAdminData());
-    setSettings(initialSettings);
-  }, [resetToDefaultSeed]);
+    saveSettings(initialSettings);
+  }, [resetToDefaultSeed, saveSettings, setCollections]);
 
   const clearAuditLogs = useCallback(() => {
     setCollections((current) => ({ ...current, auditLogs: [] }));
-  }, []);
+  }, [setCollections]);
 
   const venueName = useCallback(
     (id, eventId) => db.venues.find((v) => v.id === id)?.name || db.events.find((event) => event.id === eventId)?.venue || "—",
