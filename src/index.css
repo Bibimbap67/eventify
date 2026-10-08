@@ -99,17 +99,6 @@ textarea {
   box-shadow: 0 0 0 6px var(--focus-halo);
 }
 
-/* 44px minimum touch targets on touch screens; desktop keeps the dense admin layout. */
-@media (pointer: coarse) {
-  .btn-sm, .icon-btn, .manager-button, .manager-close, .manager-sidebar__foot button,
-  .tab-btn, .filter-btn, .day-tab-btn, .settings-tab, .category-pill, .navbar__icon-btn,
-  .navbar__avatar-btn, .navbar__burger-btn, .manager-menu-toggle, .star-btn, .sound-toggle,
-  .notif-dropdown__mark-btn, .btn-reset-filters, .explore-search-clear, .manager-text-button {
-    min-height: 44px;
-    min-width: 44px;
-  }
-}
-
 /* ---------- Layout ---------- */
 
 .auth-page {
@@ -2969,4 +2958,22 @@ textarea.input {
   .landing-steps__list, .landing-roles__list { grid-template-columns: 1fr; }
   .landing-roles__list li { padding: var(--space-4) 0; border-left: 0; border-top: 2px solid var(--line); }
   .landing-roles__list li:first-child { border-top: 0; }
+}
+
+/* 44px minimum touch targets on touch screens; desktop keeps the dense admin layout.
+   Last in the file so it wins over the compact sizes above. */
+@media (pointer: coarse) {
+  .btn-sm, .icon-btn, .manager-button, .manager-close, .manager-sidebar__foot button,
+  .tab-btn, .filter-btn, .day-tab-btn, .settings-tab, .category-pill, .navbar__icon-btn,
+  .navbar__avatar-btn, .navbar__burger-btn, .manager-menu-toggle, .star-btn, .sound-toggle,
+  .notif-dropdown__mark-btn, .btn-reset-filters, .explore-search-clear, .manager-text-button,
+  .manager-nav__link, .sidebar__link, select, input:not([type="checkbox"]):not([type="radio"]),
+  .control-item select, .manager-toolbar select, .manager-toolbar input {
+    min-height: 44px;
+  }
+
+  .icon-btn, .navbar__icon-btn, .navbar__burger-btn, .manager-menu-toggle, .manager-close,
+  .manager-sidebar__foot button, .star-btn, .sound-toggle {
+    min-width: 44px;
+  }
 }
