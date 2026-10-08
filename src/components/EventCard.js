@@ -3,8 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { useEventContext } from "../context/EventContext.js";
 import Icon from "./Icon.js";
 
-export default function EventCard({ event }) {
+// Top-band colors. Cards cycle through them by position so neighbours never match.
+const CARD_ACCENTS = [
+  "var(--color-pink)",
+  "var(--color-sky)",
+  "var(--color-yellow)",
+  "var(--color-violet)",
+  "var(--color-mint)",
+];
+
+export default function EventCard({ event, accentIndex }) {
   const navigate = useNavigate();
+  const accent = accentIndex === undefined ? event.accent : CARD_ACCENTS[accentIndex % CARD_ACCENTS.length];
   const { isEventRegistered } = useEventContext();
   const eventPath = "/events/" + event.id;
 
@@ -37,7 +47,7 @@ export default function EventCard({ event }) {
   return (
     <article
       className="event-card"
-      style={{ "--accent": event.accent }}
+      style={{ "--accent": accent }}
       onClick={handleCardClick}
       aria-label={`View event details for ${event.title}`}
       role="button"

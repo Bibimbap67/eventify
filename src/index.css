@@ -2816,7 +2816,7 @@ textarea.input {
   --btn-face: var(--color-yellow);
   --btn-ink: var(--color-black);
   --btn-line: var(--color-black);
-  --btn-shadow: var(--color-cream);
+  --btn-shadow: var(--color-black);
   position: relative;
   isolation: isolate;
   display: inline-flex;
@@ -2863,14 +2863,9 @@ textarea.input {
 
 .landing-btn:active { transform: translate(5px, 5px); transition-duration: var(--duration-press); }
 .landing-btn:active::before { transform: translate(0, 0); transition-duration: var(--duration-press); }
-.landing-btn:focus-visible { outline: 3px solid var(--color-yellow); outline-offset: 5px; }
+.landing-btn:focus-visible { outline: 3px solid var(--color-black); outline-offset: 5px; }
 
-.landing-btn--ghost {
-  --btn-face: var(--color-black);
-  --btn-ink: var(--color-cream);
-  --btn-line: var(--color-cream);
-  --btn-shadow: var(--color-yellow);
-}
+.landing-btn--ghost { --btn-face: var(--color-white); }
 
 .landing-btn--dark {
   --btn-face: var(--color-black);
@@ -2883,11 +2878,13 @@ textarea.input {
   --btn-shadow: var(--color-black);
 }
 
-/* Hero */
+/* Hero: sky blue to match the login page (change --landing-hero-bg to recolor it) */
 .landing-hero {
+  --landing-hero-bg: var(--color-sky);
   position: relative;
   overflow: hidden;
-  color: var(--color-cream);
+  color: var(--color-black);
+  background: var(--landing-hero-bg);
 }
 
 .landing-hero__grid {
@@ -2902,8 +2899,8 @@ textarea.input {
 .landing-hero .home-hero__badge { color: var(--color-black); }
 
 .landing-hero .home-hero__title {
-  margin: 20px 0 16px;
-  color: var(--color-cream);
+  margin: 20px 0 22px;
+  color: var(--color-black);
   font-size: clamp(40px, 6vw, 72px);
   line-height: 0.95;
   text-transform: uppercase;
@@ -2911,11 +2908,18 @@ textarea.input {
 }
 
 .landing-hero .home-hero__title:focus { outline: none; }
-.landing-hero .home-hero__title em { font-style: normal; color: var(--color-yellow); }
+.landing-hero .home-hero__title em {
+  padding: 0 0.08em;
+  font-style: normal;
+  background: var(--color-yellow);
+  box-shadow: 5px 5px 0 var(--color-black);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
 
 .landing-hero .home-hero__lead {
   max-width: 36em;
-  color: #d9d4c4;
+  color: #111111;
   font-size: 17px;
   font-weight: 500;
 }
@@ -2923,7 +2927,7 @@ textarea.input {
 .landing-hero .home-search-bar {
   margin-top: 28px;
   color: var(--color-black);
-  box-shadow: 6px 6px 0 var(--color-yellow);
+  box-shadow: 6px 6px 0 var(--color-black);
 }
 
 .landing-hero .home-search-bar__btn { min-width: 120px; }
@@ -2961,13 +2965,13 @@ textarea.input {
 .landing-shape {
   position: absolute;
   display: block;
-  border: var(--border-w) solid var(--color-cream);
+  border: var(--border-w) solid var(--color-black);
   will-change: transform;
 }
 
 .landing-shape--disc { top: -10px; right: -50px; width: 260px; height: 260px; border-radius: 50%; background: var(--color-yellow); }
 .landing-shape--tile { bottom: 0; left: -10px; width: 130px; height: 130px; background: var(--color-pink); }
-.landing-shape--square { top: 24px; left: 36px; width: 84px; height: 84px; background: var(--color-sky); rotate: 12deg; }
+.landing-shape--square { top: 24px; left: 36px; width: 84px; height: 84px; background: var(--color-violet); rotate: 12deg; }
 
 .landing-ticket {
   position: relative;
@@ -2988,7 +2992,7 @@ textarea.input {
 }
 
 .landing-ticket:active { transform: translate(3px, 3px); transition-duration: var(--duration-press); }
-.landing-ticket:focus-visible { outline: 3px solid var(--color-yellow); outline-offset: 6px; }
+.landing-ticket:focus-visible { outline: 3px solid var(--color-black); outline-offset: 6px; }
 
 .landing-ticket__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
@@ -3025,12 +3029,14 @@ textarea.input {
   top: -12px;
   width: 22px;
   height: 22px;
+  border: var(--border-w) solid var(--color-black);
   border-radius: 50%;
-  background: var(--color-black);
+  background: var(--landing-hero-bg);
 }
 
-.landing-ticket__perf::before { left: -14px; }
-.landing-ticket__perf::after { right: -14px; }
+/* Only the half inside the ticket shows, so the notch reads as a cut-out */
+.landing-ticket__perf::before { left: -14px; clip-path: inset(0 0 0 50%); }
+.landing-ticket__perf::after { right: -14px; clip-path: inset(0 50% 0 0); }
 
 .landing-ticket__facts {
   display: grid;

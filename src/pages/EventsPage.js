@@ -227,8 +227,8 @@ export default function EventsPage() {
             </div>
           ) : (
             <div className="events-grid">
-              {filteredEvents.map((event) => (
-                <EventCard key={event.id} event={event} />
+              {filteredEvents.map((event, index) => (
+                <EventCard key={event.id} event={event} accentIndex={index} />
               ))}
             </div>
           )}
