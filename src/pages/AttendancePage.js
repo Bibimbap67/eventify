@@ -26,7 +26,7 @@ export default function AttendancePage() {
   };
 
   const confirmedRegs = registrations.filter((r) => r.status === "Confirmed");
-  const checkedInCount = confirmedRegs.filter((r) => ["Checked In", "Attended"].includes(r.attendanceStatus)).length;
+  const checkedInCount = confirmedRegs.filter((r) => ["checked in", "attended"].includes(r.attendanceStatus?.toLowerCase())).length;
   const pendingCount = confirmedRegs.filter((r) => r.attendanceStatus === "Not Checked In").length;
 
   return (
@@ -83,12 +83,14 @@ export default function AttendancePage() {
                   <div className="attendance-card__status-line">
                     <span
                       className={`sbadge ${
-                        reg.attendanceStatus === "Attended" || reg.attendanceStatus === "Checked In"
+                        reg.attendanceStatus === "Attended"
+                          ? "sbadge--attended"
+                          : reg.attendanceStatus?.toLowerCase() === "checked in"
                           ? "sbadge--checked-in"
-                          : "sbadge--pending"
+                          : "sbadge--not-checked-in"
                       }`}
                     >
-                      {reg.attendanceStatus === "Attended" || reg.attendanceStatus === "Checked In"
+                      {reg.attendanceStatus === "Attended" || reg.attendanceStatus?.toLowerCase() === "checked in"
                         ? "✓ " + reg.attendanceStatus.toUpperCase()
                         : "NOT CHECKED IN"}
                     </span>
@@ -128,7 +130,7 @@ export default function AttendancePage() {
                     >
                       ✓ Check In
                     </button>
-                  ) : reg.attendanceStatus === "Checked In" && events.find((event) => event.id === reg.eventId)?.status === "COMPLETED" ? (
+                  ) : reg.attendanceStatus?.toLowerCase() === "checked in" && events.find((event) => event.id === reg.eventId)?.status === "COMPLETED" ? (
                     <button
                       type="button"
                       className="btn-sm btn-sm--blue"
@@ -136,7 +138,7 @@ export default function AttendancePage() {
                     >
                       Mark attendance complete
                     </button>
-                  ) : reg.attendanceStatus === "Checked In" ? (
+                  ) : reg.attendanceStatus?.toLowerCase() === "checked in" ? (
                     <button type="button" className="btn-sm" disabled>Awaiting event completion</button>
                   ) : (
                     <Link to="/certificates" className="btn-sm">

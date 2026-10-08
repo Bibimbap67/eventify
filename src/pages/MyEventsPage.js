@@ -118,10 +118,10 @@ export default function MyEventsPage() {
                         <span className="sbadge sbadge--confirmed">CONFIRMED TICKET</span>
                         <span
                           className={`sbadge ${
-                            reg.attendanceStatus === "Checked In" ? "sbadge--checked-in" : "sbadge--pending"
+                            reg.attendanceStatus?.toLowerCase() === "checked in" ? "sbadge--checked-in" : "sbadge--not-checked-in"
                           }`}
                         >
-                          {reg.attendanceStatus === "Checked In" ? "✓ CHECKED IN" : "NOT CHECKED IN"}
+                          {reg.attendanceStatus?.toLowerCase() === "checked in" ? "✓ CHECKED IN" : "NOT CHECKED IN"}
                         </span>
                       </div>
                       <span className="reg-card__code">#{reg.ticketCode}</span>
@@ -158,7 +158,7 @@ export default function MyEventsPage() {
                           <Icon name="ticket" size={16} /> View Digital Pass
                         </button>
 
-                        {reg.attendanceStatus !== "Checked In" ? (
+                        {reg.attendanceStatus?.toLowerCase() !== "checked in" ? (
                           <button
                             type="button"
                             className="btn-sm"

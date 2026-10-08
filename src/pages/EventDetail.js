@@ -134,7 +134,7 @@ export default function EventDetail() {
       <Navbar />
 
       {/* TOP HERO BANNER */}
-      <header className="event-hero-banner" style={{ "--hero-bg": event.heroBg || "var(--color-blue)" }}>
+      <header className="event-hero-banner" style={{ "--hero-bg": event.heroBg || "var(--sky)" }}>
         <div className="event-hero-banner__inner">
           <Link to="/events" className="event-hero__back-link">
             ← Back to all events
