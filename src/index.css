@@ -248,25 +248,6 @@ textarea {
   margin: -6px 0 18px;
 }
 
-.auth-card__divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 22px 0;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  color: var(--ink-2);
-}
-
-.auth-card__divider::before,
-.auth-card__divider::after {
-  content: "";
-  flex: 1;
-  height: 2px;
-  background: var(--color-black);
-}
-
 /* ---------- Tabs ---------- */
 
 .auth-tabs {
@@ -356,38 +337,18 @@ textarea {
 .btn--primary {
   background: var(--color-yellow);
   color: var(--color-black);
-  box-shadow: var(--shadow);
 }
 
 .btn--secondary {
   background: var(--color-white);
   color: var(--color-black);
-  box-shadow: var(--shadow);
 }
 
 .btn__arrow {
-  font-family: var(--font-body);
+  display: inline-flex;
 }
 
 /* ---------- Dashboard placeholder ---------- */
-
-.dashboard {
-  min-height: 100vh;
-  background: var(--color-cream);
-}
-
-.dashboard__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 32px;
-  border-bottom: var(--border-w) solid var(--color-black);
-  background: var(--color-white);
-}
-
-.dashboard__header .btn {
-  width: auto;
-}
 
 .dashboard__body {
   padding: 64px 32px;
@@ -421,7 +382,6 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 40px;
   background: var(--color-cream);
   border-bottom: var(--border-w) solid var(--color-black);
 }
@@ -434,7 +394,6 @@ textarea {
 .navbar__links {
   display: flex;
   align-items: center;
-  gap: 24px;
 }
 
 .navbar__link {
@@ -461,16 +420,6 @@ textarea {
   padding: 8px 14px;
 }
 
-.navbar__cta {
-  font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 14px;
-  background: var(--color-yellow);
-  border: var(--border-w) solid var(--color-black);
-  padding: 9px 18px;
-  cursor: pointer;
-}
-
 @media (max-width: 720px) {
   .navbar {
     flex-wrap: wrap;
@@ -491,12 +440,6 @@ textarea {
 
 /* ---------- Events hero / listing ---------- */
 
-.events-hero {
-  padding: 48px 40px 80px;
-  max-width: 1180px;
-  margin: 0 auto;
-}
-
 .events-hero__eyebrow {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
@@ -506,56 +449,10 @@ textarea {
   font-weight: 700;
 }
 
-.events-hero__row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
-}
-
-.events-hero__title {
-  font-family: var(--font-display);
-  font-size: clamp(36px, 6vw, 64px);
-  margin: 0;
-  text-transform: uppercase;
-  line-height: 1;
-}
-
-.events-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--color-white);
-  border: var(--border-w) solid var(--color-black);
-  padding: 12px 16px;
-  min-width: 260px;
-}
-
-.events-search input {
-  border: none;
-  outline: none;
-  font-size: 14px;
-  width: 100%;
-  background: transparent;
-}
-
-.events-hero__rule {
-  height: var(--border-w);
-  background: var(--color-black);
-  margin: 28px 0 40px;
-}
-
 .events-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 32px;
-}
-
-.events-empty {
-  font-family: var(--font-mono);
-  font-size: 14px;
-  grid-column: 1 / -1;
 }
 
 /* ---------- Event card ---------- */
@@ -1469,7 +1366,6 @@ textarea {
 }
 
 .icon-btn {
-  background: none;
   border: 2px solid var(--color-black);
   width: 34px;
   height: 34px;
@@ -1898,7 +1794,7 @@ textarea.input {
 
 /* Pressables: lift on hover, sink into their own shadow on press (the brutalist "click"). */
 
-.btn, .btn-sm, .navbar__cta, .navbar__pill, .icon-btn, .manager-button, .manager-close,
+.btn, .btn-sm, .navbar__pill, .icon-btn, .manager-button, .manager-close,
 .btn-ticket-register, .event-hero__back-link, .tab-btn, .filter-btn, .day-tab-btn, .settings-tab,
 .category-pill, .navbar__icon-btn, .navbar__avatar-btn, .navbar__burger-btn, .manager-menu-toggle,
 .manager-sidebar__foot button, .star-btn, .sound-toggle {
@@ -1928,7 +1824,7 @@ textarea.input {
 .manager-topbar__sound + .manager-topbar__date { margin-left: 0; }
 
 @media (hover: hover) and (pointer: fine) {
-  :is(.btn, .btn-sm, .navbar__cta, .navbar__pill, .icon-btn, .manager-button, .manager-close,
+  :is(.btn, .btn-sm, .navbar__pill, .icon-btn, .manager-button, .manager-close,
   .btn-ticket-register, .event-hero__back-link, .tab-btn, .filter-btn, .day-tab-btn, .settings-tab,
   .category-pill, .navbar__icon-btn, .navbar__avatar-btn, .navbar__burger-btn, .manager-menu-toggle,
   .manager-sidebar__foot button, .star-btn, .sound-toggle):hover:not(:disabled) {
@@ -1937,7 +1833,7 @@ textarea.input {
   }
 }
 
-:is(.btn, .btn-sm, .navbar__cta, .navbar__pill, .icon-btn, .manager-button, .manager-close,
+:is(.btn, .btn-sm, .navbar__pill, .icon-btn, .manager-button, .manager-close,
 .btn-ticket-register, .event-hero__back-link, .tab-btn, .filter-btn, .day-tab-btn, .settings-tab,
 .category-pill, .navbar__icon-btn, .navbar__avatar-btn, .navbar__burger-btn, .manager-menu-toggle,
 .manager-sidebar__foot button, .star-btn, .sound-toggle):active:not(:disabled) {
@@ -1952,7 +1848,6 @@ textarea.input {
 
 .btn:focus-visible,
 .btn-sm:focus-visible,
-.navbar__cta:focus-visible,
 .navbar__pill:focus-visible,
 .icon-btn:focus-visible {
   outline: 3px solid var(--focus);
@@ -1994,16 +1889,14 @@ textarea.input {
 /* Inputs */
 
 .field__input,
-.input,
-.events-search {
+.input {
   transition:
     box-shadow var(--duration-press) var(--ease-out),
     transform var(--duration-press) var(--ease-out);
 }
 
 .field__input:focus,
-.input:focus,
-.events-search:focus-within {
+.input:focus {
   outline: none;
   transform: translate(-2px, -2px);
   box-shadow: 4px 4px 0 var(--focus);
@@ -2389,8 +2282,7 @@ textarea.input {
 .section-head__eyebrow { font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 800; letter-spacing: 0.08em; color: var(--danger-ink); }
 .section-head__title { margin: 5px 0 0; font-family: var(--font-display); font-size: clamp(24px, 3vw, 36px); line-height: 1; }
 .section-head__note { font-size: 13px; color: var(--ink-2); }
-.featured-events-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-.featured-card-wrapper .event-card { height: 100%; }
+
 .event-card__action { display: flex; align-items: center; gap: 6px; margin-top: 14px; padding-top: 12px; border-top: 2px solid var(--color-black); font-family: var(--font-display); font-size: 12px; }
 .home-footer { background: var(--color-black); color: var(--color-white); }
 .home-footer__inner { display: flex; justify-content: space-between; gap: 30px; padding: 34px 0; }
@@ -2458,8 +2350,7 @@ textarea.input {
 .reg-card__footer { margin-top: 14px; }
 .reg-card__feedback-summary { margin-top: 14px; padding: 10px 12px; border: 2px solid var(--color-black); background: #fffbe6; font-size: 13px; }
 .reg-card__feedback-summary p { margin: 7px 0 0; color: var(--ink-2); }
-.feedback-done-chip, .checkin-confirmed-badge { padding: 7px 10px; color: var(--color-black); background: var(--success-bg); border: 2px solid var(--color-black); font-family: var(--font-mono); font-size: 11px; font-weight: 800; }
-.checkin-confirmed-badge { background: var(--info-bg); }
+.feedback-done-chip { padding: 7px 10px; color: var(--color-black); background: var(--success-bg); border: 2px solid var(--color-black); font-family: var(--font-mono); font-size: 11px; font-weight: 800; }
 
 .attendance-stats-strip { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 24px; border: var(--border-w) solid var(--color-black); background: var(--color-white); }
 .att-stat-box { padding: 16px; border-right: 2px solid var(--color-black); }
@@ -2523,7 +2414,7 @@ textarea.input {
 @media (max-width: 960px) {
   .navbar { flex-wrap: wrap; }
   .navbar__links { order: 3; width: 100%; justify-content: space-between; }
-  .featured-events-grid { grid-template-columns: repeat(2, 1fr); }
+
   .explore-controls-grid { grid-template-columns: repeat(2, 1fr); }
   .reg-card__details { grid-template-columns: repeat(2, 1fr); }
 }
@@ -2536,13 +2427,13 @@ textarea.input {
   .navbar__pill { justify-content: center; }
   .navbar__burger-btn { display: block; }
   .navbar__user-name, .navbar__caret { display: none; }
-  .home-hero__inner, .home-section__inner, .categories-strip__inner, .home-cta-strip__inner, .home-footer__inner, .explore-main, .my-events-container, .schedule-container, .attendance-container, .certificates-container, .notifications-container, .profile-container { width: min(100% - 28px, 1180px); }
+  .home-hero__inner, .home-section__inner, .categories-strip__inner, .home-footer__inner, .explore-main, .my-events-container, .schedule-container, .attendance-container, .certificates-container, .notifications-container, .profile-container { width: min(100% - 28px, 1180px); }
   .home-hero__inner { padding: 32px 0; }
   .home-hero__title { font-size: clamp(32px, 9vw, 42px); }
   .home-search-bar, .home-footer__inner, .explore-header, .my-events-header, .schedule-header, .attendance-header, .certificates-header, .notifications-header, .profile-header { flex-direction: column; align-items: stretch; }
   .home-search-bar__btn { min-height: 48px; border-left: 0; border-top: var(--border-w) solid var(--color-black); }
   .home-hero__status-banner { align-items: flex-start; }
-  .featured-events-grid, .events-grid, .home-events-grid, .explore-controls-grid { grid-template-columns: 1fr; }
+  .events-grid, .home-events-grid, .explore-controls-grid { grid-template-columns: 1fr; }
   .home-section { padding: 30px 0; }
   .section-head { align-items: flex-start; flex-direction: column; }
   .categories-strip__inner { align-items: flex-start; flex-direction: column; gap: 0; padding: 13px 0; }
@@ -2842,7 +2733,20 @@ textarea.input {
 .gold-seal-circle span, .gold-seal-circle small { font-size: var(--text-xs); font-weight: 700; }
 .gold-seal-circle b { font: 14px var(--font-display); }
 .cert-credential-strip { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); margin-top: var(--space-5); padding-top: var(--space-3); border-top: 2px dashed var(--line); font: var(--text-xs) var(--font-mono); }
-.cert-actions-bar, .ticket-modal__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-3); margin-top: var(--space-4); }
+/* Dialog and form button rows, and the bits that used to be inline styles */
+.action-row { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-3); margin-top: var(--space-5); }
+.modal-text { margin: 0; font-size: var(--text-base); line-height: 1.5; }
+.modal-text + .notice { margin: var(--space-4) 0 0; }
+.panel__text { margin: 0 0 var(--space-4); font-size: 14px; line-height: 1.5; }
+.modal__head--danger { background: var(--color-pink); }
+.feedback-comment { margin-top: var(--space-4); }
+.event-detail--missing { padding: 80px 20px; text-align: center; }
+.event-detail--missing .btn-sm { margin-top: var(--space-4); }
+.ticket-pass__actions { margin-top: var(--space-3); }
+.day-event-title { margin: var(--space-2) 0 var(--space-1); font-size: var(--text-lg); }
+.day-event-meta { margin: 0; color: var(--ink-2); font-size: 14px; }
+.day-session-note { display: block; color: var(--ink-2); }
+.reg-card__note { margin: var(--space-1) 0 14px; color: var(--ink-2); font-size: var(--text-sm); }
 
 /* Ticket pass (TicketPassModal) */
 .ticket-modal { max-width: 520px; }

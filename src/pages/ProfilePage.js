@@ -206,7 +206,7 @@ export default function ProfilePage() {
               </label>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "16px" }}>
+            <div className="action-row">
               <button
                 type="button"
                 className="btn-sm"

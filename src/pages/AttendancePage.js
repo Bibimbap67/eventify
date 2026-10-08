@@ -59,7 +59,7 @@ export default function AttendancePage() {
           </div>
           <div className="att-stat-box">
             <span>VERIFIED & ATTENDED</span>
-            <strong style={{ color: "var(--color-blue)" }}>{checkedInCount}</strong>
+            <strong>{checkedInCount}</strong>
           </div>
           <div className="att-stat-box">
             <span>PENDING ON-SITE CHECK-IN</span>

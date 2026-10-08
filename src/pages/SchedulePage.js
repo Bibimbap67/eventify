@@ -204,10 +204,10 @@ export default function SchedulePage() {
                         <div className="day-event-header">
                           <div>
                             <span className="sbadge sbadge--active">{item.time}</span>
-                            <h3 style={{ margin: "8px 0 4px", fontSize: "20px" }}>
+                            <h3 className="day-event-title">
                               {item.event?.title}
                             </h3>
-                            <p style={{ margin: 0, fontSize: "14px", color: "#444" }}>
+                            <p className="day-event-meta">
                               <Icon name="pin" size={15} /> {item.location} · <b>Seat {item.registration.seat}</b>
                             </p>
                           </div>
@@ -223,7 +223,7 @@ export default function SchedulePage() {
                                 <span className="day-session-time">{s.time}</span>
                                 <div>
                                   <strong>{s.title}</strong>
-                                  <small style={{ display: "block", color: "#555" }}>
+                                  <small className="day-session-note">
                                     {s.speaker ? `${s.speaker} · ` : ""}Room: {s.room}
                                   </small>
                                 </div>

@@ -1,9 +1,8 @@
 import React from "react";
 import Icon from "./Icon.js";
-import { useDialog } from "./Motion.js";
+import { Modal } from "./admin/ui.js";
 
 export default function CertificateModal({ certificate, onClose }) {
-  const [dialogRef, close] = useDialog(onClose);
   if (!certificate) return null;
 
   const handlePrint = () => {
@@ -11,16 +10,9 @@ export default function CertificateModal({ certificate, onClose }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={close}>
-      <div className="modal certificate-modal-wrap" ref={dialogRef} role="dialog" aria-modal="true" aria-label="Certificate of participation" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-        <div className="modal__head">
-          <h2>CERTIFICATE OF PARTICIPATION</h2>
-          <button className="icon-btn" onClick={close} aria-label="Close">
-            <Icon name="close" size={18} />
-          </button>
-        </div>
-
-        <div className="modal__body">
+    <Modal title="CERTIFICATE OF PARTICIPATION" onClose={onClose} className="certificate-modal-wrap">
+      {(close) => (
+        <>
           {/* Formal Certificate Document */}
           <div className="formal-certificate-doc">
             <div className="cert-border-inner">
@@ -73,7 +65,7 @@ export default function CertificateModal({ certificate, onClose }) {
             </div>
           </div>
 
-          <div className="cert-actions-bar">
+          <div className="action-row">
             <button type="button" className="btn-sm btn-sm--yellow" onClick={handlePrint}>
               <Icon name="print" size={16} /> Print / Save as PDF
             </button>
@@ -81,8 +73,8 @@ export default function CertificateModal({ certificate, onClose }) {
               Close Preview
             </button>
           </div>
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+    </Modal>
   );
 }

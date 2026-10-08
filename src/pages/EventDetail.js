@@ -67,10 +67,10 @@ export default function EventDetail() {
     return (
       <div className="event-detail-page">
         <Navbar />
-        <main className="event-detail" style={{ textAlign: "center", padding: "80px 20px" }}>
+        <main className="event-detail event-detail--missing">
           <h2>Event not found</h2>
           <p>The event you are looking for does not exist or has been archived.</p>
-          <Link to="/events" className="btn-sm btn-sm--yellow" style={{ marginTop: "16px", display: "inline-block" }}>
+          <Link to="/events" className="btn-sm btn-sm--yellow">
             <Icon name="arrow-left" size={16} /> Back to all events
           </Link>
         </main>
@@ -463,8 +463,8 @@ export default function EventDetail() {
                       <small>VERIFIED QR / CHECK-IN PASS</small>
                     </div>
 
-                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
-                      <Link to="/my-events" className="btn-sm btn-sm--yellow btn-block" style={{ textAlign: "center", textDecoration: "none" }}>
+                    <div className="ticket-pass__actions">
+                      <Link to="/my-events" className="btn-sm btn-sm--yellow btn-block">
                         View in My Events <Icon name="arrow-right" size={16} />
                       </Link>
                     </div>

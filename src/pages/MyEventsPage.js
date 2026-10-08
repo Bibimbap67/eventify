@@ -295,7 +295,7 @@ export default function MyEventsPage() {
                     </div>
 
                     <h3 className="reg-card__title">{reg.eventTitle}</h3>
-                    <p style={{ fontSize: "13px", color: "#666", margin: "4px 0 14px" }}>
+                    <p className="reg-card__note">
                       {reg.fullDate || reg.date} · {reg.location}
                     </p>
 
