@@ -4,6 +4,8 @@ import {
   Clock, MessageSquare, TriangleAlert, Info, Pencil, Printer, Users, Star, ArrowUpRight,
   ArrowRight, ArrowLeft, ArrowDown, ArrowUp, ChevronDown, Volume2, VolumeX, CircleCheck,
   QrCode, LogOut, UserPlus, LayoutDashboard, ShieldCheck,
+  LogIn, Pause, Play, ScanLine, GraduationCap, ClipboardList, Cpu, BookOpen, Briefcase, Wrench,
+  Trophy, Heart,
 } from "lucide-react";
 
 // Old hand-drawn names are kept so every existing caller still works.
@@ -42,6 +44,19 @@ const ICONS = {
   "user-plus": UserPlus,
   dashboard: LayoutDashboard,
   shield: ShieldCheck,
+  // Landing page
+  login: LogIn,
+  pause: Pause,
+  play: Play,
+  scan: ScanLine,
+  graduation: GraduationCap,
+  clipboard: ClipboardList,
+  cpu: Cpu,
+  book: BookOpen,
+  briefcase: Briefcase,
+  wrench: Wrench,
+  trophy: Trophy,
+  heart: Heart,
 };
 
 // One size scale: 16 / 20 / 24.
