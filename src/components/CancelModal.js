@@ -1,15 +1,17 @@
 import React from "react";
 import Icon from "./Icon.js";
+import { useDialog } from "./Motion.js";
 
 export default function CancelModal({ registration, onConfirm, onClose }) {
+  const [dialogRef, close] = useDialog(onClose);
   if (!registration) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={close}>
+      <div className="modal" ref={dialogRef} role="dialog" aria-modal="true" aria-label="Cancel registration" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <div className="modal__head" style={{ background: "var(--color-pink)" }}>
           <h2>CANCEL REGISTRATION</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">
+          <button className="icon-btn" onClick={close} aria-label="Close">
             <Icon name="close" size={18} />
           </button>
         </div>
@@ -24,7 +26,7 @@ export default function CancelModal({ registration, onConfirm, onClose }) {
           </p>
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-            <button type="button" className="btn-sm" onClick={onClose}>
+            <button type="button" className="btn-sm" onClick={close}>
               Keep My Registration
             </button>
             <button

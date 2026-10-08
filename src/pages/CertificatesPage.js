@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar.js";
 import Icon from "../components/Icon.js";
+import { useEntering } from "../components/Motion.js";
 import { useEventContext } from "../context/EventContext.js";
 import CertificateModal from "../components/CertificateModal.js";
 
 export default function CertificatesPage() {
+  const entering = useEntering();
   const { certificates, userProfile } = useEventContext();
   const [selectedCert, setSelectedCert] = useState(null);
 
@@ -42,7 +44,7 @@ export default function CertificatesPage() {
             </Link>
           </div>
         ) : (
-          <div className="certificates-grid">
+          <div className={`certificates-grid${entering ? " stagger" : ""}`}>
             {certificates.map((cert) => (
               <article key={cert.id} className="certificate-card">
                 <div className="cert-card__top">

@@ -1,7 +1,9 @@
 import React from "react";
 import Icon from "./Icon.js";
+import { useDialog } from "./Motion.js";
 
 export default function CertificateModal({ certificate, onClose }) {
+  const [dialogRef, close] = useDialog(onClose);
   if (!certificate) return null;
 
   const handlePrint = () => {
@@ -9,11 +11,11 @@ export default function CertificateModal({ certificate, onClose }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal certificate-modal-wrap" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={close}>
+      <div className="modal certificate-modal-wrap" ref={dialogRef} role="dialog" aria-modal="true" aria-label="Certificate of participation" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <div className="modal__head">
           <h2>CERTIFICATE OF PARTICIPATION</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">
+          <button className="icon-btn" onClick={close} aria-label="Close">
             <Icon name="close" size={18} />
           </button>
         </div>
@@ -75,7 +77,7 @@ export default function CertificateModal({ certificate, onClose }) {
             <button type="button" className="btn-sm btn-sm--yellow" onClick={handlePrint}>
               <Icon name="print" size={16} /> Print / Save as PDF
             </button>
-            <button type="button" className="btn-sm" onClick={onClose}>
+            <button type="button" className="btn-sm" onClick={close}>
               Close Preview
             </button>
           </div>

@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useManager } from "../../context/ManagerContext.js";
 import Icon from "../../components/Icon.js";
+import { CountUp, useEntering } from "../../components/Motion.js";
 
 const WORKSPACE_TABS = [
   ["overview", "Overview"], ["details", "Details"], ["schedule", "Schedule"],
@@ -38,13 +39,14 @@ function SectionHeading({ eyebrow, title, detail, action }) {
 }
 
 function Metric({ label, value, note }) {
-  return <div className="manager-metric"><span>{label}</span><strong>{value}</strong><small>{note}</small></div>;
+  return <div className="manager-metric"><span>{label}</span><strong><CountUp value={value} /></strong><small>{note}</small></div>;
 }
 
 function Table({ columns, rows, empty = "No records to show." }) {
+  const entering = useEntering();
   if (!rows.length) return <div className="manager-empty">{empty}</div>;
   return (
-    <div className="manager-table-wrap"><table className="manager-table"><thead><tr>{columns.map((column) => <th key={column.label}>{column.label}</th>)}</tr></thead>
+    <div className={`manager-table-wrap${entering ? " stagger" : ""}`}><table className="manager-table"><thead><tr>{columns.map((column) => <th key={column.label}>{column.label}</th>)}</tr></thead>
       <tbody>{rows.map((row) => <tr key={row.id}>{columns.map((column) => <td key={column.label}>{column.render(row)}</td>)}</tr>)}</tbody>
     </table></div>
   );
@@ -128,6 +130,7 @@ function ManagerEvents() {
   const [dateOrder, setDateOrder] = useState("Soonest first");
   const [dateFilter, setDateFilter] = useState("");
   const [creating, setCreating] = useState(false);
+  const entering = useEntering();
   const [form, setForm] = useState({ title: "", category: "Academic", description: "", date: "", startTime: "", endTime: "", venue: "", capacity: "", organizer: "", requirements: "", importantDate: "" });
   const [formError, setFormError] = useState("");
   const rows = useMemo(() => [...events]
@@ -178,7 +181,7 @@ function ManagerEvents() {
       <label>On or after <input type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} /></label>
       <select aria-label="Sort events by date" value={dateOrder} onChange={(event) => setDateOrder(event.target.value)}><option>Soonest first</option><option>Latest first</option></select>
     </div>
-    <div className="manager-event-list">{rows.map((event) => {
+    <div className={`manager-event-list${entering ? " stagger" : ""}`}>{rows.map((event) => {
       const count = countRegistrations(event.id, registrations);
       const progress = Math.min(100, Math.round(count / event.capacity * 100));
       const speakers = [...new Set(sessions.filter((session) => session.eventId === event.id).map((session) => session.speaker).filter(Boolean))];

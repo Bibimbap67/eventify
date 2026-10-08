@@ -346,7 +346,6 @@ textarea {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: transform 0.05s ease;
 }
 
 .btn:disabled {
@@ -566,11 +565,6 @@ textarea {
   border: var(--border-w) solid var(--color-black);
   box-shadow: var(--shadow);
   cursor: pointer;
-  transition: transform 0.08s ease;
-}
-
-.event-card:hover {
-  transform: translate(-2px, -2px);
 }
 
 .event-card:focus-visible {
@@ -695,7 +689,6 @@ textarea {
 
 .event-card__cap-bar {
   height: 100%;
-  transition: width 0.3s ease-out;
 }
 
 /* ---------- Event Detail Overhaul ---------- */
@@ -728,12 +721,9 @@ textarea {
   border: 2px solid var(--color-black);
   padding: 6px 12px;
   margin-bottom: 20px;
-  box-shadow: 2px 2px 0 var(--color-black);
-  transition: transform 0.08s;
 }
 
 .event-hero__back-link:hover {
-  transform: translate(-1px, -1px);
   background: var(--color-yellow);
 }
 
@@ -959,7 +949,6 @@ textarea {
 .capacity-bar-fill {
   height: 100%;
   border-right: 2px solid var(--color-black);
-  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .capacity-stats-row {
@@ -1216,18 +1205,6 @@ textarea {
   text-transform: uppercase;
   font-weight: 900;
   cursor: pointer;
-  box-shadow: var(--shadow);
-  transition: transform 0.08s;
-}
-
-.btn-ticket-register:hover:not(:disabled) {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow);
-}
-
-.btn-ticket-register:active:not(:disabled) {
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--color-black);
 }
 
 .btn-ticket-register:disabled {
@@ -1361,7 +1338,6 @@ textarea {
   top: 0;
   height: 100vh;
   overflow-y: auto;
-  transition: transform 0.2s ease;
 }
 
 .sidebar__logo {
@@ -1378,7 +1354,6 @@ textarea {
   color: var(--color-black);
   text-decoration: none;
   border-bottom: 2px solid var(--color-black);
-  transition: background 0.12s;
 }
 
 .sidebar__link:hover {
@@ -1433,7 +1408,6 @@ textarea {
   border: var(--border-w) solid var(--color-black);
   box-shadow: var(--shadow);
   z-index: 20;
-  animation: pop 0.12s ease;
 }
 
 .dropdown p,
@@ -1473,8 +1447,6 @@ textarea {
   border: 2px solid var(--color-black);
   padding: 7px 12px;
   cursor: pointer;
-  box-shadow: 2px 2px 0 var(--color-black);
-  transition: transform 0.06s;
 }
 
 .btn-sm--yellow {
@@ -1770,7 +1742,6 @@ textarea {
 .bar__fill {
   height: 100%;
   background: var(--color-blue);
-  transition: width 0.3s ease;
 }
 
 .link {
@@ -1790,7 +1761,6 @@ textarea {
   justify-content: center;
   padding: 16px;
   z-index: 50;
-  animation: fade 0.15s ease;
 }
 
 .modal {
@@ -1801,7 +1771,6 @@ textarea {
   max-width: 460px;
   max-height: 90vh;
   overflow-y: auto;
-  animation: pop 0.15s ease;
 }
 
 .modal__head {
@@ -1843,13 +1812,10 @@ textarea {
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
-  box-shadow: 2px 2px 0 var(--color-black);
-  transition: transform 0.06s;
 }
 
 .settings-tab:hover {
   background: var(--color-cream);
-  transform: translate(-1px, -1px);
 }
 
 .settings-tab--active {
@@ -1891,29 +1857,6 @@ textarea.input {
   font-size: 13px;
   border: 2px solid var(--color-yellow);
   z-index: 60;
-  animation: pop 0.15s ease;
-}
-
-@keyframes fade {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes pop {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 @media (max-width: 820px) {
@@ -1941,62 +1884,65 @@ textarea.input {
 }
 
 /* =====================================================================
-   BRUTALIST PRESS BUTTONS
+   MOTION
+   All timing comes from --duration-* and --ease-* (Emil Kowalski's rules):
+   ease-out for things entering or leaving, plain ease for color, 150ms press,
+   UI motion at or under 240ms, transitions for anything that can retrigger,
+   transform/opacity only, and hover motion only on hover-capable pointers.
    ===================================================================== */
 
-.btn,
-.btn-sm,
-.navbar__cta,
-.navbar__pill,
-.icon-btn {
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes scale-in { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Pressables: lift on hover, sink into their own shadow on press (the brutalist "click"). */
+
+.btn, .btn-sm, .navbar__cta, .navbar__pill, .icon-btn, .manager-button, .manager-close,
+.btn-ticket-register, .event-hero__back-link, .tab-btn, .filter-btn, .day-tab-btn, .settings-tab,
+.category-pill, .navbar__icon-btn, .navbar__avatar-btn, .navbar__burger-btn, .manager-menu-toggle,
+.manager-sidebar__foot button, .star-btn, .sound-toggle {
   --sh: 4px;
-  box-shadow: var(--sh) var(--sh) 0 var(--color-black);
+  box-shadow: var(--sh) var(--sh) 0 var(--shadow-ink);
   transform: translate(0, 0);
   transition:
-    transform 0.09s ease-out,
-    box-shadow 0.09s ease-out,
-    background-color 0.12s;
+    transform var(--duration-press) var(--ease-out),
+    box-shadow var(--duration-press) var(--ease-out),
+    background-color var(--duration-fast) ease,
+    color var(--duration-fast) ease;
   cursor: pointer;
   user-select: none;
 }
 
-.btn-sm,
-.icon-btn {
-  --sh: 3px;
-}
+.btn-sm, .icon-btn, .manager-button, .manager-close, .manager-sidebar__foot button { --sh: 3px; }
 
-.icon-btn {
-  background: var(--color-white);
-}
+.tab-btn, .filter-btn, .day-tab-btn, .settings-tab, .category-pill, .navbar__icon-btn,
+.navbar__avatar-btn, .navbar__burger-btn, .manager-menu-toggle, .star-btn, .sound-toggle,
+.event-hero__back-link { --sh: 2px; }
 
-@media (hover: hover) {
-  .btn:hover:not(:disabled),
-  .btn-sm:hover:not(:disabled),
-  .navbar__cta:hover,
-  .navbar__pill:hover,
-  .icon-btn:hover {
+.icon-btn { background: var(--color-white); }
+
+@media (hover: hover) and (pointer: fine) {
+  :is(.btn, .btn-sm, .navbar__cta, .navbar__pill, .icon-btn, .manager-button, .manager-close,
+  .btn-ticket-register, .event-hero__back-link, .tab-btn, .filter-btn, .day-tab-btn, .settings-tab,
+  .category-pill, .navbar__icon-btn, .navbar__avatar-btn, .navbar__burger-btn, .manager-menu-toggle,
+  .manager-sidebar__foot button, .star-btn, .sound-toggle):hover:not(:disabled) {
     transform: translate(-2px, -2px);
-    box-shadow:
-      calc(var(--sh) + 2px)
-      calc(var(--sh) + 2px)
-      0
-      var(--color-black);
+    box-shadow: calc(var(--sh) + 2px) calc(var(--sh) + 2px) 0 var(--shadow-ink);
   }
 }
 
-.btn:active:not(:disabled),
-.btn-sm:active:not(:disabled),
-.navbar__cta:active,
-.navbar__pill:active,
-.icon-btn:active {
+:is(.btn, .btn-sm, .navbar__cta, .navbar__pill, .icon-btn, .manager-button, .manager-close,
+.btn-ticket-register, .event-hero__back-link, .tab-btn, .filter-btn, .day-tab-btn, .settings-tab,
+.category-pill, .navbar__icon-btn, .navbar__avatar-btn, .navbar__burger-btn, .manager-menu-toggle,
+.manager-sidebar__foot button, .star-btn, .sound-toggle):active:not(:disabled) {
   transform: translate(var(--sh), var(--sh));
-  box-shadow: 0 0 0 var(--color-black);
-  transition-duration: 0.04s;
+  box-shadow: 0 0 0 var(--shadow-ink);
 }
 
 .btn:disabled {
   transform: none;
-  box-shadow: var(--sh) var(--sh) 0 var(--color-black);
+  box-shadow: var(--sh) var(--sh) 0 var(--shadow-ink);
 }
 
 .btn:focus-visible,
@@ -2004,136 +1950,40 @@ textarea.input {
 .navbar__cta:focus-visible,
 .navbar__pill:focus-visible,
 .icon-btn:focus-visible {
-  outline: 3px solid var(--color-blue);
+  outline: 3px solid var(--focus);
   outline-offset: 3px;
 }
 
-/* =====================================================================
-   MOTION
-   ===================================================================== */
-
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(24px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes stamp {
-  from {
-    opacity: 0;
-    transform: scale(0.94);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes grow {
-  from {
-    transform: scaleX(0);
-  }
-
-  to {
-    transform: scaleX(1);
-  }
-}
-
-/* Page / route entrance */
-
-.auth-card {
-  animation: stamp 0.28s ease-out both;
-}
-
-.auth-hero__title {
-  animation: rise 0.4s ease-out both;
-}
-
-.auth-hero__eyebrow {
-  animation: rise 0.35s ease-out both;
-}
-
-.events-hero > *,
-.admin__content > *,
-.event-detail > * {
-  animation: rise 0.32s ease-out both;
-}
-
-/* Staggered entrances */
-
-.events-grid > *,
-.stats > *,
-.grid-2 > * {
-  animation: rise 0.36s ease-out both;
-}
-
-.events-grid > :nth-child(2),
-.stats > :nth-child(2),
-.grid-2 > :nth-child(2) {
-  animation-delay: 0.06s;
-}
-
-.events-grid > :nth-child(3),
-.stats > :nth-child(3),
-.grid-2 > :nth-child(3) {
-  animation-delay: 0.12s;
-}
-
-.events-grid > :nth-child(4),
-.stats > :nth-child(4),
-.grid-2 > :nth-child(4) {
-  animation-delay: 0.18s;
-}
-
-/* Cards */
+/* Clickable cards lift too. Cards you can't click (stats, panels) stay still. */
 
 .event-card,
-.stat,
-.panel {
+.notif-card {
   transition:
-    transform 0.1s ease-out,
-    box-shadow 0.1s ease-out;
-}
-
-@media (hover: hover) {
-  .event-card:hover,
-  .stat:hover {
-    transform: translate(-3px, -3px);
-    box-shadow: 9px 9px 0 var(--color-black);
-  }
-}
-
-.event-card:active {
-  transform: translate(var(--shadow-offset), var(--shadow-offset));
-  box-shadow: 0 0 0 var(--color-black);
+    transform var(--duration-press) var(--ease-out),
+    box-shadow var(--duration-press) var(--ease-out);
 }
 
 .event-card__arrow {
   display: inline-block;
-  transition: transform 0.15s ease-out;
+  transition: transform var(--duration-fast) var(--ease-out);
 }
 
-.event-card:hover .event-card__arrow {
-  transform: translate(3px, -3px);
+@media (hover: hover) and (pointer: fine) {
+  .event-card:hover,
+  .notif-card:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .event-card:hover .event-card__arrow {
+    transform: translate(3px, -3px);
+  }
+}
+
+.event-card:active,
+.notif-card:active {
+  transform: translate(5px, 5px);
+  box-shadow: 0 0 0 var(--shadow-ink);
 }
 
 /* Inputs */
@@ -2142,8 +1992,8 @@ textarea.input {
 .input,
 .events-search {
   transition:
-    box-shadow 0.12s ease-out,
-    transform 0.12s ease-out;
+    box-shadow var(--duration-press) var(--ease-out),
+    transform var(--duration-press) var(--ease-out);
 }
 
 .field__input:focus,
@@ -2151,27 +2001,18 @@ textarea.input {
 .events-search:focus-within {
   outline: none;
   transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 var(--color-blue);
+  box-shadow: 4px 4px 0 var(--focus);
 }
 
 /* Tabs, nav, logo */
 
-.auth-tabs__tab {
-  transition: background-color 0.15s ease-out;
+.auth-tabs__tab,
+.sidebar__link {
+  transition: background-color var(--duration-fast) ease;
 }
 
 .auth-tabs__tab:not(.auth-tabs__tab--active):hover {
   background: var(--color-cream);
-}
-
-.sidebar__link {
-  transition:
-    background-color 0.12s,
-    padding-left 0.12s ease-out;
-}
-
-.sidebar__link:hover {
-  padding-left: 22px;
 }
 
 .navbar__link {
@@ -2188,44 +2029,121 @@ textarea.input {
   background: var(--color-black);
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform 0.15s ease-out;
-}
-
-.navbar__link:hover::after {
-  transform: scaleX(1);
+  transition: transform var(--duration-fast) var(--ease-out);
 }
 
 .logo__mark {
   transition:
-    transform 0.15s ease-out,
-    box-shadow 0.15s ease-out;
+    transform var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
 }
 
-.logo:hover .logo__mark {
-  transform: rotate(-6deg) translate(-1px, -1px);
-  box-shadow: var(--shadow);
+@media (hover: hover) and (pointer: fine) {
+  .navbar__link:hover::after {
+    transform: scaleX(1);
+  }
+
+  .logo:hover .logo__mark {
+    transform: rotate(-6deg) translate(-1px, -1px);
+    box-shadow: var(--shadow);
+  }
 }
 
-/* Feedback surfaces */
+/* Overlays: modals scale from 0.96 (never 0) and stay centred; menus grow out of
+   their trigger's corner; both use ease-out. Exits are handled by useDialog (150ms). */
 
-.toast {
-  animation: slide-in 0.2s ease-out both;
+.modal-overlay,
+.manager-modal-backdrop {
+  animation: fade var(--duration-base) var(--ease-out) both;
 }
+
+.modal,
+.manager-modal {
+  animation: scale-in var(--duration-base) var(--ease-out) both;
+}
+
+.dropdown,
+.profile-dropdown,
+.notif-dropdown {
+  transform-origin: top right;
+  animation: scale-in var(--duration-fast) var(--ease-out) both;
+}
+
+.sidebar {
+  transition: transform var(--duration-slow) var(--ease-drawer);
+}
+
+/* Toasts: transitions (not keyframes) so a new message retargets smoothly.
+   They come up from the bottom edge and leave the same way. */
+
+.toast,
+.manager-toast {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(calc(100% + 24px));
+  transition:
+    opacity var(--duration-slow) ease,
+    transform var(--duration-slow) ease,
+    visibility 0s linear var(--duration-slow);
+}
+
+.toast[data-open],
+.manager-toast[data-open] {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition:
+    opacity var(--duration-slow) ease,
+    transform var(--duration-slow) ease,
+    visibility 0s;
+}
+
+.toast--error { z-index: 70; border-color: var(--pink); }
+
+/* Status badges change color softly when a status changes in place. */
 
 .sbadge,
-.event-card__badge {
-  transition: transform 0.12s;
+.manager-status {
+  transition:
+    background-color var(--duration-base) ease,
+    color var(--duration-base) ease;
 }
+
+.count-up { font-variant-numeric: tabular-nums; }
 
 .bar__fill {
   transform-origin: left;
-  animation: grow 0.5s ease-out both;
+  animation: grow var(--duration-slow) var(--ease-out) both;
 }
 
 .auth-card__error,
 .field__error {
-  animation: rise 0.2s ease-out both;
+  animation: rise var(--duration-fast) var(--ease-out) both;
 }
+
+/* First-load stagger: 40ms apart, the last item starts by 280ms.
+   .stagger is only on for a moment after mount (useEntering), so rows added later don't replay. */
+
+.stagger > *,
+.stagger tbody > tr,
+.stats > *,
+.grid-2 > *,
+.manager-metrics > * {
+  animation: rise var(--duration-base) var(--ease-out) both;
+}
+
+:is(.stagger, .stagger tbody, .stats, .grid-2, .manager-metrics) > :nth-child(2) { animation-delay: 40ms; }
+:is(.stagger, .stagger tbody, .stats, .grid-2, .manager-metrics) > :nth-child(3) { animation-delay: 80ms; }
+:is(.stagger, .stagger tbody, .stats, .grid-2, .manager-metrics) > :nth-child(4) { animation-delay: 120ms; }
+:is(.stagger, .stagger tbody, .stats, .grid-2, .manager-metrics) > :nth-child(5) { animation-delay: 160ms; }
+:is(.stagger, .stagger tbody, .stats, .grid-2, .manager-metrics) > :nth-child(6) { animation-delay: 200ms; }
+:is(.stagger, .stagger tbody, .stats, .grid-2, .manager-metrics) > :nth-child(7) { animation-delay: 240ms; }
+:is(.stagger, .stagger tbody, .stats, .grid-2, .manager-metrics) > :nth-child(n + 8) { animation-delay: 280ms; }
+
+.page-transition { display: contents; }
+
+/* The dialog box takes focus so Esc and screen readers start inside it; it is not a control itself. */
+.modal:focus, .manager-modal:focus { outline: none; }
 
 /* Button states */
 
@@ -2601,7 +2519,7 @@ textarea.input {
 @media (max-width: 680px) {
   .navbar { min-height: 64px; padding: 11px 16px; }
   .navbar__links { display: none; position: absolute; left: 0; right: 0; top: 100%; padding: 8px 16px 14px; border-bottom: var(--border-w) solid var(--color-black); background: var(--color-cream); flex-direction: column; align-items: stretch; }
-  .navbar__links--open { display: flex; }
+  .navbar__links--open { display: flex; animation: rise var(--duration-fast) var(--ease-out) both; }
   .navbar__link, .navbar__pill { padding: 11px; border: 2px solid var(--color-black); background: var(--color-white); }
   .navbar__pill { justify-content: center; }
   .navbar__burger-btn { display: block; }
@@ -2629,7 +2547,7 @@ textarea.input {
   .attendance-card__right, .schedule-event-banner__right { align-items: stretch; }
   .schedule-session-row, .day-session-item { grid-template-columns: 1fr; gap: 5px; }
   .schedule-event-title { font-size: 21px; }
-  .profile-dropdown, .notif-dropdown { position: fixed; right: 12px; left: 12px; top: 70px; min-width: 0; }
+  .profile-dropdown, .notif-dropdown { position: fixed; right: 12px; left: 12px; top: 70px; min-width: 0; transform-origin: top center; }
 }
 
 /* ---------- Event Manager workspace ---------- */
@@ -2659,7 +2577,7 @@ textarea.input {
 .manager-topbar__date { margin-left: auto; color: var(--color-black); font: 11px var(--font-mono); }
 .manager-menu-toggle { display: none; width: 38px; height: 38px; border: 2px solid var(--color-black); background: var(--color-yellow); cursor: pointer; }
 .manager-content { width: min(100%, 1440px); margin: 0 auto; padding: 30px clamp(18px, 3vw, 40px) 56px; }
-.manager-page { display: grid; gap: 20px; animation: manager-arrive .22s ease-out both; }
+.manager-page { display: grid; gap: 20px; }
 .manager-section-heading { display: flex; justify-content: space-between; align-items: end; gap: 18px; }
 .manager-section-heading > div > span, .manager-panel__header > div > span { color: var(--ink-2); font: 700 var(--text-xs) var(--font-mono); text-transform: uppercase; }
 .manager-section-heading h2 { margin: 5px 0 0; font: 26px var(--font-display); line-height: 1.15; }
@@ -2678,7 +2596,7 @@ textarea.input {
 .manager-event-facts { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 18px 0; color: var(--ink-2); font: 11px var(--font-mono); }
 .manager-progress-label { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 7px; font-size: 12px; }
 .manager-progress { height: 9px; overflow: hidden; border: 2px solid var(--color-black); background: var(--color-white); }
-.manager-progress > span { display: block; height: 100%; min-width: 0; background: var(--color-blue); transition: width .22s ease-out; }
+.manager-progress > span { display: block; height: 100%; min-width: 0; background: var(--color-blue); }
 .manager-inline-link { display: inline-flex; gap: 10px; margin-top: 16px; color: var(--color-black); font-size: 12px; font-weight: 800; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
 .manager-inline-link:hover { text-decoration: underline; }
 .manager-count { display: grid; width: 26px; height: 26px; place-items: center; background: var(--color-yellow); font: 700 11px var(--font-mono); }
@@ -2702,7 +2620,7 @@ textarea.input {
 .manager-toolbar label { display: inline-flex; align-items: center; gap: 7px; color: var(--color-black); font-size: 11px; }
 .manager-toolbar label input { min-width: 145px; }
 .manager-event-list { display: grid; gap: 13px; }
-.manager-event-row { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 15px; padding: 17px; border: var(--border-w) solid var(--color-black); background: var(--color-white); box-shadow: var(--shadow); animation: manager-arrive .2s ease-out both; }
+.manager-event-row { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 15px; padding: 17px; border: var(--border-w) solid var(--color-black); background: var(--color-white); box-shadow: var(--shadow); }
 .manager-event-date { display: flex; flex-direction: column; align-items: center; justify-content: center; align-self: start; min-height: 62px; background: var(--color-yellow); border: 2px solid var(--color-black); }
 .manager-event-date strong { font: 24px var(--font-display); }
 .manager-event-date span { font: var(--text-xs) var(--font-mono); }
@@ -2711,9 +2629,8 @@ textarea.input {
 .manager-event-row__title h3 { margin: 4px 0 0; font-size: 16px; }
 .manager-event-row__stats { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 12px 0 8px; color: var(--ink-2); font: var(--text-xs) var(--font-mono); }
 .manager-event-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }
-.manager-button { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 8px 11px; border: 2px solid var(--color-black); color: var(--color-black); background: var(--color-white); box-shadow: var(--shadow-sm); font: 700 11px var(--font-body); text-decoration: none; cursor: pointer; transition: background .14s, transform .14s, box-shadow .14s; }
-.manager-button:hover { background: var(--color-cream); transform: translate(1px, 1px); box-shadow: 2px 2px 0 var(--color-black); }
-.manager-button:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--color-black); }
+.manager-button { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 8px 11px; border: 2px solid var(--color-black); color: var(--color-black); background: var(--color-white); font: 700 11px var(--font-body); text-decoration: none; cursor: pointer; }
+.manager-button:hover { background: var(--color-cream); }
 .manager-button:disabled { cursor: not-allowed; opacity: .5; transform: none; }
 .manager-button--primary { background: var(--color-yellow); }
 .manager-button--primary:hover { background: var(--color-pink); }
@@ -2765,9 +2682,9 @@ textarea.input {
 .manager-session-row h3 { margin: 0; font-size: 13px; }
 .manager-session-row p { margin: 5px 0 0; color: var(--ink-2); font-size: 11px; }
 .manager-row-actions { display: flex; gap: 10px; }
-.manager-modal-backdrop { position: fixed; z-index: 50; inset: 0; display: grid; place-items: center; padding: 18px; background: rgba(0,0,0,.6); animation: fade-in .14s ease-out both; }
-.manager-modal { width: min(560px, 100%); max-height: min(90vh, 760px); overflow-y: auto; padding: 20px; border: var(--border-w) solid var(--color-black); background: var(--color-cream); box-shadow: var(--shadow-lg); animation: manager-pop .16s ease-out both; }
-.manager-close { width: 34px; height: 34px; border: 2px solid var(--color-black); background: var(--color-white); font-size: 20px; cursor: pointer; box-shadow: 2px 2px 0 var(--color-black); }
+.manager-modal-backdrop { position: fixed; z-index: 50; inset: 0; display: grid; place-items: center; padding: 18px; background: rgba(0,0,0,.6); }
+.manager-modal { width: min(560px, 100%); max-height: min(90vh, 760px); overflow-y: auto; padding: 20px; border: var(--border-w) solid var(--color-black); background: var(--color-cream); box-shadow: var(--shadow-lg); }
+.manager-close { width: 34px; height: 34px; border: 2px solid var(--color-black); background: var(--color-white); font-size: 20px; cursor: pointer; }
 .manager-announcement-form { display: grid; gap: 12px; }
 .manager-announcement-form .manager-field textarea { min-height: 85px; }
 .manager-announcement-list { display: grid; gap: 12px; }
@@ -2805,15 +2722,12 @@ textarea.input {
 .manager-report-grid .manager-metric { min-height: 95px; }
 .manager-definition-list--report { max-width: 760px; }
 .manager-definition-list--report dd { display: flex; align-items: center; }
-.manager-toast { position: fixed; z-index: 60; right: 22px; bottom: 20px; max-width: min(420px, calc(100vw - 36px)); padding: 12px 16px; border: 2px solid var(--color-black); color: var(--color-black); background: var(--color-yellow); box-shadow: var(--shadow); font-size: 12px; font-weight: 800; animation: manager-pop .15s ease-out both; }
+.manager-toast { position: fixed; z-index: 60; right: 22px; bottom: 20px; max-width: min(420px, calc(100vw - 36px)); padding: 12px 16px; border: 2px solid var(--color-black); color: var(--color-black); background: var(--color-yellow); box-shadow: var(--shadow); font-size: 12px; font-weight: 800; }
 .event-announcements { margin-top: 24px; }
 .event-announcement { padding: 13px 15px; border: 2px solid var(--color-black); border-left: 5px solid var(--color-yellow); background: var(--color-white); box-shadow: var(--shadow-sm); }
 .event-announcement + .event-announcement { margin-top: 9px; }
 .event-announcement h3 { margin: 0 0 6px; font-size: 14px; }
 .event-announcement p { margin: 0; color: var(--ink-2); font-size: 12px; line-height: 1.5; }
-@keyframes manager-arrive { from { opacity: 0; } to { opacity: 1; } }
-@keyframes manager-pop { from { opacity: 0; transform: translateY(5px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
-@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 
 @media (max-width: 980px) {
   .manager-sidebar { width: 220px; flex-basis: 220px; }
@@ -2823,7 +2737,7 @@ textarea.input {
   .manager-overview-grid, .manager-overview-grid--lower { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {
-  .manager-sidebar { position: fixed; z-index: 20; inset: 0 auto 0 0; width: 270px; transform: translateX(-102%); transition: transform .18s ease-out; box-shadow: 5px 0 0 var(--color-black); }
+  .manager-sidebar { position: fixed; z-index: 20; inset: 0 auto 0 0; width: 270px; transform: translateX(-102%); transition: transform var(--duration-slow) var(--ease-drawer); box-shadow: 5px 0 0 var(--color-black); }
   .manager-sidebar--open { transform: translateX(0); }
   .manager-menu-toggle { display: inline-grid; place-items: center; }
   .manager-topbar { min-height: 66px; padding: 10px 14px; }

@@ -3,10 +3,12 @@ import { useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar.js";
 import EventCard from "../components/EventCard.js";
 import Icon from "../components/Icon.js";
+import { useEntering } from "../components/Motion.js";
 import { useEventContext } from "../context/EventContext.js";
 import { EVENT_CATEGORIES } from "../data/options.js";
 
 export default function EventsPage() {
+  const entering = useEntering();
   const { events, isEventRegistered } = useEventContext();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -226,7 +228,7 @@ export default function EventsPage() {
               </button>
             </div>
           ) : (
-            <div className="events-grid">
+            <div className={`events-grid${entering ? " stagger" : ""}`}>
               {filteredEvents.map((event) => (
                 <EventCard key={event.id} event={event} />
               ))}

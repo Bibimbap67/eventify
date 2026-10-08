@@ -1,5 +1,6 @@
-import React, { useEffect } from "react";
+import React from "react";
 import Icon from "../Icon.js";
+import { useDialog, useEntering } from "../Motion.js";
 
 export function StatusBadge({ value }) {
   const statusText = String(value || "").toLowerCase();
@@ -9,30 +10,19 @@ export function StatusBadge({ value }) {
 }
 
 export function Modal({ title, onClose, children }) {
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [onClose]);
+  // Escape, focus return and the exit animation live in useDialog.
+  const [dialogRef, close] = useDialog(onClose);
 
   const handleModalClick = (e) => {
     e.stopPropagation();
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" role="dialog" aria-label={title} onClick={handleModalClick}>
+    <div className="modal-overlay" onClick={close}>
+      <div className="modal" ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} onClick={handleModalClick}>
         <div className="modal__head">
           <h2>{title}</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">
+          <button className="icon-btn" onClick={close} aria-label="Close">
             <Icon name="close" size={18} />
           </button>
         </div>
@@ -80,12 +70,13 @@ export function FormField({ label, error, children }) {
 }
 
 export function DataTable({ columns, rows, renderActions }) {
+  const entering = useEntering();
   if (!rows || rows.length === 0) {
     return <p className="empty">No records match your filters.</p>;
   }
 
   return (
-    <div className="table-wrap">
+    <div className={`table-wrap${entering ? " stagger" : ""}`}>
       <table className="table">
         <thead>
           <tr>

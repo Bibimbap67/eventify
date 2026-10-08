@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Icon from "./Icon.js";
+import { useDialog } from "./Motion.js";
 
 export default function FeedbackModal({ registration, onSubmit, onClose }) {
   const [overall, setOverall] = useState(5);
@@ -8,6 +9,7 @@ export default function FeedbackModal({ registration, onSubmit, onClose }) {
   const [venue, setVenue] = useState(5);
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
+  const [dialogRef, close] = useDialog(onClose);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -26,11 +28,11 @@ export default function FeedbackModal({ registration, onSubmit, onClose }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal feedback-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={close}>
+      <div className="modal feedback-modal" ref={dialogRef} role="dialog" aria-modal="true" aria-label="Event feedback" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <div className="modal__head">
           <h2>EVENT FEEDBACK & REVIEW</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">
+          <button className="icon-btn" onClick={close} aria-label="Close">
             <Icon name="close" size={18} />
           </button>
         </div>
@@ -50,6 +52,8 @@ export default function FeedbackModal({ registration, onSubmit, onClose }) {
                     type="button"
                     className={`star-btn ${overall >= num ? "star-btn--active" : ""}`}
                     onClick={() => setOverall(num)}
+                    aria-label={`${num} star${num > 1 ? "s" : ""}`}
+                    aria-pressed={overall >= num}
                   >
                     <Icon name="star" size={20} />
                   </button>
@@ -116,7 +120,7 @@ export default function FeedbackModal({ registration, onSubmit, onClose }) {
             )}
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "18px" }}>
-              <button type="button" className="btn-sm" onClick={onClose}>
+              <button type="button" className="btn-sm" onClick={close}>
                 Cancel
               </button>
               <button type="submit" className="btn-sm btn-sm--yellow">

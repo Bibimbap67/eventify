@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar.js";
 import Icon from "../components/Icon.js";
+import Toast from "../components/Toast.js";
 import { useEventContext } from "../context/EventContext.js";
 
 export default function ProfilePage() {
@@ -226,11 +227,7 @@ export default function ProfilePage() {
       </main>
 
       {/* Toast */}
-      {toastMsg && (
-        <div className="toast" role="status">
-          {toastMsg}
-        </div>
-      )}
+      <Toast message={toastMsg} />
     </div>
   );
 }

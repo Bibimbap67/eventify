@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar.js";
 import Icon from "../components/Icon.js";
+import { useEntering } from "../components/Motion.js";
 import { useEventContext } from "../context/EventContext.js";
 import TicketPassModal from "../components/TicketPassModal.js";
 import FeedbackModal from "../components/FeedbackModal.js";
 import CancelModal from "../components/CancelModal.js";
 
 export default function MyEventsPage() {
+  const entering = useEntering();
   const { events, registrations, cancelRegistration, checkInAttendee, completeAttendance, submitFeedback } = useEventContext();
   const [activeTab, setActiveTab] = useState("upcoming");
 
@@ -110,7 +112,7 @@ export default function MyEventsPage() {
                 </Link>
               </div>
             ) : (
-              <div className="registrations-list">
+              <div className={`registrations-list${entering ? " stagger" : ""}`}>
                 {upcomingRegs.map((reg) => (
                   <article key={reg.id} className="registration-card">
                     <div className="reg-card__top">
@@ -208,7 +210,7 @@ export default function MyEventsPage() {
                 <p>Events you attend and check in for will appear here alongside your official certificates of participation.</p>
               </div>
             ) : (
-              <div className="registrations-list">
+              <div className={`registrations-list${entering ? " stagger" : ""}`}>
                 {pastRegs.map((reg) => (
                   <article key={reg.id} className="registration-card registration-card--past">
                     <div className="reg-card__top">
@@ -284,7 +286,7 @@ export default function MyEventsPage() {
                 <p>You have not cancelled any event reservations.</p>
               </div>
             ) : (
-              <div className="registrations-list">
+              <div className={`registrations-list${entering ? " stagger" : ""}`}>
                 {cancelledRegs.map((reg) => (
                   <article key={reg.id} className="registration-card registration-card--cancelled">
                     <div className="reg-card__top">

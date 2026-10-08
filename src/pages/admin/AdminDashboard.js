@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAdmin } from "../../context/AdminContext.js";
 import { StatusBadge } from "../../components/admin/ui.js";
 import Icon from "../../components/Icon.js";
+import { CountUp } from "../../components/Motion.js";
 
 const STATUSES = ["Pending", "Approved", "Published", "Completed", "Rejected", "Cancelled", "Archived"];
 
@@ -20,7 +21,7 @@ export default function AdminDashboard() {
     <>
       <div className="stats">
         {stats.map(([l, v]) => (
-          <div className="stat" key={l}><span className="stat__label">{l}</span><strong>{v}</strong></div>
+          <div className="stat" key={l}><span className="stat__label">{l}</span><strong><CountUp value={v} /></strong></div>
         ))}
       </div>
       <div className="grid-2">

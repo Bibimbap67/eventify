@@ -4,6 +4,8 @@ import { useAuth } from "../../context/AuthContext.js";
 import { useAdmin } from "../../context/AdminContext.js";
 import Logo from "../Logo.js";
 import Icon from "../Icon.js";
+import Toast from "../Toast.js";
+import { PageTransition } from "../Motion.js";
 
 const NAV = [
   { label: "Dashboard", path: "/admin" },
@@ -154,15 +156,13 @@ export default function AdminLayout() {
         </header>
 
         <main className="admin__content">
-          <Outlet />
+          <PageTransition>
+            <Outlet />
+          </PageTransition>
         </main>
       </div>
 
-      {toastMsg && (
-        <div className="toast" role="status">
-          {toastMsg}
-        </div>
-      )}
+      <Toast message={toastMsg} />
     </div>
   );
 }
