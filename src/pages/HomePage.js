@@ -13,19 +13,6 @@ import { useAuth } from "../context/AuthContext.js";
 import { useEventContext } from "../context/EventContext.js";
 import { EVENT_CATEGORIES } from "../data/options.js";
 
-// Landing-page color band per category (presentation only; the event data is untouched).
-const CATEGORY_ACCENTS = {
-  Technology: "var(--color-sky)",
-  Academic: "var(--color-violet)",
-  Career: "var(--color-yellow)",
-  Workshop: "var(--color-pink)",
-  Seminar: "var(--color-mint)",
-  Competition: "var(--color-pink)",
-  Organization: "var(--color-sky)",
-  Community: "var(--color-violet)",
-};
-const withAccent = (event) => ({ ...event, accent: CATEGORY_ACCENTS[event.category] || event.accent });
-
 const ROLES = [
   { icon: "graduation", title: "Students", text: "Find events, register, and keep every certificate in one place." },
   { icon: "clipboard", title: "Event managers", text: "Run registrations, check-ins, schedules and announcements." },
@@ -230,7 +217,7 @@ export default function HomePage() {
             <div className="home-events-grid home-events-grid--rail" ref={railRef} onScroll={handleRailScroll}>
               {homeEvents.map((event, index) => (
                 <Reveal key={event.id} className="landing-card-slot" delay={index * STAGGER_MS}>
-                  <EventCard event={withAccent(event)} />
+                  <EventCard event={event} accentIndex={index} />
                 </Reveal>
               ))}
             </div>
@@ -274,7 +261,7 @@ export default function HomePage() {
             <div className="home-events-grid">
               {recommendedEvents.map((event, index) => (
                 <Reveal key={event.id} className="landing-card-slot" delay={index * STAGGER_MS}>
-                  <EventCard event={withAccent(event)} />
+                  <EventCard event={event} accentIndex={homeEvents.length + index} />
                 </Reveal>
               ))}
             </div>
