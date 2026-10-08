@@ -9,6 +9,14 @@
   --color-white: #ffffff;
   --color-sky: #4fc4ee;
   --color-mint: #86efac;
+  /* Capacity: green = plenty of seats, yellow = filling fast, red = almost full.
+     Fills are for bars; the -ink versions are readable as text on white. */
+  --capacity-low: #22c55e;
+  --capacity-mid: #ffd93d;
+  --capacity-high: #ef4444;
+  --capacity-low-ink: #15803d;
+  --capacity-mid-ink: #a16207;
+  --capacity-high-ink: #b91c1c;
   --color-error: #ff6b6b;
   /* Motion (landing page): strong ease-out for enters/exits, durations in one place */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -878,8 +886,8 @@ input {
 }
 
 .capacity-status-chip--full {
-  background: var(--color-pink);
-  color: white;
+  background: var(--capacity-high);
+  color: var(--color-black);
 }
 
 .capacity-bar-track {
@@ -2978,8 +2986,8 @@ textarea.input {
   display: grid;
   gap: 14px;
   padding: 22px;
-  color: var(--color-black);
-  background: var(--color-white);
+  color: var(--color-cream);
+  background: var(--color-black);
   border: var(--border-w) solid var(--color-black);
   box-shadow: 8px 8px 0 var(--color-pink);
   text-decoration: none;
@@ -2998,6 +3006,7 @@ textarea.input {
 
 .landing-ticket__tag {
   padding: 4px 8px;
+  color: var(--color-black);
   border: 2px solid var(--color-black);
   background: var(--color-yellow);
   font-family: var(--font-mono);
@@ -3019,7 +3028,7 @@ textarea.input {
 .landing-ticket__perf {
   position: relative;
   margin: 2px -22px;
-  border-top: 2px dashed var(--color-black);
+  border-top: 2px dashed var(--color-cream);
 }
 
 .landing-ticket__perf::before,
@@ -3057,7 +3066,7 @@ textarea.input {
   justify-content: space-between;
   gap: 8px 12px;
   padding-top: 12px;
-  border-top: 2px solid var(--color-black);
+  border-top: 2px solid var(--color-cream);
   font-size: 13px;
 }
 
@@ -3067,6 +3076,7 @@ textarea.input {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  color: var(--color-yellow);
   font-family: var(--font-display);
   font-size: 13px;
   text-transform: uppercase;
