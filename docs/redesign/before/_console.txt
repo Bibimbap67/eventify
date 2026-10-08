@@ -1,0 +1,16 @@
+home-signed-in@768: HORIZONTAL SCROLL (797px)
+workspace@768: HORIZONTAL SCROLL (797px)
+my-events@768: HORIZONTAL SCROLL (797px)
+schedule@768: HORIZONTAL SCROLL (797px)
+attendance@768: HORIZONTAL SCROLL (797px)
+certificates@768: HORIZONTAL SCROLL (797px)
+notifications@768: HORIZONTAL SCROLL (797px)
+profile@375: An empty string ("") was passed to the %s attribute. This may cause the browser to download the whole page again over the network. To fix this, either do not render the element at all or pass null to 
+profile@768: An empty string ("") was passed to the %s attribute. This may cause the browser to download the whole page again over the network. To fix this, either do not render the element at all or pass null to 
+profile@768: HORIZONTAL SCROLL (797px)
+profile@1280: An empty string ("") was passed to the %s attribute. This may cause the browser to download the whole page again over the network. To fix this, either do not render the element at all or pass null to 
+admin-registrations@375: HORIZONTAL SCROLL (436px)
+admin-attendance@375: HORIZONTAL SCROLL (401px)
+admin-announcements@375: HORIZONTAL SCROLL (463px)
+admin-certificates@375: HORIZONTAL SCROLL (413px)
+admin-settings@375: HORIZONTAL SCROLL (407px)
