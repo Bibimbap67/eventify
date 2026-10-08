@@ -79,23 +79,28 @@ export default function EventDetail() {
       : "Registration closed";
 
   // Dynamic capacity state & color logic (Green -> Yellow -> Red)
-  let capacityColor = "var(--color-blue)";
+  // capacityColor fills the bar; capacityInk is the readable text version of the same color.
+  let capacityColor = "var(--capacity-low)";
+  let capacityInk = "var(--capacity-low-ink)";
   let capacityLevel = "open";
   let capacityBadgeText = `${spotsRemaining} SPOTS AVAILABLE`;
   let urgencyText = "Seats are available. Claim your free admission pass below.";
 
   if (percentFilled >= 100) {
-    capacityColor = "var(--color-pink)";
+    capacityColor = "var(--capacity-high)";
+    capacityInk = "var(--capacity-high-ink)";
     capacityLevel = "full";
     capacityBadgeText = "CAPACITY REACHED";
     urgencyText = "This event is fully booked. Additional registrations are placed on standby.";
   } else if (percentFilled >= 85) {
-    capacityColor = "var(--color-pink)";
+    capacityColor = "var(--capacity-high)";
+    capacityInk = "var(--capacity-high-ink)";
     capacityLevel = "urgent";
     capacityBadgeText = `ALMOST FULL (${spotsRemaining} SEATS LEFT)`;
     urgencyText = `Hurry! Over ${percentFilled}% of venue capacity has already been filled.`;
   } else if (percentFilled >= 60) {
-    capacityColor = "var(--color-yellow)";
+    capacityColor = "var(--capacity-mid)";
+    capacityInk = "var(--capacity-mid-ink)";
     capacityLevel = "filling";
     capacityBadgeText = `FILLING FAST (${percentFilled}% FILLED)`;
     urgencyText = "High student interest recorded. Secure your reservation early.";
@@ -234,7 +239,7 @@ export default function EventDetail() {
                     <span>Registered</span>
                   </div>
                   <div className="cap-stat">
-                    <strong style={{ color: capacityColor }}>{spotsRemaining}</strong>
+                    <strong style={{ color: capacityInk }}>{spotsRemaining}</strong>
                     <span>Seats Remaining</span>
                   </div>
                   <div className="cap-stat">

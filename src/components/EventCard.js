@@ -23,13 +23,17 @@ export default function EventCard({ event, accentIndex }) {
   const pct = Math.min(100, Math.round((registered / capacity) * 100));
   const isRegistered = Boolean(isEventRegistered(event.id));
 
-  let capacityColor = "var(--color-blue)";
+  // Green while there is room, yellow when filling fast, red when (almost) full.
+  let capacityColor = "var(--capacity-low)";
   let capacityBadge = "Spots Available";
-  if (pct >= 85) {
-    capacityColor = "var(--color-pink)";
+  if (pct >= 100) {
+    capacityColor = "var(--capacity-high)";
+    capacityBadge = "Full";
+  } else if (pct >= 85) {
+    capacityColor = "var(--capacity-high)";
     capacityBadge = "Almost Full";
   } else if (pct >= 60) {
-    capacityColor = "var(--color-yellow)";
+    capacityColor = "var(--capacity-mid)";
     capacityBadge = "Filling Fast";
   }
 
