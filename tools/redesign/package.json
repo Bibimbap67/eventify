@@ -1,0 +1,12 @@
+{
+  "name": "eventify-redesign-tools",
+  "private": true,
+  "description": "Dev-only helpers for the redesign: faker demo data and screenshots. Not part of the app.",
+  "scripts": {
+    "seed": "node seedDemo.js ../..",
+    "shoot": "node shoot.js"
+  },
+  "dependencies": {
+    "playwright-core": "1.48.2"
+  }
+}

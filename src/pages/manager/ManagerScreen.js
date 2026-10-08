@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useManager } from "../../context/ManagerContext.js";
+import Icon from "../../components/Icon.js";
+import { CountUp, useEntering } from "../../components/Motion.js";
 
 const WORKSPACE_TABS = [
   ["overview", "Overview"], ["details", "Details"], ["schedule", "Schedule"],
@@ -37,13 +39,14 @@ function SectionHeading({ eyebrow, title, detail, action }) {
 }
 
 function Metric({ label, value, note }) {
-  return <div className="manager-metric"><span>{label}</span><strong>{value}</strong><small>{note}</small></div>;
+  return <div className="manager-metric"><span>{label}</span><strong><CountUp value={value} /></strong><small>{note}</small></div>;
 }
 
 function Table({ columns, rows, empty = "No records to show." }) {
+  const entering = useEntering();
   if (!rows.length) return <div className="manager-empty">{empty}</div>;
   return (
-    <div className="manager-table-wrap"><table className="manager-table"><thead><tr>{columns.map((column) => <th key={column.label}>{column.label}</th>)}</tr></thead>
+    <div className={`manager-table-wrap${entering ? " stagger" : ""}`}><table className="manager-table"><thead><tr>{columns.map((column) => <th key={column.label}>{column.label}</th>)}</tr></thead>
       <tbody>{rows.map((row) => <tr key={row.id}>{columns.map((column) => <td key={column.label}>{column.render(row)}</td>)}</tr>)}</tbody>
     </table></div>
   );
@@ -95,7 +98,7 @@ function ManagerOverview() {
           <div className="manager-event-facts"><span>{new Date(`${nextEvent.date}T12:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</span><span>{nextEvent.startTime}–{nextEvent.endTime}</span><span>{nextEvent.venue}</span></div>
           <div className="manager-progress-label"><span>Registration progress</span><strong>{countRegistrations(nextEvent.id, registrations)} / {nextEvent.capacity}</strong></div>
           <div className="manager-progress"><span style={{ width: `${Math.min(100, countRegistrations(nextEvent.id, registrations) / nextEvent.capacity * 100)}%` }} /></div>
-          <Link className="manager-inline-link" to={`/manager/events/${nextEvent.id}/overview`}>Open event workspace <span>→</span></Link>
+          <Link className="manager-inline-link" to={`/manager/events/${nextEvent.id}/overview`}>Open event workspace <Icon name="arrow-right" size={16} /></Link>
         </>}
       </section>
       <section className="manager-panel manager-attention">
@@ -105,7 +108,7 @@ function ManagerOverview() {
     </div>
     <div className="manager-overview-grid manager-overview-grid--lower">
       <section className="manager-panel">
-        <div className="manager-panel__header"><div><span>PROGRAMME</span><h3>Upcoming sessions</h3></div><Link to="/manager/schedule" className="manager-inline-link">Full schedule →</Link></div>
+        <div className="manager-panel__header"><div><span>PROGRAMME</span><h3>Upcoming sessions</h3></div><Link to="/manager/schedule" className="manager-inline-link">Full schedule <Icon name="arrow-right" size={16} /></Link></div>
         <ul className="manager-session-list">{nextSessions.map((session) => {
           const event = events.find((item) => item.id === session.eventId);
           return <li key={session.id}><time>{session.startTime}</time><div><strong>{session.title}</strong><small>{event?.title} · {session.room}</small></div></li>;
@@ -127,6 +130,7 @@ function ManagerEvents() {
   const [dateOrder, setDateOrder] = useState("Soonest first");
   const [dateFilter, setDateFilter] = useState("");
   const [creating, setCreating] = useState(false);
+  const entering = useEntering();
   const [form, setForm] = useState({ title: "", category: "Academic", description: "", date: "", startTime: "", endTime: "", venue: "", capacity: "", organizer: "", requirements: "", importantDate: "" });
   const [formError, setFormError] = useState("");
   const rows = useMemo(() => [...events]
@@ -177,7 +181,7 @@ function ManagerEvents() {
       <label>On or after <input type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} /></label>
       <select aria-label="Sort events by date" value={dateOrder} onChange={(event) => setDateOrder(event.target.value)}><option>Soonest first</option><option>Latest first</option></select>
     </div>
-    <div className="manager-event-list">{rows.map((event) => {
+    <div className={`manager-event-list${entering ? " stagger" : ""}`}>{rows.map((event) => {
       const count = countRegistrations(event.id, registrations);
       const progress = Math.min(100, Math.round(count / event.capacity * 100));
       const speakers = [...new Set(sessions.filter((session) => session.eventId === event.id).map((session) => session.speaker).filter(Boolean))];
@@ -270,7 +274,7 @@ function EventWorkspace({ event, tab }) {
   };
 
   return <div className="manager-page manager-workspace">
-    <Link className="manager-back-link" to="/manager/events">← My events</Link>
+    <Link className="manager-back-link" to="/manager/events"><Icon name="arrow-left" size={16} /> My events</Link>
     <div className="manager-workspace-head">
       <div><span>{event.category} · {event.venue}</span><h2>{event.title}</h2><p>{new Date(`${event.date}T12:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })} · {event.startTime}–{event.endTime}</p></div>
       <StatusBadge value={event.status} />
@@ -287,11 +291,11 @@ function EventWorkspace({ event, tab }) {
         <Metric label="Feedback" value={eventFeedback.length} note={eventFeedback.length ? `${(eventFeedback.reduce((sum, item) => sum + item.rating, 0) / eventFeedback.length).toFixed(1)} average rating` : "Available after event"} />
       </div>
       <div className="manager-overview-grid">
-        <section className="manager-panel"><div className="manager-panel__header"><div><span>EVENT INFORMATION</span><h3>At a glance</h3></div><Link to={`/manager/events/${event.id}/details`} className="manager-inline-link">Edit details →</Link></div>
+        <section className="manager-panel"><div className="manager-panel__header"><div><span>EVENT INFORMATION</span><h3>At a glance</h3></div><Link to={`/manager/events/${event.id}/details`} className="manager-inline-link">Edit details <Icon name="arrow-right" size={16} /></Link></div>
           <dl className="manager-definition-list"><div><dt>Organizer</dt><dd>{event.organizer}</dd></div><div><dt>Venue</dt><dd>{event.venue}</dd></div><div><dt>Requirements</dt><dd>{event.requirements}</dd></div><div><dt>Next milestone</dt><dd>{event.importantDate}</dd></div><div><dt>Preparation</dt><dd>{event.preparationStatus}</dd></div></dl>
         </section>
         <section className="manager-panel"><div className="manager-panel__header"><div><span>QUICK ACTIONS</span><h3>Keep this event moving</h3></div></div>
-          <div className="manager-quick-actions"><Link to={`/manager/events/${event.id}/schedule`}>Manage schedule <span>→</span></Link><Link to={`/manager/events/${event.id}/participants`}>Review participants <span>→</span></Link><Link to={`/manager/events/${event.id}/announcements`}>Publish update <span>→</span></Link><Link to={`/manager/events/${event.id}/reports`}>Review results <span>→</span></Link></div>
+          <div className="manager-quick-actions"><Link to={`/manager/events/${event.id}/schedule`}>Manage schedule <Icon name="arrow-right" size={16} /></Link><Link to={`/manager/events/${event.id}/participants`}>Review participants <Icon name="arrow-right" size={16} /></Link><Link to={`/manager/events/${event.id}/announcements`}>Publish update <Icon name="arrow-right" size={16} /></Link><Link to={`/manager/events/${event.id}/reports`}>Review results <Icon name="arrow-right" size={16} /></Link></div>
           {!['Completed', 'Cancelled'].includes(event.status) && <button type="button" className="manager-button manager-button--complete" onClick={() => completeEvent(event.id)}>Mark event completed</button>}
           {event.status === "Completed" && <p className="manager-complete-note">Completed {event.completedAt || ""}. Event results and feedback are available below.</p>}
         </section>
@@ -331,7 +335,7 @@ function EventWorkspace({ event, tab }) {
     {activeTab === "feedback" && <FeedbackPanel feedback={eventFeedback} />}
     {activeTab === "reports" && <ReportPanel event={event} registrations={registrations} feedback={eventFeedback} sessions={eventSessions} />}
 
-    {sessionModal && <div className="manager-modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setSessionModal(false); }}><section className="manager-modal" role="dialog" aria-modal="true" aria-labelledby="session-form-title"><div className="manager-panel__header"><div><span>PROGRAMME</span><h3 id="session-form-title">{sessionForm.id ? "Edit session" : "Add session"}</h3></div><button className="manager-close" onClick={() => setSessionModal(false)} aria-label="Close">×</button></div><form className="manager-form" onSubmit={saveSessionForm}><label className="manager-field manager-field--wide">Session title<input autoFocus value={sessionForm.title} onChange={(e) => setSessionForm((f) => ({ ...f, title: e.target.value }))} /></label><label className="manager-field">Speaker<input value={sessionForm.speaker} onChange={(e) => setSessionForm((f) => ({ ...f, speaker: e.target.value }))} /></label><label className="manager-field">Room<input value={sessionForm.room} onChange={(e) => setSessionForm((f) => ({ ...f, room: e.target.value }))} /></label><label className="manager-field">Start<input type="time" value={sessionForm.startTime} onChange={(e) => setSessionForm((f) => ({ ...f, startTime: e.target.value }))} /></label><label className="manager-field">End<input type="time" value={sessionForm.endTime} onChange={(e) => setSessionForm((f) => ({ ...f, endTime: e.target.value }))} /></label><div className="manager-form-actions"><button className="manager-button manager-button--primary" type="submit">Save session</button><button className="manager-button" type="button" onClick={() => setSessionModal(false)}>Cancel</button></div></form></section></div>}
+    {sessionModal && <div className="manager-modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setSessionModal(false); }}><section className="manager-modal" role="dialog" aria-modal="true" aria-labelledby="session-form-title"><div className="manager-panel__header"><div><span>PROGRAMME</span><h3 id="session-form-title">{sessionForm.id ? "Edit session" : "Add session"}</h3></div><button className="manager-close" onClick={() => setSessionModal(false)} aria-label="Close"><Icon name="close" size={20} /></button></div><form className="manager-form" onSubmit={saveSessionForm}><label className="manager-field manager-field--wide">Session title<input autoFocus value={sessionForm.title} onChange={(e) => setSessionForm((f) => ({ ...f, title: e.target.value }))} /></label><label className="manager-field">Speaker<input value={sessionForm.speaker} onChange={(e) => setSessionForm((f) => ({ ...f, speaker: e.target.value }))} /></label><label className="manager-field">Room<input value={sessionForm.room} onChange={(e) => setSessionForm((f) => ({ ...f, room: e.target.value }))} /></label><label className="manager-field">Start<input type="time" value={sessionForm.startTime} onChange={(e) => setSessionForm((f) => ({ ...f, startTime: e.target.value }))} /></label><label className="manager-field">End<input type="time" value={sessionForm.endTime} onChange={(e) => setSessionForm((f) => ({ ...f, endTime: e.target.value }))} /></label><div className="manager-form-actions"><button className="manager-button manager-button--primary" type="submit">Save session</button><button className="manager-button" type="button" onClick={() => setSessionModal(false)}>Cancel</button></div></form></section></div>}
   </div>;
 }
 
@@ -413,7 +417,7 @@ function ManagerSchedule({ events, sessions, saveSession, deleteSession, toast }
   return <div className="manager-page"><SectionHeading eyebrow="PROGRAMME COORDINATION" title="Schedule" detail="Manage speakers, rooms, and time slots for your assigned events." action={<button className="manager-button manager-button--primary" onClick={() => setEditing({ ...EMPTY_SESSION, eventId: events[0]?.id || "" })}>Add session</button>} />
     <div className="manager-toolbar"><select aria-label="Filter schedule event" value={eventId} onChange={(e) => setEventId(e.target.value)}><option>All assigned events</option>{events.map((event) => <option key={event.id} value={event.id}>{event.title}</option>)}</select></div>
     <div className="manager-timeline">{eventSessions.map((session) => <article key={session.id} className="manager-session-row"><time>{session.startTime}<span>{session.endTime}</span></time><div><h3>{session.title}</h3><p>{events.find((event) => event.id === session.eventId)?.title} · {session.speaker} · {session.room}</p></div><div className="manager-row-actions"><button className="manager-text-button" onClick={() => setEditing(session)}>Edit</button><button className="manager-text-button manager-text-button--danger" onClick={() => { deleteSession(session.id); toast("Session removed."); }}>Remove</button></div></article>)}{!eventSessions.length && <p className="manager-empty">No sessions to display.</p>}</div>
-    {editing && <div className="manager-modal-backdrop"><section className="manager-modal" role="dialog" aria-modal="true" aria-labelledby="global-session-title"><div className="manager-panel__header"><div><span>PROGRAMME</span><h3 id="global-session-title">{editing.id ? "Edit session" : "Add session"}</h3></div><button className="manager-close" onClick={() => setEditing(null)} aria-label="Close">×</button></div><form className="manager-form" onSubmit={save}><label className="manager-field manager-field--wide">Event<select value={editing.eventId} onChange={(e) => setEditing((current) => ({ ...current, eventId: e.target.value }))}>{events.map((event) => <option key={event.id} value={event.id}>{event.title}</option>)}</select></label><label className="manager-field manager-field--wide">Session title<input value={editing.title} onChange={(e) => setEditing((current) => ({ ...current, title: e.target.value }))} /></label><label className="manager-field">Speaker<input value={editing.speaker} onChange={(e) => setEditing((current) => ({ ...current, speaker: e.target.value }))} /></label><label className="manager-field">Room<input value={editing.room} onChange={(e) => setEditing((current) => ({ ...current, room: e.target.value }))} /></label><label className="manager-field">Start<input type="time" value={editing.startTime} onChange={(e) => setEditing((current) => ({ ...current, startTime: e.target.value }))} /></label><label className="manager-field">End<input type="time" value={editing.endTime} onChange={(e) => setEditing((current) => ({ ...current, endTime: e.target.value }))} /></label><div className="manager-form-actions"><button className="manager-button manager-button--primary" type="submit">Save session</button><button className="manager-button" type="button" onClick={() => setEditing(null)}>Cancel</button></div></form></section></div>}
+    {editing && <div className="manager-modal-backdrop"><section className="manager-modal" role="dialog" aria-modal="true" aria-labelledby="global-session-title"><div className="manager-panel__header"><div><span>PROGRAMME</span><h3 id="global-session-title">{editing.id ? "Edit session" : "Add session"}</h3></div><button className="manager-close" onClick={() => setEditing(null)} aria-label="Close"><Icon name="close" size={20} /></button></div><form className="manager-form" onSubmit={save}><label className="manager-field manager-field--wide">Event<select value={editing.eventId} onChange={(e) => setEditing((current) => ({ ...current, eventId: e.target.value }))}>{events.map((event) => <option key={event.id} value={event.id}>{event.title}</option>)}</select></label><label className="manager-field manager-field--wide">Session title<input value={editing.title} onChange={(e) => setEditing((current) => ({ ...current, title: e.target.value }))} /></label><label className="manager-field">Speaker<input value={editing.speaker} onChange={(e) => setEditing((current) => ({ ...current, speaker: e.target.value }))} /></label><label className="manager-field">Room<input value={editing.room} onChange={(e) => setEditing((current) => ({ ...current, room: e.target.value }))} /></label><label className="manager-field">Start<input type="time" value={editing.startTime} onChange={(e) => setEditing((current) => ({ ...current, startTime: e.target.value }))} /></label><label className="manager-field">End<input type="time" value={editing.endTime} onChange={(e) => setEditing((current) => ({ ...current, endTime: e.target.value }))} /></label><div className="manager-form-actions"><button className="manager-button manager-button--primary" type="submit">Save session</button><button className="manager-button" type="button" onClick={() => setEditing(null)}>Cancel</button></div></form></section></div>}
   </div>;
 }
 

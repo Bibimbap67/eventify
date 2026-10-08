@@ -36,7 +36,7 @@ export default function ScrollProgress({ focusTargetId }) {
         tabIndex={showTop ? 0 : -1}
         aria-hidden={showTop ? undefined : "true"}
       >
-        <Icon name="arrowUp" size={24} />
+        <Icon name="arrow-up" size={24} />
       </button>
     </>
   );

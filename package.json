@@ -5,6 +5,7 @@
   "proxy": "http://localhost:5000",
   "scripts": {
     "start": "react-scripts start",
+    "build": "react-scripts build",
     "server": "npm --prefix server run dev"
   },
   "dependencies": {
@@ -12,6 +13,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^13.5.0",
+    "lucide-react": "^1.53.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router-dom": "^7.18.4",

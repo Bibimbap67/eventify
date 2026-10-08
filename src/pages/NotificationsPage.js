@@ -2,9 +2,11 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar.js";
 import Icon from "../components/Icon.js";
+import { useEntering } from "../components/Motion.js";
 import { useEventContext } from "../context/EventContext.js";
 
 export default function NotificationsPage() {
+  const entering = useEntering();
   const { notifications, markNotificationRead, markAllNotificationsRead } = useEventContext();
   const [filter, setFilter] = useState("all"); // "all" | "unread"
 
@@ -71,7 +73,7 @@ export default function NotificationsPage() {
             <p>You're all caught up! Updates regarding your registered campus events will appear here.</p>
           </div>
         ) : (
-          <div className="notifications-full-list">
+          <div className={`notifications-full-list${entering ? " stagger" : ""}`}>
             {filteredNotifs.map((notif) => (
               <div
                 key={notif.id}
@@ -99,7 +101,7 @@ export default function NotificationsPage() {
                       className="notif-card__action"
                       onClick={() => markNotificationRead(notif.id)}
                     >
-                      View Details →
+                      View Details <Icon name="arrow-right" size={16} />
                     </Link>
                     {!notif.read && <span className="notif-unread-pill">NEW</span>}
                   </div>

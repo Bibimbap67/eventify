@@ -1,4 +1,5 @@
 import React from "react";
+import Icon from "./Icon.js";
 
 export default function Button({
   children,
@@ -9,7 +10,10 @@ export default function Button({
   onClick,
   showArrow = false,
 }) {
-  const buttonClass = "btn btn--" + variant;
+  let buttonClass = "btn btn--" + variant;
+  if (loading) {
+    buttonClass += " btn--loading";
+  }
   const isDisabled = disabled || loading;
 
   // Show the loading text while waiting
@@ -19,9 +23,9 @@ export default function Button({
   }
 
   return (
-    <button type={type} className={buttonClass} onClick={onClick} disabled={isDisabled}>
+    <button type={type} className={buttonClass} onClick={onClick} disabled={isDisabled} aria-busy={loading || undefined}>
       {buttonText}
-      {!loading && showArrow && <span className="btn__arrow">→</span>}
+      {!loading && showArrow && <span className="btn__arrow"><Icon name="arrow-right" size={20} /></span>}
     </button>
   );
 }

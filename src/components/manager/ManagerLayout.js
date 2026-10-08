@@ -4,6 +4,9 @@ import { useAuth } from "../../context/AuthContext.js";
 import { useManager } from "../../context/ManagerContext.js";
 import Logo from "../Logo.js";
 import Icon from "../Icon.js";
+import Toast from "../Toast.js";
+import SoundToggle from "../SoundToggle.js";
+import { PageTransition } from "../Motion.js";
 
 const NAVIGATION = [
   { label: "Overview", path: "/manager" },
@@ -68,11 +71,12 @@ export default function ManagerLayout() {
             <p>EVENTIFY / EVENT MANAGER</p>
             <h1>{title}</h1>
           </div>
+          <SoundToggle className="icon-btn manager-topbar__sound" />
           <span className="manager-topbar__date">{new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</span>
         </header>
-        <main className="manager-content"><Outlet /></main>
+        <main className="manager-content"><PageTransition><Outlet /></PageTransition></main>
       </div>
-      {toastMessage && <div className="manager-toast" role="status">{toastMessage}</div>}
+      <Toast message={toastMessage} className="manager-toast" />
     </div>
   );
 }

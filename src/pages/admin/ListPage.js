@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { useAdmin } from "../../context/AdminContext.js";
 import { DataTable, StatusBadge, Modal, FormField, ConfirmModal } from "../../components/admin/ui.js";
+import { TableSkeleton, useSkeleton } from "../../components/Skeleton.js";
 
 const B = (r) => <StatusBadge value={r.status} />;
 const nowTime = () => new Date().toTimeString().slice(0, 5);
@@ -503,6 +504,8 @@ export default function ListPage() {
   const [showClearLogsConfirm, setShowClearLogsConfirm] = useState(false);
 
   const cfg = PAGES(ctx)[page];
+  // The accounts list has no loading flag, so an empty Users list right after opening counts as loading.
+  const usersLoading = useSkeleton(page === "users" && !cfg?.rows?.length, page);
   if (!cfg) return <Navigate to="/admin" replace />;
   const formFields = (cfg.form?.fields || []).filter((field) => editingItem === "new" || !field.createOnly);
 
@@ -688,6 +691,9 @@ export default function ListPage() {
 
       {cfg.summary && <p className="notice">{cfg.summary(rows)}</p>}
 
+      {usersLoading ? (
+        <TableSkeleton columns={[...cfg.cols.map(([label]) => label), "Actions"]} />
+      ) : (
       <DataTable
         rows={rows}
         columns={cfg.cols.map(([label, render]) => ({ label, render }))}
@@ -718,6 +724,7 @@ export default function ListPage() {
           return all.length > 0 ? <>{all}</> : null;
         }}
       />
+      )}
 
       {/* Create / Edit Modal */}
       {editingItem && (

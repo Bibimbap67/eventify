@@ -3,10 +3,10 @@ import Icon from "../Icon.js";
 import Reveal from "./Reveal.js";
 
 const STEPS = [
-  { icon: "userPlus", title: "Register", text: "Pick an event and confirm your seat in one step." },
+  { icon: "user-plus", title: "Register", text: "Pick an event and confirm your seat in one step." },
   { icon: "ticket", title: "Get your ticket", text: "Your ticket pass and its check-in code appear under My Events." },
   { icon: "scan", title: "Check in", text: "Show the code at the door and the organizer checks you in." },
-  { icon: "award", title: "Get your certificate", text: "After you attend and leave feedback, your certificate is ready to view." },
+  { icon: "certificate", title: "Get your certificate", text: "After you attend and leave feedback, your certificate is ready to view." },
 ];
 
 // Four steps that light up one by one as they cross the middle of the screen. On wide

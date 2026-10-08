@@ -1,5 +1,6 @@
 import React from "react";
 import Icon from "./Icon.js";
+import { Modal } from "./admin/ui.js";
 
 export default function TicketPassModal({ registration, onClose }) {
   if (!registration) return null;
@@ -9,16 +10,9 @@ export default function TicketPassModal({ registration, onClose }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal ticket-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal__head">
-          <h2>EVENT ADMISSION PASS</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">
-            <Icon name="close" size={18} />
-          </button>
-        </div>
-
-        <div className="modal__body ticket-modal__body">
+    <Modal title="EVENT ADMISSION PASS" onClose={onClose} className="ticket-modal">
+      {(close) => (
+        <>
           <div className="printable-ticket">
             <div className="printable-ticket__top">
               <span className="printable-ticket__org">NATIONAL UNIVERSITY · EVENTIFY</span>
@@ -62,16 +56,16 @@ export default function TicketPassModal({ registration, onClose }) {
             </div>
           </div>
 
-          <div className="ticket-modal__actions">
+          <div className="action-row">
             <button type="button" className="btn-sm btn-sm--yellow" onClick={handlePrint}>
               <Icon name="print" size={16} /> Print / Save Pass
             </button>
-            <button type="button" className="btn-sm" onClick={onClose}>
+            <button type="button" className="btn-sm" onClick={close}>
               Close
             </button>
           </div>
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+    </Modal>
   );
 }

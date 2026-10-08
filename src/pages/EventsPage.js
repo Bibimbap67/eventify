@@ -3,11 +3,15 @@ import { useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar.js";
 import EventCard from "../components/EventCard.js";
 import Icon from "../components/Icon.js";
+import { useEntering } from "../components/Motion.js";
+import { EventCardSkeleton, useSkeleton } from "../components/Skeleton.js";
 import { useEventContext } from "../context/EventContext.js";
 import { EVENT_CATEGORIES } from "../data/options.js";
 
 export default function EventsPage() {
+  const entering = useEntering();
   const { events, isEventRegistered } = useEventContext();
+  const loadingEvents = useSkeleton(events.length === 0, "events");
   const [searchParams, setSearchParams] = useSearchParams();
 
   // URL query params synchronization
@@ -214,7 +218,11 @@ export default function EventsPage() {
 
         {/* Events Grid */}
         <section className="explore-results">
-          {filteredEvents.length === 0 ? (
+          {loadingEvents ? (
+            <div className="events-grid" aria-busy="true" aria-label="Loading events">
+              {Array.from({ length: 6 }, (_, i) => <EventCardSkeleton key={i} />)}
+            </div>
+          ) : filteredEvents.length === 0 ? (
             <div className="events-empty-card">
               <div className="empty-card__icon"><Icon name="search" size={24} /></div>
               <h3>No events match your criteria</h3>
@@ -226,7 +234,7 @@ export default function EventsPage() {
               </button>
             </div>
           ) : (
-            <div className="events-grid">
+            <div className={`events-grid${entering ? " stagger" : ""}`}>
               {filteredEvents.map((event, index) => (
                 <EventCard key={event.id} event={event} accentIndex={index} />
               ))}

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { SYNC_ERROR_EVENT } from "../context/useServerStore.js";
+import Toast from "./Toast.js";
 
 // Shows a message when saving to or loading from the server fails.
 export default function SyncErrorToast() {
@@ -19,6 +20,5 @@ export default function SyncErrorToast() {
     };
   }, []);
 
-  if (!message) return null;
-  return <div className="toast" role="alert" style={{ zIndex: 70 }}>{message}</div>;
+  return <Toast message={message} className="toast toast--error" alert />;
 }

@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar.js";
 import Icon from "../components/Icon.js";
+import { useEntering } from "../components/Motion.js";
 import { useEventContext } from "../context/EventContext.js";
 import CertificateModal from "../components/CertificateModal.js";
 
 export default function CertificatesPage() {
+  const entering = useEntering();
   const { certificates, userProfile } = useEventContext();
   const [selectedCert, setSelectedCert] = useState(null);
 
@@ -38,15 +40,15 @@ export default function CertificatesPage() {
               Certificates of participation are automatically generated and issued once you attend and complete your registered campus events.
             </p>
             <Link to="/events" className="btn-sm btn-sm--yellow">
-              Browse Upcoming Events →
+              Browse Upcoming Events <Icon name="arrow-right" size={16} />
             </Link>
           </div>
         ) : (
-          <div className="certificates-grid">
+          <div className={`certificates-grid${entering ? " stagger" : ""}`}>
             {certificates.map((cert) => (
               <article key={cert.id} className="certificate-card">
                 <div className="cert-card__top">
-                  <span className="sbadge sbadge--issued">✓ VERIFIED PARTICIPATION</span>
+                  <span className="sbadge sbadge--issued"><Icon name="check" size={16} /> VERIFIED PARTICIPATION</span>
                   <span className="cert-card__id">{cert.credentialId}</span>
                 </div>
 
