@@ -43,6 +43,7 @@ const Event = model("Event", {
   venue: String, // manager events
   venueId: String, // admin events
   capacity: Number,
+  seating: String, // "free" (first come, first served) | "reserved" (attendees pick a seat)
 });
 
 const Registration = model("Registration", {
@@ -56,12 +57,19 @@ const Registration = model("Registration", {
   status: String, // "Confirmed" | "Pending" | "Cancelled"
   attendanceStatus: String, // "Not Checked In" | "Checked in" | "Attended"
   checkedInAt: String,
+  checkedInBy: String,
   registrationDate: String,
   ticketCode: String,
+  // Secret behind the ticket's QR code. Issued by the server (GET /api/tickets/:id), never by a client.
+  ticketToken: { type: String, unique: true, sparse: true },
   ticketType: String,
-  seat: String,
+  seating: String, // "free" | "reserved", copied from the event when the ticket is issued
+  seat: String, // reserved seating only, e.g. "C7"; free seating keeps no seat number
   feedback: Mixed,
-});
+}, {}, [
+  // One confirmed ticket per reserved seat, so two people picking a seat at the same moment cannot both get it.
+  [{ eventId: 1, seat: 1 }, { unique: true, partialFilterExpression: { status: "Confirmed", seating: "reserved" } }],
+]);
 
 const Certificate = model("Certificate", {
   userId: { type: String, index: true },

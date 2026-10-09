@@ -1,20 +1,14 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useEventContext } from "../context/EventContext.js";
+import { categoryColor, eventBanner } from "../data/options.js";
 import Icon from "./Icon.js";
 
-// Top-band colors. Cards cycle through them by position so neighbours never match.
-const CARD_ACCENTS = [
-  "var(--pink)",
-  "var(--sky)",
-  "var(--yellow)",
-  "var(--violet)",
-  "var(--mint)",
-];
+const STATUS_LABELS = { "OPENS SOON": "Opens soon", COMPLETED: "Completed" };
 
-export default function EventCard({ event, accentIndex }) {
+export default function EventCard({ event }) {
   const navigate = useNavigate();
-  const accent = accentIndex === undefined ? event.accent : CARD_ACCENTS[accentIndex % CARD_ACCENTS.length];
+  const category = categoryColor(event.category);
   const { isEventRegistered } = useEventContext();
   const eventPath = "/events/" + event.id;
 
@@ -51,7 +45,7 @@ export default function EventCard({ event, accentIndex }) {
   return (
     <article
       className="event-card"
-      style={{ "--accent": accent }}
+      style={{ "--accent": eventBanner(event) }}
       onClick={handleCardClick}
       aria-label={`View event details for ${event.title}`}
       role="button"
@@ -62,7 +56,8 @@ export default function EventCard({ event, accentIndex }) {
       <div className="event-card__body">
         <div className="event-card__top">
           <div className="event-card__badges-group">
-            <span className="event-card__badge">{event.category || event.status}</span>
+            <span className="event-card__badge" style={{ background: category.bg, color: category.ink }}>{event.category || "Event"}</span>
+            {STATUS_LABELS[event.status] && <span className="event-card__status">{STATUS_LABELS[event.status]}</span>}
             {isRegistered && <span className="event-card__reg-tag"><Icon name="check" size={16} /> REGISTERED</span>}
           </div>
           <span className="event-card__arrow" aria-hidden="true"><Icon name="arrow" size={18} /></span>

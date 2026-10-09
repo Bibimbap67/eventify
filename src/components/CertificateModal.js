@@ -1,76 +1,118 @@
-import React from "react";
+import React, { useRef, useState } from "react";
 import Icon from "./Icon.js";
 import { Modal } from "./admin/ui.js";
+import { DocPreview, fileSafe, printNode, savePng, useQrCode } from "./DocExport.js";
+
+const CERT_WIDTH = 1100;
 
 export default function CertificateModal({ certificate, onClose }) {
+  const docRef = useRef(null);
+  const [error, setError] = useState("");
+  const qr = useQrCode(certificate ? `${window.location.origin}/verify/${encodeURIComponent(certificate.credentialId)}` : "");
   if (!certificate) return null;
 
-  const handlePrint = () => {
-    window.print();
+  const organizerLines = String(certificate.organizer || "School of Information Technology · National University MOA").split("·");
+  const name = `certificate-${fileSafe(certificate.eventTitle)}`;
+
+  const run = (action) => async () => {
+    setError("");
+    try {
+      await action();
+    } catch {
+      setError("Could not export the certificate. Try again.");
+    }
   };
 
   return (
     <Modal title="CERTIFICATE OF PARTICIPATION" onClose={onClose} className="certificate-modal-wrap">
       {(close) => (
         <>
-          {/* Formal Certificate Document */}
-          <div className="formal-certificate-doc">
-            <div className="cert-border-inner">
-              <div className="cert-header">
-                <span className="cert-inst-name">NATIONAL UNIVERSITY · MOA</span>
-                <span className="cert-dept">SCHOOL OF INFORMATION TECHNOLOGY</span>
-              </div>
-
-              <div className="cert-title-block">
-                <span className="cert-present-text">THIS IS TO CERTIFY THAT</span>
-                <h1 className="cert-recipient-name">{certificate.recipientName}</h1>
-                <p className="cert-body-text">
-                  has actively participated in and successfully completed the technical conference session on
-                </p>
-                <h2 className="cert-event-title">{certificate.eventTitle}</h2>
-                <p className="cert-hours-text">
-                  Conducted by <b>{certificate.organizer}</b> on <u>{certificate.issueDate}</u>.
-                </p>
-                {certificate.hoursEarned && (
-                  <span className="cert-hours-tag">CREDIT ALLOCATED: {certificate.hoursEarned}</span>
-                )}
-              </div>
-
-              <div className="cert-footer-row">
-                <div className="cert-signature-block">
-                  <div className="sig-line" />
-                  <strong>{certificate.signatoryName || "Dr. Ronald Reyes"}</strong>
-                  <small>{certificate.signatoryRole || "Dean, School of IT"}</small>
-                </div>
-
-                <div className="cert-seal-badge">
-                  <div className="gold-seal-circle">
-                    <span>OFFICIAL</span>
-                    <b>NU MOA</b>
-                    <small>SEAL</small>
+          <DocPreview width={CERT_WIDTH}>
+            <div className="ecert" ref={docRef}>
+              <div className="ecert__header">
+                <div className="ecert__brand">
+                  <div className="ecert__brand-box">E</div>
+                  <div>
+                    <div className="ecert__brand-name">EVENTIFY</div>
+                    <div className="ecert__brand-sub">EVENT MANAGEMENT SYSTEM</div>
                   </div>
                 </div>
+                <div className="ecert__label">OFFICIAL CREDENTIAL</div>
+              </div>
 
-                <div className="cert-signature-block">
-                  <div className="sig-line" />
-                  <strong>Prof. Grace Uy</strong>
-                  <small>Academic Director & Program Head</small>
+              <div className="ecert__title">
+                <h1>CERTIFICATE</h1>
+                <p>OF PARTICIPATION</p>
+              </div>
+
+              <div className="ecert__recipient">
+                <div className="ecert__presented">THIS CERTIFICATE IS PROUDLY PRESENTED TO</div>
+                <div className="ecert__name">{certificate.recipientName}</div>
+              </div>
+
+              <p className="ecert__desc">
+                This is to certify that the above-named participant has actively participated in and
+                successfully completed the technical conference session on
+              </p>
+
+              <div className="ecert__event">
+                <div className="ecert__event-label">EVENT COMPLETED</div>
+                <div className="ecert__event-name">{certificate.eventTitle}</div>
+              </div>
+
+              <div className="ecert__info">
+                <div className="ecert__info-item">
+                  <div className="ecert__info-label">CONDUCTED BY</div>
+                  <div className="ecert__info-value">
+                    {organizerLines.map((line, index) => <div key={index}>{line.trim()}</div>)}
+                  </div>
+                </div>
+                <div className="ecert__info-item">
+                  <div className="ecert__info-label">DATE ISSUED</div>
+                  <div className="ecert__info-value">{certificate.issueDate}</div>
+                </div>
+                <div className="ecert__info-item">
+                  <div className="ecert__info-label">CREDENTIAL</div>
+                  <div className="ecert__info-value">{certificate.hoursEarned || "Certificate of Participation"}</div>
                 </div>
               </div>
 
-              <div className="cert-credential-strip">
-                <span>CREDENTIAL ID: <b>{certificate.credentialId}</b></span>
-                <small>Issued via Eventify Campus Verification</small>
+              <div className="ecert__verify">
+                <div>
+                  <div className="ecert__verify-title">CERTIFICATE VERIFICATION</div>
+                  <div className="ecert__verify-desc">
+                    Scan the QR code or use the credential ID to verify the authenticity of this certificate through Eventify.
+                  </div>
+                  <div className="ecert__id">{certificate.credentialId}</div>
+                  <div className="ecert__valid"><span className="ecert__valid-dot" /> DIGITALLY VERIFIABLE</div>
+                </div>
+
+                <div className="ecert__qr">
+                  <div className="ecert__qr-box">
+                    {qr && <img src={qr} alt={`Verification QR code for ${certificate.credentialId}`} />}
+                  </div>
+                  <div className="ecert__scan">SCAN TO VERIFY</div>
+                </div>
+
+                <div className="ecert__sign">
+                  <div className="ecert__sign-line" />
+                  <div className="ecert__sign-name">{certificate.signatoryName || "Dr. Ronald Reyes"}</div>
+                  <div className="ecert__sign-role">{certificate.signatoryRole || "Dean, School of Information Technology"}</div>
+                </div>
               </div>
             </div>
-          </div>
+          </DocPreview>
 
+          {error && <p className="form-error" role="alert">{error}</p>}
           <div className="action-row">
-            <button type="button" className="btn-sm btn-sm--yellow" onClick={handlePrint}>
-              <Icon name="print" size={16} /> Print / Save as PDF
-            </button>
             <button type="button" className="btn-sm" onClick={close}>
-              Close Preview
+              Close
+            </button>
+            <button type="button" className="btn-sm" onClick={run(() => savePng(docRef.current, `${name}.png`))}>
+              <Icon name="download" size={16} /> Save as PNG
+            </button>
+            <button type="button" className="btn-sm btn-sm--yellow" onClick={run(() => printNode(docRef.current, { size: "A4 landscape", title: name }))}>
+              <Icon name="print" size={16} /> Print / Save as PDF
             </button>
           </div>
         </>

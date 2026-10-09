@@ -70,6 +70,32 @@ export function useEntering(ms = 600) {
   return entering;
 }
 
+// A short "working" beat for actions that finish instantly here but still save to the server
+// in the background (register, cancel, feedback): the button shows its spinner for PENDING_MS,
+// then the action runs. Instant under reduced motion. If the component unmounts first
+// (the dialog was closed), the action is dropped.
+const PENDING_MS = 550;
+
+export function usePending() {
+  const [pending, setPending] = useState(false);
+  const timer = useRef(0);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const run = useCallback((action) => {
+    if (prefersReducedMotion()) {
+      action();
+      return;
+    }
+    setPending(true);
+    timer.current = setTimeout(() => {
+      setPending(false);
+      action();
+    }, PENDING_MS);
+  }, []);
+
+  return [pending, run];
+}
+
 // Counts up from 0 once, the first time a non-zero value shows. Later changes are instant.
 export function CountUp({ value }) {
   const ref = useRef(null);
@@ -88,7 +114,8 @@ export function CountUp({ value }) {
     let finished = false;
     const start = performance.now();
     const tick = (now) => {
-      const t = Math.min(1, (now - start) / DURATION_COUNT);
+      // The first frame's timestamp can be slightly before `start`; clamp so it never shows a negative number.
+      const t = Math.min(1, Math.max(0, (now - start) / DURATION_COUNT));
       el.textContent = String(Math.round(target * (1 - Math.pow(1 - t, 3))));
       if (t < 1) frame = requestAnimationFrame(tick);
       else finished = true;

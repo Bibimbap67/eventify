@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage.js";
 import HomePage from "./pages/HomePage.js";
@@ -11,6 +11,8 @@ import CertificatesPage from "./pages/CertificatesPage.js";
 import NotificationsPage from "./pages/NotificationsPage.js";
 import ProfilePage from "./pages/ProfilePage.js";
 import Dashboard from "./pages/Dashboard.js";
+import VerifyPage from "./pages/VerifyPage.js";
+import CalendarPage from "./pages/CalendarPage.js";
 import AdminLayout from "./components/admin/AdminLayout.js";
 import AdminDashboard from "./pages/admin/AdminDashboard.js";
 import EventsAdmin from "./pages/admin/EventsAdmin.js";
@@ -22,6 +24,10 @@ import { AdminProvider } from "./context/AdminContext.js";
 import ProtectedRoute from "./components/ProtectedRoute.js";
 import SyncErrorToast from "./components/SyncErrorToast.js";
 import { PageTransition } from "./components/Motion.js";
+import { ShellSkeleton } from "./components/Skeleton.js";
+
+// Only staff need the QR reader, so its code loads when the desk is opened.
+const StaffPage = lazy(() => import("./pages/StaffPage.js"));
 
 // Attendee pages carry their own navbar; admin and manager layouts animate their own outlet.
 const PAGE_TARGETS = ":scope > :not(.admin, .manager-shell) > :not(.navbar)";
@@ -38,6 +44,8 @@ export default function App() {
         {/* Attendee experience */}
         <Route path="/events" element={<EventsPage />} />
         <Route path="/events/:id" element={<EventDetail />} />
+        <Route path="/calendar" element={<CalendarPage />} />
+        <Route path="/verify/:credentialId" element={<VerifyPage />} />
         <Route path="/my-events" element={<ProtectedRoute requiredRole="user"><MyEventsPage /></ProtectedRoute>} />
         <Route path="/schedule" element={<ProtectedRoute requiredRole="user"><SchedulePage /></ProtectedRoute>} />
         <Route path="/attendance" element={<ProtectedRoute requiredRole="user"><AttendancePage /></ProtectedRoute>} />
@@ -54,6 +62,9 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Event staff: the check-in desk */}
+        <Route path="/staff" element={<ProtectedRoute requiredRole="staff"><Suspense fallback={<ShellSkeleton />}><StaffPage /></Suspense></ProtectedRoute>} />
 
         <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminProvider><AdminLayout /></AdminProvider></ProtectedRoute>}>
           <Route index element={<AdminDashboard />} />

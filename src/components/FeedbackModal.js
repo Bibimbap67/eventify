@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import Icon from "./Icon.js";
+import Spinner from "./Spinner.js";
+import { usePending } from "./Motion.js";
 import { Modal } from "./admin/ui.js";
 
 export default function FeedbackModal({ registration, onSubmit, onClose }) {
@@ -9,6 +11,7 @@ export default function FeedbackModal({ registration, onSubmit, onClose }) {
   const [venue, setVenue] = useState(5);
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
+  const [sending, runSend] = usePending();
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -17,13 +20,13 @@ export default function FeedbackModal({ registration, onSubmit, onClose }) {
       return;
     }
 
-    onSubmit({
+    runSend(() => onSubmit({
       overall: Number(overall),
       organization: Number(organization),
       speaker: Number(speaker),
       venue: Number(venue),
       comment: comment.trim(),
-    });
+    }));
   };
 
   return (
@@ -112,11 +115,11 @@ export default function FeedbackModal({ registration, onSubmit, onClose }) {
             )}
 
             <div className="action-row">
-              <button type="button" className="btn-sm" onClick={close}>
+              <button type="button" className="btn-sm" onClick={close} disabled={sending}>
                 Cancel
               </button>
-              <button type="submit" className="btn-sm btn-sm--yellow">
-                Submit Feedback
+              <button type="submit" className="btn-sm btn-sm--yellow" disabled={sending} aria-busy={sending || undefined}>
+                {sending ? <><Spinner /> Sending…</> : "Submit Feedback"}
               </button>
             </div>
           </form>

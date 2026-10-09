@@ -3,9 +3,14 @@ import { useParams, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.js";
 import Navbar from "../components/Navbar.js";
 import Icon from "../components/Icon.js";
+import Spinner from "../components/Spinner.js";
+import { usePending } from "../components/Motion.js";
 import { EventDetailSkeleton, useSkeleton } from "../components/Skeleton.js";
 import { useEventContext } from "../context/EventContext.js";
 import { useManager } from "../context/ManagerContext.js";
+import { categoryColor, eventBanner } from "../data/options.js";
+import { isReserved, seatOf } from "../data/seating.js";
+import { SeatPickerModal } from "../components/SeatMap.js";
 
 // Helper for speaker profile avatars with graceful SVG fallback
 function SpeakerAvatar({ name, src }) {
@@ -50,7 +55,10 @@ export default function EventDetail() {
   const [formEmail, setFormEmail] = useState(userProfile?.email || "");
   const [formStudentId, setFormStudentId] = useState(userProfile?.studentId || "");
   const [ticketType, setTicketType] = useState("Student Attendee");
+  const [formSeat, setFormSeat] = useState("");
+  const [pickingSeat, setPickingSeat] = useState(false);
   const [regError, setRegError] = useState("");
+  const [registering, runRegister] = usePending();
   // Only while the event list itself hasn't arrived; a missing event in a loaded list shows "not found" at once.
   const loadingEvent = useSkeleton(!event && events.length === 0, id);
 
@@ -79,6 +87,7 @@ export default function EventDetail() {
   }
 
   const capacity = event.capacity || 500;
+  const reserved = isReserved(event);
   const currentCount = Math.min(event.registered, capacity);
   const percentFilled = Math.min(100, Math.round((currentCount / capacity) * 100));
   const spotsRemaining = Math.max(0, capacity - currentCount);
@@ -113,6 +122,14 @@ export default function EventDetail() {
     urgencyText = "High student interest recorded. Secure your reservation early.";
   }
 
+  // The profile may still be loading when the page first renders, so fill the form on open.
+  const startRegistering = () => {
+    setFormName(userProfile.name);
+    setFormEmail(userProfile.email);
+    setFormStudentId(userProfile.studentId);
+    setIsRegistering(true);
+  };
+
   // Handle registration confirmation
   const handleRegister = (e) => {
     e.preventDefault();
@@ -122,23 +139,30 @@ export default function EventDetail() {
       setRegError("Please fill in your name and email.");
       return;
     }
-
-    try {
-      const res = registerForEvent(event.id, {
-        name: formName.trim(),
-        email: formEmail.trim(),
-        studentId: formStudentId.trim(),
-        ticketType,
-      });
-
-      if (!res.success) {
-        setRegError(res.message);
-      } else {
-        setIsRegistering(false);
-      }
-    } catch (error) {
-      setRegError(error.message);
+    if (reserved && !formSeat) {
+      setRegError("Pick your seat on the map first.");
+      return;
     }
+
+    runRegister(() => {
+      try {
+        const res = registerForEvent(event.id, {
+          name: formName.trim(),
+          email: formEmail.trim(),
+          studentId: formStudentId.trim(),
+          ticketType,
+          seat: formSeat,
+        });
+
+        if (!res.success) {
+          setRegError(res.message);
+        } else {
+          setIsRegistering(false);
+        }
+      } catch (error) {
+        setRegError(error.message);
+      }
+    });
   };
 
   return (
@@ -146,15 +170,15 @@ export default function EventDetail() {
       <Navbar />
 
       {/* TOP HERO BANNER */}
-      <header className="event-hero-banner" style={{ "--hero-bg": event.heroBg || "var(--sky)" }}>
+      <header className="event-hero-banner" style={{ "--hero-bg": eventBanner(event) }}>
         <div className="event-hero-banner__inner">
           <Link to="/events" className="event-hero__back-link">
             <Icon name="arrow-left" size={16} /> Back to all events
           </Link>
 
           <div className="event-hero__badges">
-            <span className="event-badge event-badge--yellow">{event.status || "REGISTRATION OPEN"}</span>
-            <span className="event-badge event-badge--white">{event.category || "CONFERENCE"}</span>
+            <span className="event-badge" style={{ background: categoryColor(event.category).bg, color: categoryColor(event.category).ink }}>{event.category || "EVENT"}</span>
+            <span className="event-badge event-badge--white">{event.status || "REGISTRATION OPEN"}</span>
             <span className={`event-badge event-badge--capacity event-badge--${capacityLevel}`}>
               {capacityBadgeText}
             </span>
@@ -211,7 +235,7 @@ export default function EventDetail() {
                   <div className="info-pill__icon"><Icon name="users" size={18} /></div>
                   <div className="info-pill__text">
                     <span className="info-pill__label">CAPACITY</span>
-                    <strong>{capacity} attendee capacity</strong>
+                    <strong>{capacity} seats · {reserved ? "Reserved seating" : "Free seating"}</strong>
                   </div>
                 </div>
               </div>
@@ -348,13 +372,21 @@ export default function EventDetail() {
                 <p className="ticket-claim-card__desc">
                   {existingReg
                     ? "You are confirmed for this event! Present your digital pass or QR ticket at the check-in desk."
-                    : "Register to claim your seat. Your ticket pass code appears immediately after confirmation."}
+                    : reserved
+                    ? "Register and pick your seat. Your ticket pass appears right after you confirm."
+                    : "Register to claim your spot. Your ticket pass appears right after you confirm."}
                 </p>
 
                 {/* Remaining indicator */}
                 <div className="ticket-seats-chip">
                   <span>Available Seats:</span> <b>{spotsRemaining} of {capacity}</b>
                 </div>
+                <p className="ticket-seating-note">
+                  <Icon name={reserved ? "armchair" : "users"} size={16} />
+                  {reserved
+                    ? "Reserved seating: you pick your own seat on the map when you register."
+                    : "Free seating: first come, first served. Tickets carry no seat number."}
+                </p>
 
                 {!existingReg ? (
                   user?.role !== "user" ? (
@@ -364,7 +396,7 @@ export default function EventDetail() {
                     <button
                       type="button"
                       className="btn-ticket-register"
-                      onClick={() => setIsRegistering(true)}
+                      onClick={startRegistering}
                       disabled={!registrationOpen || spotsRemaining <= 0}
                     >
                       {!registrationOpen
@@ -411,6 +443,18 @@ export default function EventDetail() {
                         />
                       </div>
 
+                      {reserved && (
+                        <div className="ticket-form__field">
+                          <span className="ticket-form__label">YOUR SEAT</span>
+                          <div className="seat-choice">
+                            <b>{formSeat ? `Seat ${formSeat}` : "No seat picked yet"}</b>
+                            <button type="button" className="btn-sm" onClick={() => setPickingSeat(true)}>
+                              <Icon name="armchair" size={16} /> {formSeat ? "Change seat" : "Pick a seat"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="ticket-form__field">
                         <label>ATTENDEE TYPE</label>
                         <select
@@ -435,11 +479,12 @@ export default function EventDetail() {
                           type="button"
                           className="btn-sm"
                           onClick={() => setIsRegistering(false)}
+                          disabled={registering}
                         >
                           Cancel
                         </button>
-                        <button type="submit" className="btn-sm btn-sm--yellow">
-                          Confirm & Issue Pass
+                        <button type="submit" className="btn-sm btn-sm--yellow" disabled={registering} aria-busy={registering || undefined}>
+                          {registering ? <><Spinner /> Issuing pass…</> : "Confirm & Issue Pass"}
                         </button>
                       </div>
                     </form>
@@ -455,12 +500,13 @@ export default function EventDetail() {
                       <h4>{existingReg.name}</h4>
                       <p>{existingReg.ticketType} · {existingReg.studentId || "Student"}</p>
                       <div className="ticket-pass__seat">
-                        <span>Assigned Seat:</span> <b>{existingReg.seat}</b>
+                        {seatOf(existingReg)
+                          ? <><span>Your Seat:</span> <b>{seatOf(existingReg)}</b></>
+                          : <><span>Seating:</span> <b>Free · first come, first served</b></>}
                       </div>
                     </div>
                     <div className="ticket-pass__barcode">
-                      <div className="barcode-lines" />
-                      <small>VERIFIED QR / CHECK-IN PASS</small>
+                      <small><Icon name="qr" size={16} /> YOUR SCANNABLE QR PASS IS IN MY EVENTS</small>
                     </div>
 
                     <div className="ticket-pass__actions">
@@ -480,6 +526,10 @@ export default function EventDetail() {
           </div>
         </div>
       </main>
+
+      {pickingSeat && (
+        <SeatPickerModal event={event} initial={formSeat} onPick={setFormSeat} onClose={() => setPickingSeat(false)} />
+      )}
     </div>
   );
 }

@@ -4,6 +4,8 @@ import Navbar from "../components/Navbar.js";
 import Icon from "../components/Icon.js";
 import { useEventContext } from "../context/EventContext.js";
 import TicketPassModal from "../components/TicketPassModal.js";
+import { eventBanner } from "../data/options.js";
+import { seatOf } from "../data/seating.js";
 
 export default function SchedulePage() {
   const { registrations, events } = useEventContext();
@@ -61,7 +63,9 @@ export default function SchedulePage() {
     return [...new Set(scheduledItems.map((i) => i.date))];
   }, [scheduledItems]);
 
-  const [activeDay, setActiveDay] = useState(daysList[0] || "");
+  const [activeDay, setActiveDay] = useState("");
+  // Registrations arrive after the first render, so fall back to the first day until one is picked.
+  const currentDay = daysList.includes(activeDay) ? activeDay : daysList[0];
 
   return (
     <div className="schedule-page">
@@ -94,6 +98,9 @@ export default function SchedulePage() {
             >
               Day-by-Day View
             </button>
+            <Link to="/calendar?mine=1" className="btn-sm">
+              <Icon name="calendar" size={16} /> Calendar View
+            </Link>
           </div>
         </div>
 
@@ -105,7 +112,7 @@ export default function SchedulePage() {
               <strong>SCHEDULE OVERLAP WARNING:</strong>
               {conflicts.map((c, i) => (
                 <span key={i} className="conflict-detail">
-                  {" "}You are registered for both <b>{c.event1}</b> and <b>{c.event2}</b> on <u>{c.date}</u>. Please plan your attendance or release one of the seats if unable to participate in both.
+                  {" "}You are registered for both <b>{c.event1}</b> and <b>{c.event2}</b> on <u>{c.date}</u>. Please plan your attendance, or cancel one registration if you cannot attend both.
                 </span>
               ))}
             </div>
@@ -127,7 +134,7 @@ export default function SchedulePage() {
             {viewMode === "timeline" && (
               <div className="schedule-timeline-view">
                 {scheduledItems.map((item, idx) => (
-                  <section key={idx} className="schedule-event-block">
+                  <section key={idx} className="schedule-event-block" style={{ "--banner": eventBanner(item.event || { id: item.registration.eventId }) }}>
                     {/* Event Banner */}
                     <div className="schedule-event-banner">
                       <div className="schedule-event-banner__left">
@@ -138,7 +145,7 @@ export default function SchedulePage() {
 
                       <div className="schedule-event-banner__right">
                         <span className="sbadge sbadge--confirmed">
-                          Seat: {item.registration.seat}
+                          {seatOf(item.registration) ? `Seat ${seatOf(item.registration)}` : "Free seating"}
                         </span>
                         <button
                           type="button"
@@ -187,7 +194,7 @@ export default function SchedulePage() {
                     <button
                       key={day}
                       type="button"
-                      className={`day-tab-btn ${activeDay === day ? "day-tab-btn--active" : ""}`}
+                      className={`day-tab-btn ${currentDay === day ? "day-tab-btn--active" : ""}`}
                       onClick={() => setActiveDay(day)}
                     >
                       {day}
@@ -198,28 +205,38 @@ export default function SchedulePage() {
                 {/* Day content */}
                 <div className="day-content-pane">
                   {scheduledItems
-                    .filter((item) => item.date === activeDay)
+                    .filter((item) => item.date === currentDay)
                     .map((item, idx) => (
-                      <div key={idx} className="day-event-card">
-                        <div className="day-event-header">
-                          <div>
-                            <span className="sbadge sbadge--active">{item.time}</span>
-                            <h3 className="day-event-title">
-                              {item.event?.title}
-                            </h3>
-                            <p className="day-event-meta">
-                              <Icon name="pin" size={15} /> {item.location} · <b>Seat {item.registration.seat}</b>
-                            </p>
-                          </div>
-                          <Link to={`/events/${item.registration.eventId}`} className="btn-sm">
-                            Event Page <Icon name="arrow-right" size={16} />
-                          </Link>
-                        </div>
+                      <article
+                        key={idx}
+                        className="day-event-card"
+                        style={{ "--banner": eventBanner(item.event || { id: item.registration.eventId }) }}
+                      >
+                        <header className="day-event-card__head">
+                          <span className="day-event-card__time"><Icon name="clock" size={15} /> {item.time}</span>
+                          <h3 className="day-event-title">{item.event?.title || item.registration.eventTitle}</h3>
+                          <p className="day-event-meta"><Icon name="pin" size={15} /> {item.location}</p>
+                        </header>
 
-                        {item.sessions && item.sessions.length > 0 && (
-                          <div className="day-sessions-list">
+                        <dl className="day-event-card__facts">
+                          <div>
+                            <dt>Seat</dt>
+                            <dd>{seatOf(item.registration) || "Free seating"}</dd>
+                          </div>
+                          <div>
+                            <dt>Ticket</dt>
+                            <dd>#{item.registration.ticketCode}</dd>
+                          </div>
+                          <div>
+                            <dt>Sessions</dt>
+                            <dd>{item.sessions.length || "Full day"}</dd>
+                          </div>
+                        </dl>
+
+                        {item.sessions.length > 0 && (
+                          <ol className="day-sessions-list">
                             {item.sessions.map((s, i) => (
-                              <div key={i} className="day-session-item">
+                              <li key={i} className="day-session-item">
                                 <span className="day-session-time">{s.time}</span>
                                 <div>
                                   <strong>{s.title}</strong>
@@ -227,11 +244,20 @@ export default function SchedulePage() {
                                     {s.speaker ? `${s.speaker} · ` : ""}Room: {s.room}
                                   </small>
                                 </div>
-                              </div>
+                              </li>
                             ))}
-                          </div>
+                          </ol>
                         )}
-                      </div>
+
+                        <div className="day-event-card__actions">
+                          <button type="button" className="btn-sm btn-sm--yellow" onClick={() => setSelectedTicket(item.registration)}>
+                            <Icon name="qr" size={16} /> View Pass
+                          </button>
+                          <Link to={`/events/${item.registration.eventId}`} className="btn-sm">
+                            Event Page <Icon name="arrow-right" size={16} />
+                          </Link>
+                        </div>
+                      </article>
                     ))}
                 </div>
               </div>

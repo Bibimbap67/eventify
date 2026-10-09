@@ -75,6 +75,14 @@ export default function Navbar() {
           Explore Events
         </NavLink>
 
+        <NavLink
+          to="/calendar"
+          className={({ isActive }) => `navbar__link ${isActive ? "navbar__link--active" : ""}`}
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          Calendar
+        </NavLink>
+
         {user?.role === "user" && <>
           <NavLink
             to="/my-events"
@@ -110,6 +118,12 @@ export default function Navbar() {
           <Link to="/manager" className="navbar__pill" onClick={() => setMobileMenuOpen(false)}>
             <Icon name="arrow" size={14} />
             Manager workspace
+          </Link>
+        )}
+        {user?.role === "staff" && (
+          <Link to="/staff" className="navbar__pill" onClick={() => setMobileMenuOpen(false)}>
+            <Icon name="scan" size={14} />
+            Check-in desk
           </Link>
         )}
       </nav>
@@ -195,6 +209,11 @@ export default function Navbar() {
               {user?.role === "manager" && (
                 <Link to="/manager" onClick={() => setProfileOpen(false)} className="profile-dropdown__link">
                   Event Manager Workspace
+                </Link>
+              )}
+              {user?.role === "staff" && (
+                <Link to="/staff" onClick={() => setProfileOpen(false)} className="profile-dropdown__link">
+                  Check-in Desk
                 </Link>
               )}
 

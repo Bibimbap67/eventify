@@ -6,19 +6,14 @@ import Icon from "../components/Icon.js";
 import { EventCardSkeleton, useSkeleton } from "../components/Skeleton.js";
 import Reveal from "../components/landing/Reveal.js";
 import ScrollProgress from "../components/landing/ScrollProgress.js";
-import CategoryMarquee from "../components/landing/CategoryMarquee.js";
+import CategoryStrip from "../components/landing/CategoryStrip.js";
 import HeroShapes from "../components/landing/HeroShapes.js";
+import Shape from "../components/landing/Shapes.js";
 import StatsBand from "../components/landing/StatsBand.js";
 import HowItWorks from "../components/landing/HowItWorks.js";
 import { useAuth } from "../context/AuthContext.js";
 import { useEventContext } from "../context/EventContext.js";
 import { EVENT_CATEGORIES } from "../data/options.js";
-
-const ROLES = [
-  { icon: "graduation", title: "Students", text: "Find events, register, and keep every certificate in one place." },
-  { icon: "clipboard", title: "Event managers", text: "Run registrations, check-ins, schedules and announcements." },
-  { icon: "shield", title: "Admins", text: "Approve events, manage accounts and venues, and review reports." },
-];
 
 const STAGGER_MS = 60;
 
@@ -64,21 +59,25 @@ export default function HomePage() {
 
   const stats = [
     {
+      icon: "calendar-check",
       label: "Open for registration",
       value: events.filter((event) => event.status === "REGISTRATION OPEN").length,
       hint: "Events you can join today",
     },
     {
+      icon: "users",
       label: "Seats taken",
       value: upcomingEvents.reduce((sum, event) => sum + (event.registered || 0), 0),
       hint: "Across upcoming events",
     },
     {
+      icon: "armchair",
       label: "Seats still open",
       value: upcomingEvents.reduce((sum, event) => sum + Math.max(0, (event.capacity || 0) - (event.registered || 0)), 0),
       hint: "Grab one before they go",
     },
     {
+      icon: "tags",
       label: "Categories",
       value: new Set(events.map((event) => event.category).filter(Boolean)).size,
       hint: "From tech talks to career fairs",
@@ -89,6 +88,7 @@ export default function HomePage() {
   if (user?.role === "user") secondaryAction = { to: "/my-events", label: "My events", icon: "ticket" };
   if (user?.role === "admin") secondaryAction = { to: "/admin", label: "Admin workspace", icon: "arrow" };
   if (user?.role === "manager") secondaryAction = { to: "/manager", label: "Manager workspace", icon: "arrow" };
+  if (user?.role === "staff") secondaryAction = { to: "/staff", label: "Check-in desk", icon: "scan" };
 
   const handleRailScroll = () => {
     const rail = railRef.current;
@@ -99,6 +99,7 @@ export default function HomePage() {
   };
 
   const seatsLeft = nextEvent ? Math.max(0, (nextEvent.capacity || 0) - (nextEvent.registered || 0)) : 0;
+  const openCount = stats[0].value;
 
   return (
     <div className="home-page landing">
@@ -143,7 +144,7 @@ export default function HomePage() {
 
             <Reveal className="landing-hero__actions" delay={STAGGER_MS * 4}>
               <Link to="/events" className="landing-btn landing-btn--primary">
-                Browse events <Icon name="arrow-right" size={16} />
+                Browse events <Icon name="arrow-right" size={16} className="landing-btn__arrow" />
               </Link>
               <Link to={secondaryAction.to} className="landing-btn landing-btn--ghost">
                 <Icon name={secondaryAction.icon} size={16} /> {secondaryAction.label}
@@ -184,16 +185,21 @@ export default function HomePage() {
                     <span className="landing-ticket__seats">
                       <b>{seatsLeft.toLocaleString()}</b> {seatsLeft === 1 ? "seat" : "seats"} left
                     </span>
-                    <span className="landing-ticket__cta">View event <Icon name="arrow-right" size={16} /></span>
+                    <span className="landing-ticket__cta">View event <Icon name="arrow-right" size={16} className="landing-btn__arrow" /></span>
                   </span>
                 </Link>
+                {openCount > 0 && (
+                  <Shape kind="starburst" className="landing-sticker">
+                    <b>{openCount}</b> open now
+                  </Shape>
+                )}
               </Reveal>
             )}
           </div>
         </div>
       </section>
 
-      <CategoryMarquee categories={EVENT_CATEGORIES.filter((c) => c !== "All")} />
+      <CategoryStrip categories={EVENT_CATEGORIES.filter((c) => c !== "All")} />
 
       {/* Upcoming events: a grid on wide screens, a swipeable row on phones */}
       <section className="home-section home-section--events">
@@ -225,7 +231,7 @@ export default function HomePage() {
             <div className="home-events-grid home-events-grid--rail" ref={railRef} onScroll={handleRailScroll}>
               {homeEvents.map((event, index) => (
                 <Reveal key={event.id} className="landing-card-slot" delay={index * STAGGER_MS}>
-                  <EventCard event={event} accentIndex={index} />
+                  <EventCard event={event} />
                 </Reveal>
               ))}
             </div>
@@ -269,7 +275,7 @@ export default function HomePage() {
             <div className="home-events-grid">
               {recommendedEvents.map((event, index) => (
                 <Reveal key={event.id} className="landing-card-slot" delay={index * STAGGER_MS}>
-                  <EventCard event={event} accentIndex={homeEvents.length + index} />
+                  <EventCard event={event} />
                 </Reveal>
               ))}
             </div>
@@ -279,34 +285,13 @@ export default function HomePage() {
 
       <HowItWorks />
 
-      <section className="home-section home-section--alt" aria-labelledby="roles-title">
-        <div className="home-section__inner">
-          <Reveal className="section-head">
-            <div>
-              <span className="section-head__eyebrow">WHO IT IS FOR</span>
-              <h2 className="section-head__title" id="roles-title">BUILT FOR EVERY ROLE ON CAMPUS</h2>
-            </div>
-          </Reveal>
-          <div className="landing-roles">
-            {ROLES.map((role, index) => (
-              <Reveal key={role.title} className="landing-role" delay={index * STAGGER_MS}>
-                <span className="landing-role__icon"><Icon name={role.icon} size={24} /></span>
-                <div>
-                  <h3>{role.title}</h3>
-                  <p>{role.text}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="landing-cta" aria-labelledby="cta-title">
         <Reveal className="landing-cta__inner">
+          <Shape kind="sparkle" className="landing-cta__spark" />
           <h2 id="cta-title">Your next event is one click away.</h2>
           <div className="landing-hero__actions">
-            <Link to="/events" className="landing-btn landing-btn--dark">
-              Browse events <Icon name="arrow-right" size={16} />
+            <Link to="/events" className="landing-btn landing-btn--blue">
+              Browse events <Icon name="arrow-right" size={16} className="landing-btn__arrow" />
             </Link>
             <Link to={secondaryAction.to} className="landing-btn landing-btn--light">
               <Icon name={secondaryAction.icon} size={16} /> {secondaryAction.label}
@@ -325,6 +310,7 @@ export default function HomePage() {
           </div>
           <div className="home-footer__links">
             <Link to="/events">Explore Events</Link>
+            <Link to="/calendar">Event Calendar</Link>
             <Link to="/my-events">My Registrations</Link>
             <Link to="/schedule">Personal Schedule</Link>
             <Link to="/certificates">Earned Certificates</Link>

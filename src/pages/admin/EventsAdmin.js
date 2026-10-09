@@ -3,6 +3,7 @@ import { useAdmin } from "../../context/AdminContext.js";
 import { ORGANIZERS } from "../../data/options.js";
 import Icon from "../../components/Icon.js";
 import { DataTable, StatusBadge, Modal, FormField, ConfirmModal } from "../../components/admin/ui.js";
+import { SeatingField } from "../../components/SeatMap.js";
 
 // Allowed status transitions: action label -> [from statuses, to status]
 const ACTIONS = [
@@ -21,6 +22,7 @@ const BLANK = {
   end: "",
   venueId: "",
   capacity: "",
+  seating: "free",
 };
 
 export default function EventsAdmin() {
@@ -216,6 +218,12 @@ export default function EventsAdmin() {
                 onChange={set("capacity")}
               />
             </FormField>
+            <SeatingField
+              value={form.seating}
+              onChange={(seating) => setForm({ ...form, seating })}
+              capacity={form.capacity}
+              locked={editing !== "new" && registered(form.id) > 0}
+            />
             <button type="submit" className="btn-sm btn-sm--yellow btn-block">
               {editing === "new" ? "Create event" : "Save changes"}
             </button>

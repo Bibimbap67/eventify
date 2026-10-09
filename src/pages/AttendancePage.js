@@ -5,21 +5,17 @@ import Icon from "../components/Icon.js";
 import { useEntering } from "../components/Motion.js";
 import { useEventContext } from "../context/EventContext.js";
 import TicketPassModal from "../components/TicketPassModal.js";
+import { seatOf } from "../data/seating.js";
 
 export default function AttendancePage() {
   const entering = useEntering();
-  const { events, registrations, checkInAttendee, completeAttendance } = useEventContext();
+  const { events, registrations, completeAttendance } = useEventContext();
   const [selectedPass, setSelectedPass] = useState(null);
   const [toastMsg, setToastMsg] = useState("");
 
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(""), 3000);
-  };
-
-  const handleSimulateCheckIn = (reg) => {
-    checkInAttendee(reg.id);
-    showToast(`Check-in recorded for ${reg.eventTitle}.`);
   };
 
   const handleCompleteAttendance = (reg) => {
@@ -101,7 +97,7 @@ export default function AttendancePage() {
 
                   <h3 className="attendance-card__title">{reg.eventTitle}</h3>
                   <p className="attendance-card__venue">
-                    <Icon name="pin" size={15} /> {reg.location} · <b>Assigned Seat: {reg.seat}</b>
+                    <Icon name="pin" size={15} /> {reg.location} · <b>{seatOf(reg) ? `Seat ${seatOf(reg)}` : "Free seating"}</b>
                   </p>
 
                   <div className="attendance-card__meta">
@@ -121,18 +117,11 @@ export default function AttendancePage() {
                     className="btn-sm btn-sm--yellow"
                     onClick={() => setSelectedPass(reg)}
                   >
-                    <Icon name="ticket" size={16} /> Digital Pass & Barcode
+                    <Icon name="qr" size={16} /> Digital Pass & QR
                   </button>
 
-                  {reg.attendanceStatus === "Not Checked In" ? (
-                    <button
-                      type="button"
-                      className="btn-sm btn-sm--blue"
-                      onClick={() => handleSimulateCheckIn(reg)}
-                    >
-                      <Icon name="check" size={16} /> Check In
-                    </button>
-                  ) : reg.attendanceStatus?.toLowerCase() === "checked in" && events.find((event) => event.id === reg.eventId)?.status === "COMPLETED" ? (
+                  {/* Check-in only happens when event staff scan the QR on the pass. */}
+                  {reg.attendanceStatus === "Not Checked In" ? null : reg.attendanceStatus?.toLowerCase() === "checked in" && events.find((event) => event.id === reg.eventId)?.status === "COMPLETED" ? (
                     <button
                       type="button"
                       className="btn-sm btn-sm--blue"

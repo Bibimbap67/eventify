@@ -28,6 +28,12 @@ const accounts = [
     managerId: "manager-1",
   },
   {
+    name: "Test Staff",
+    email: process.env.SEED_STAFF_EMAIL || "staff@eventify.com",
+    password: process.env.SEED_STAFF_PASSWORD || "Staff@12345",
+    role: "staff", // door staff: scans tickets at the check-in desk
+  },
+  {
     name: "Test Student",
     email: process.env.SEED_STUDENT_EMAIL || "student@eventify.com",
     password: process.env.SEED_STUDENT_PASSWORD || "Student@12345",

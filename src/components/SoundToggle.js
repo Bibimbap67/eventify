@@ -9,7 +9,7 @@ export default function SoundToggle({ className = "" }) {
 
   const toggle = () => {
     setSoundOn(!on);
-    if (!on) playSound("tick"); // let the user hear what they just turned on
+    if (!on) playSound("switch-on"); // let the user hear what they just turned on
   };
 
   return (

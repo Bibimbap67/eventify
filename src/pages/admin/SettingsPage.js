@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAdmin } from "../../context/AdminContext.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { FormField, ConfirmModal, StatusBadge } from "../../components/admin/ui.js";
+import Spinner from "../../components/Spinner.js";
 
 const TIMEZONES = [
   "Asia/Manila (GMT+8)",
@@ -22,6 +23,7 @@ export default function SettingsPage() {
   // Security tab state
   const [passwords, setPasswords] = useState({ current: "", newPass: "", confirmPass: "" });
   const [passError, setPassError] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
 
   // Confirmation modals
   const [showClearLogsConfirm, setShowClearLogsConfirm] = useState(false);
@@ -66,11 +68,14 @@ export default function SettingsPage() {
       return;
     }
 
+    setChangingPassword(true);
     try {
       await changePassword(passwords.current, passwords.newPass);
     } catch (err) {
       setPassError(err.message);
       return;
+    } finally {
+      setChangingPassword(false);
     }
     logAction("Changed admin password", user?.email || "Admin");
     toast("Password updated successfully.");
@@ -345,8 +350,8 @@ export default function SettingsPage() {
                   {passError}
                 </p>
               )}
-              <button className="btn-sm btn-sm--yellow" type="submit">
-                Update Password
+              <button className="btn-sm btn-sm--yellow" type="submit" disabled={changingPassword} aria-busy={changingPassword || undefined}>
+                {changingPassword ? <><Spinner /> Updating…</> : "Update Password"}
               </button>
             </form>
           </section>
