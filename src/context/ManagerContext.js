@@ -16,7 +16,7 @@ const MANAGER_RESOURCES = {
 
 export function ManagerProvider({ children }) {
   const { user } = useAuth();
-  const { data, setData, loaded } = useServerStore(MANAGER_RESOURCES, user?.id || "guest");
+  const { data, setData, loaded, reload } = useServerStore(MANAGER_RESOURCES, user?.id || "guest");
   const [venues, setVenues] = useState([]);
   const [toastMessage, setToastMessage] = useState("");
 
@@ -160,7 +160,7 @@ export function ManagerProvider({ children }) {
     toast("Event marked completed.");
   }, [managerId, toast, setData]);
 
-  const value = { ...scoped, allManagerEvents: data.events, allManagerRegistrations: data.registrations, loadedManagerRegistrations: loaded.registrations, toastMessage, toast, createEvent, deleteEvent, updateEvent, updateRegistration, addAttendeeRegistration, submitAttendeeFeedback, saveSession, deleteSession, addAnnouncement, updateAnnouncement, completeEvent };
+  const value = { ...scoped, allManagerEvents: data.events, allManagerRegistrations: data.registrations, loadedManagerRegistrations: loaded.registrations, reloadManagerData: reload, toastMessage, toast, createEvent, deleteEvent, updateEvent, updateRegistration, addAttendeeRegistration, submitAttendeeFeedback, saveSession, deleteSession, addAnnouncement, updateAnnouncement, completeEvent };
   return <ManagerContext.Provider value={value}>{children}</ManagerContext.Provider>;
 }
 

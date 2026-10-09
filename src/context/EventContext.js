@@ -3,6 +3,7 @@ import { useAuth } from "./AuthContext.js";
 import { useManager } from "./ManagerContext.js";
 import { newId } from "../api.js";
 import { useServerStore, liveRegisteredCount } from "./useServerStore.js";
+import { isReserved, seatOf } from "../data/seating.js";
 
 const EventContext = createContext(null);
 
@@ -21,7 +22,7 @@ function blankProfile(user) {
     name: user?.name || "Guest User",
     email: user?.email || "",
     studentId: user?.studentId || "",
-    role: user?.role === "admin" ? "Administrator" : user?.role === "manager" ? "Event Manager" : "Student Attendee",
+    role: { admin: "Administrator", manager: "Event Manager", staff: "Event Staff" }[user?.role] || "Student Attendee",
     department: user?.department || "",
     program: user?.program || "",
     phone: user?.phone || "",
@@ -44,8 +45,9 @@ export function EventProvider({ children }) {
     addAttendeeRegistration,
     submitAttendeeFeedback,
     updateRegistration: updateManagerRegistration,
+    reloadManagerData,
   } = useManager();
-  const { data, setData, loaded, ready } = useServerStore(EVENT_RESOURCES, user?.id || "guest");
+  const { data, setData, loaded, ready, reload } = useServerStore(EVENT_RESOURCES, user?.id || "guest");
   const {
     events: allEvents,
     registrations: allRegistrations,
@@ -91,6 +93,7 @@ export function EventProvider({ children }) {
         return {
           ...event,
           status: publicStatus[event.status],
+          isoDate: event.date,
           date: date.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }).toUpperCase(),
           fullDate: date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }),
           time: `${event.startTime} - ${event.endTime}`,
@@ -113,6 +116,7 @@ export function EventProvider({ children }) {
       .filter((event) => ["REGISTRATION OPEN", "OPENS SOON", "COMPLETED"].includes(event.status))
       .map((event) => ({
         ...event,
+        isoDate: event.adminDate || "",
         registered: liveRegisteredCount(event, loaded.registrations, allRegistrations),
       }));
     return [...new Map([...managerEventRows, ...localEventRows].map((event) => [event.id, event])).values()];
@@ -214,11 +218,12 @@ export function EventProvider({ children }) {
         return { success: false, message: "Sorry, this event has reached maximum capacity." };
       }
 
+      // Reserved seating: the attendee's own pick, which the server checks is still free.
+      const reserved = isReserved(targetEvent);
+      if (reserved && !formData.seat) return { success: false, message: "Pick your seat on the map first." };
+
       const now = new Date();
       const randomCode = `TKT-${Math.floor(1000 + Math.random() * 9000)}-${now.getFullYear()}`;
-      const randomSeat = `Section ${String.fromCharCode(65 + Math.floor(Math.random() * 3))} · Row ${
-        Math.floor(Math.random() * 8) + 1
-      } · Seat ${Math.floor(Math.random() * 30) + 1}`;
 
       const newRegistration = {
         id: newId("reg"),
@@ -234,7 +239,8 @@ export function EventProvider({ children }) {
         checkedInAt: null,
         registrationDate: now.toISOString().slice(0, 10),
         ticketCode: randomCode,
-        seat: randomSeat,
+        seating: reserved ? "reserved" : "free",
+        seat: reserved ? formData.seat : null,
         ticketType: formData.ticketType || "Student Attendee",
         name: formData.name || userProfile.name,
         email: formData.email || userProfile.email,
@@ -287,7 +293,7 @@ export function EventProvider({ children }) {
           eventId: reg.eventId,
           type: "reminder",
           title: `Registration Cancelled: ${reg.eventTitle}`,
-          message: `Your reservation has been cancelled and seat ${reg.seat || "allocation"} has been freed.`,
+          message: seatOf(reg) ? `Your registration is cancelled and seat ${seatOf(reg)} is free for someone else.` : "Your registration is cancelled and your spot is free for someone else.",
           time: "Just now",
           timestamp: new Date().toISOString(),
           read: false,
@@ -299,41 +305,6 @@ export function EventProvider({ children }) {
       return true;
     },
     [managerRegistrations, registrations, setNotifications, setRegistrations, updateManagerRegistration, user]
-  );
-
-  // Simulate attendee check-in
-  const checkInAttendee = useCallback(
-    (registrationId) => {
-      const reg = registrations.find((r) => r.id === registrationId);
-      if (!reg || reg.status !== "Confirmed" || reg.attendanceStatus?.toLowerCase() !== "not checked in") return false;
-
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-      const checkInPatch = { attendanceStatus: "Checked in", checkedInAt: timeStr };
-      if (managerRegistrations.some((item) => item.id === registrationId)) updateManagerRegistration(registrationId, checkInPatch);
-      else setRegistrations((prev) => prev.map((item) => item.id === registrationId ? { ...item, attendanceStatus: "Checked In", checkedInAt: timeStr } : item));
-
-      // Add notifications
-      setNotifications((prev) => [
-        {
-          id: newId("notif"),
-          userId: reg.userId,
-          eventId: reg.eventId,
-          type: "attendance",
-          title: `Checked In: ${reg.eventTitle}`,
-          message: `Attendance confirmed at ${timeStr}. Welcome to the event!`,
-          time: "Just now",
-          timestamp: new Date().toISOString(),
-          read: false,
-          link: "/my-events",
-        },
-        ...prev,
-      ]);
-
-      return true;
-    },
-    [managerRegistrations, registrations, setNotifications, setRegistrations, updateManagerRegistration]
   );
 
   const completeAttendance = useCallback(
@@ -408,6 +379,12 @@ export function EventProvider({ children }) {
     return saveProfile(Object.fromEntries(fields.filter((key) => key in patch).map((key) => [key, patch[key]])));
   }, [saveProfile]);
 
+  // Re-reads everything from the server, e.g. after staff check a ticket in at the door.
+  const refresh = useCallback(() => {
+    reload();
+    reloadManagerData();
+  }, [reload, reloadManagerData]);
+
   // Admin "reset": deletes these records from the database (the sync sends the deletes).
   const resetToDefaultSeed = useCallback(() => {
     setData({ events: [], registrations: [], certificates: [], notifications: [] });
@@ -460,9 +437,9 @@ export function EventProvider({ children }) {
         isEventRegistered,
         registerForEvent,
         cancelRegistration,
-        checkInAttendee,
         completeAttendance,
         submitFeedback,
+        refresh,
         markNotificationRead,
         markAllNotificationsRead,
         updateProfile,

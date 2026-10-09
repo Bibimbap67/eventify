@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import Icon from "../Icon.js";
 import { useInViewOnce, useReducedMotion } from "./motion.js";
 
 const COUNT_MS = 700;
@@ -44,7 +45,10 @@ export default function StatsBand({ stats }) {
     <dl className="landing-stats" ref={ref}>
       {stats.map((stat) => (
         <div className="landing-stat" key={stat.label}>
-          <dt className="landing-label">{stat.label}</dt>
+          <dt className="landing-label">
+            {stat.icon && <span className="landing-stat__icon"><Icon name={stat.icon} size={20} /></span>}
+            {stat.label}
+          </dt>
           <dd className="landing-stat__num">
             <CountUp value={stat.value} start={inView} />
           </dd>

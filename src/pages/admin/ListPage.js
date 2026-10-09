@@ -180,7 +180,7 @@ const PAGES = (c) => ({
           key: "role",
           label: "ROLE",
           type: "select",
-          options: ["Admin", "Event Manager", "Attendee"],
+          options: ["Admin", "Event Manager", "Staff", "Attendee"],
           required: true,
         },
         {

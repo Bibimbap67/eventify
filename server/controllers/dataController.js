@@ -10,6 +10,7 @@
 const {
   Event, Registration, Certificate, Notification, Session, Announcement, Feedback, Venue, AuditLog,
 } = require("../models/records");
+const { seatId, seatIndex, onMap, firstFreeSeat } = require("../utils/seating");
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -49,6 +50,56 @@ async function ownedEventIds(user) {
 async function ownsEvent(user, eventId) {
   if (!isManager(user) || !eventId) return false;
   return Boolean(await Event.exists({ _id: eventId, scope: "manager", managerId: managerKey(user) }));
+}
+
+// ---- seating -----------------------------------------------------------------
+// "free": first come, first served, and tickets carry no seat number.
+// "reserved": every confirmed ticket holds one seat on the event's map (utils/seating.js).
+
+// Seating may not change once people hold tickets, and a reserved event may not shrink
+// below a seat that is already taken.
+async function checkSeating(record, existing) {
+  record.seating = record.seating === "reserved" ? "reserved" : "free";
+  if (!existing) return;
+  const holders = { eventId: existing.id, status: "Confirmed" };
+  if (record.seating !== (existing.seating || "free") && (await Registration.exists(holders))) {
+    deny("Seating can't change after people have registered.");
+  }
+  if (record.seating === "reserved") {
+    const seats = await Registration.distinct("seat", { ...holders, seating: "reserved" });
+    const last = Math.max(-1, ...seats.map(seatIndex));
+    if (last >= Number(record.capacity || 0)) {
+      deny(`Capacity can't go below ${last + 1}: seat ${seatId(last)} is already taken.`);
+    }
+  }
+}
+
+// Free seating clears the seat number. Reserved seating checks the seat is on the map and
+// free. An attendee's own pick must be exact (`strict`); rows saved by staff without a
+// seat, or whose old seat was taken while they were cancelled, get the first open seat.
+async function placeSeat(record, existing, scope, { strict = false } = {}) {
+  const event = await Event.findOne({ _id: record.eventId || existing?.eventId, scope });
+  if (!event) return;
+  if (event.seating !== "reserved") {
+    record.seating = "free";
+    record.seat = null;
+    return;
+  }
+  record.seating = "reserved";
+  record.seat = record.seat || existing?.seat || null;
+  if (record.status !== "Confirmed") return; // only confirmed tickets hold a seat
+  const others = { eventId: event._id, status: "Confirmed", seating: "reserved" };
+  if (existing) others._id = { $ne: existing.id };
+  const taken = new Set(await Registration.distinct("seat", others));
+  const usable = record.seat && onMap(record.seat, event.capacity) && !taken.has(record.seat);
+  if (usable) return;
+  if (strict) {
+    if (!record.seat) throw new HttpError(400, "Pick a seat on the seat map.");
+    if (!onMap(record.seat, event.capacity)) throw new HttpError(400, `Seat ${record.seat} is not on this event's seat map.`);
+    throw new HttpError(409, `Seat ${record.seat} was just taken. Pick another seat.`);
+  }
+  record.seat = firstFreeSeat(event.capacity, taken);
+  if (!record.seat) throw new HttpError(409, "Every seat for this event is taken.");
 }
 
 // ---- reusable policies -------------------------------------------------------
@@ -92,6 +143,7 @@ function events(scope) {
       return visible;
     },
     async save(user, record, existing) {
+      await checkSeating(record, existing);
       if (isAdmin(user)) return;
       if (scope !== "manager" || !isManager(user)) deny();
       if (existing && existing.managerId !== managerKey(user)) deny();
@@ -140,21 +192,39 @@ function registrations(scope) {
       return { userId: user.id };
     },
     async save(user, record, existing) {
-      if (isAdmin(user)) return;
+      // The QR secret only ever comes from the server, and a stale client copy must not erase it.
+      delete record.ticketToken;
+      if (existing?.ticketToken) record.ticketToken = existing.ticketToken;
+      if (isAdmin(user)) return placeSeat(record, existing, scope);
       if (isManager(user)) {
         if (scope !== "manager") deny();
         if (!(await ownsEvent(user, record.eventId))) deny();
         if (existing && !(await ownsEvent(user, existing.eventId))) deny();
-        return;
+        return placeSeat(record, existing, scope);
       }
       // Attendee: only their own registration, and the event cannot be swapped.
       if (existing) {
         if (existing.userId !== user.id) deny();
         record.userId = user.id;
         record.eventId = existing.eventId;
+        // Check-in happens only when staff scan the ticket. The one change an attendee may make
+        // is marking a checked-in ticket "Attended" after the event is completed.
+        const checkedIn = String(existing.attendanceStatus || "").toLowerCase() === "checked in";
+        const finishing = checkedIn && record.attendanceStatus === "Attended" &&
+          await Event.exists({ _id: existing.eventId, status: { $in: COMPLETED_EVENT_STATUS[scope] } });
+        if (!finishing) record.attendanceStatus = existing.attendanceStatus;
+        record.checkedInAt = existing.checkedInAt;
+        record.checkedInBy = existing.checkedInBy;
+        // An attendee can cancel, but not revive a cancelled ticket or move to another seat.
+        if (!(existing.status === "Confirmed" && record.status === "Cancelled")) record.status = existing.status;
+        record.seat = existing.seat;
+        record.seating = existing.seating;
         return;
       }
       record.userId = user.id;
+      record.attendanceStatus = "Not Checked In";
+      record.checkedInAt = null;
+      delete record.checkedInBy;
       const event = await Event.findOne({ _id: record.eventId, scope });
       if (!event) throw new HttpError(404, "Event not found.");
       if (!OPEN_EVENT_STATUS[scope].includes(event.status)) deny("Registration is not open for this event.");
@@ -163,6 +233,8 @@ function registrations(scope) {
       if (event.capacity && (await Registration.countDocuments(query)) >= event.capacity) {
         deny("Sorry, this event has reached maximum capacity.");
       }
+      record.status = "Confirmed";
+      await placeSeat(record, null, scope, { strict: true });
     },
     async remove(user, existing) {
       if (isAdmin(user)) return;
@@ -275,7 +347,7 @@ const list = async (req, res) => {
 function describe(err) {
   if (err.expose) return err.message;
   if (err.name === "ValidationError" || err.name === "CastError") return err.message;
-  if (err.code === 11000) return "This record already exists.";
+  if (err.code === 11000) return err.keyPattern?.seat ? "That seat was just taken. Pick another seat." : "This record already exists.";
   console.error(err);
   return "Could not save this record.";
 }

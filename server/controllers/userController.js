@@ -1,7 +1,7 @@
 const User = require("../models/User");
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ROLES = ["user", "manager", "admin"];
+const ROLES = ["user", "manager", "staff", "admin"];
 const STATUSES = ["active", "inactive"];
 
 const getUsers = async (req, res) => {

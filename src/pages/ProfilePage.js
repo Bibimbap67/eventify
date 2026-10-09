@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar.js";
+import Spinner from "../components/Spinner.js";
 import Icon from "../components/Icon.js";
 import Toast from "../components/Toast.js";
 import { useEventContext } from "../context/EventContext.js";
@@ -217,8 +218,8 @@ export default function ProfilePage() {
               >
                 Cancel
               </button>
-              <button type="submit" className="btn-sm btn-sm--yellow" disabled={saving}>
-                {saving ? "Saving..." : "Save Profile Changes"}
+              <button type="submit" className="btn-sm btn-sm--yellow" disabled={saving} aria-busy={saving || undefined}>
+                {saving ? <><Spinner /> Saving…</> : "Save Profile Changes"}
               </button>
             </div>
           </form>

@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema(
     // Stored as a bcrypt hash. Hidden from queries unless you call .select("+password").`
     password: { type: String, required: true, minlength: 6, select: false },
     // Only the server/seed script can set this. Public signup is always "user".
-    role: { type: String, enum: ["user", "manager", "admin"], default: "user" },
+    role: { type: String, enum: ["user", "manager", "staff", "admin"], default: "user" },
     // Used by ManagerContext to scope events to one manager.
     managerId: { type: String, default: null },
     // "active" can sign in; "inactive" is blocked at login.

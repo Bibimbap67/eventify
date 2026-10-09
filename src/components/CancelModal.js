@@ -1,8 +1,12 @@
 import React from "react";
 import Icon from "./Icon.js";
+import Spinner from "./Spinner.js";
+import { usePending } from "./Motion.js";
 import { Modal } from "./admin/ui.js";
+import { seatOf } from "../data/seating.js";
 
 export default function CancelModal({ registration, onConfirm, onClose }) {
+  const [cancelling, runCancel] = usePending();
   if (!registration) return null;
 
   return (
@@ -14,19 +18,24 @@ export default function CancelModal({ registration, onConfirm, onClose }) {
             <b>{registration.eventTitle}</b>?
           </p>
           <p className="notice">
-            <Icon name="alert" size={17} /> Your reserved seat (<b>{registration.seat}</b>) will be released and made available to other students on the waitlist.
+            <Icon name="alert" size={17} />{" "}
+            {seatOf(registration)
+              ? <>Seat <b>{seatOf(registration)}</b> will be released, and anyone registering can pick it.</>
+              : "Your spot will be released for another student."}
           </p>
 
           <div className="action-row">
-            <button type="button" className="btn-sm" onClick={close}>
+            <button type="button" className="btn-sm" onClick={close} disabled={cancelling}>
               Keep My Registration
             </button>
             <button
               type="button"
               className="btn-sm btn-sm--danger"
-              onClick={() => onConfirm(registration.id)}
+              onClick={() => runCancel(() => onConfirm(registration.id))}
+              disabled={cancelling}
+              aria-busy={cancelling || undefined}
             >
-              Yes, Cancel Ticket
+              {cancelling ? <><Spinner /> Cancelling…</> : "Yes, Cancel Ticket"}
             </button>
           </div>
         </>

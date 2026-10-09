@@ -7,10 +7,11 @@ import { useEventContext } from "../context/EventContext.js";
 import TicketPassModal from "../components/TicketPassModal.js";
 import FeedbackModal from "../components/FeedbackModal.js";
 import CancelModal from "../components/CancelModal.js";
+import { seatOf } from "../data/seating.js";
 
 export default function MyEventsPage() {
   const entering = useEntering();
-  const { events, registrations, cancelRegistration, checkInAttendee, completeAttendance, submitFeedback } = useEventContext();
+  const { events, registrations, cancelRegistration, completeAttendance, submitFeedback } = useEventContext();
   const [activeTab, setActiveTab] = useState("upcoming");
 
   // Modals state
@@ -34,11 +35,6 @@ export default function MyEventsPage() {
   const cancelledRegs = registrations.filter((r) => r.status === "Cancelled");
 
   // Handlers
-  const handleCheckIn = (reg) => {
-    checkInAttendee(reg.id);
-    showToast(`Check-in recorded for ${reg.eventTitle}.`);
-  };
-
   const handleCompleteAttendance = (reg) => {
     completeAttendance(reg.id);
     showToast(`${reg.eventTitle} is marked as attended. Feedback is now available in Past & Attended.`);
@@ -47,7 +43,7 @@ export default function MyEventsPage() {
   const handleCancelConfirm = (regId) => {
     cancelRegistration(regId);
     setCancelModalTarget(null);
-    showToast("Registration cancelled. Your reserved seat has been released.");
+    showToast("Registration cancelled. Your spot has been released.");
   };
 
   const handleFeedbackSubmit = (feedbackData) => {
@@ -141,8 +137,8 @@ export default function MyEventsPage() {
                         <strong>{reg.location}</strong>
                       </div>
                       <div>
-                        <small>RESERVED SEAT</small>
-                        <strong>{reg.seat}</strong>
+                        <small>{seatOf(reg) ? "RESERVED SEAT" : "SEATING"}</small>
+                        <strong>{seatOf(reg) || "Free seating"}</strong>
                       </div>
                       <div>
                         <small>REGISTRATION TYPE</small>
@@ -160,15 +156,8 @@ export default function MyEventsPage() {
                           <Icon name="ticket" size={16} /> View Digital Pass
                         </button>
 
-                        {reg.attendanceStatus?.toLowerCase() !== "checked in" ? (
-                          <button
-                            type="button"
-                            className="btn-sm"
-                            onClick={() => handleCheckIn(reg)}
-                          >
-                            <Icon name="pin" size={16} /> Check in
-                          </button>
-                        ) : events.find((event) => event.id === reg.eventId)?.status === "COMPLETED" ? (
+                        {/* Check-in only happens when event staff scan the QR on the pass. */}
+                        {reg.attendanceStatus?.toLowerCase() !== "checked in" ? null : events.find((event) => event.id === reg.eventId)?.status === "COMPLETED" ? (
                           <button
                             type="button"
                             className="btn-sm btn-sm--blue"

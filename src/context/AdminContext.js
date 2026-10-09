@@ -21,7 +21,7 @@ function emptyAdminData() {
 }
 
 // Admin > Users labels <-> the role/status values stored on the user document.
-const ROLE_LABELS = { admin: "Admin", manager: "Event Manager", user: "Attendee" };
+const ROLE_LABELS = { admin: "Admin", manager: "Event Manager", staff: "Staff", user: "Attendee" };
 const ROLE_VALUES = Object.fromEntries(Object.entries(ROLE_LABELS).map(([value, label]) => [label, value]));
 
 function toUserPayload(row) {

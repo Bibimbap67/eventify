@@ -22,7 +22,7 @@ export default function AuthTabs({ mode, onChange }) {
   };
 
   return (
-    <div className="auth-tabs" role="tablist" aria-label="Authentication mode">
+    <div className="auth-tabs" role="tablist" aria-label="Authentication mode" data-mode={mode}>
       <button
         role="tab"
         aria-selected={mode === "signin"}

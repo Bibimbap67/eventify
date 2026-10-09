@@ -5,6 +5,7 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const dataRoutes = require("./routes/dataRoutes");
+const ticketRoutes = require("./routes/ticketRoutes");
 
 if (!process.env.JWT_SECRET) {
   console.error("JWT_SECRET is not set. Copy server/.env.example to server/.env and fill it in.");
@@ -19,6 +20,7 @@ app.get("/api/health", (req, res) => res.json({ ok: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api", dataRoutes);
+app.use("/api", ticketRoutes);
 
 app.use((req, res) => res.status(404).json({ message: "Route not found." }));
 

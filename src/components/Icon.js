@@ -5,7 +5,10 @@ import {
   ArrowRight, ArrowLeft, ArrowDown, ArrowUp, ChevronDown, Volume2, VolumeX, CircleCheck,
   QrCode, LogOut, UserPlus, LayoutDashboard, ShieldCheck,
   LogIn, Pause, Play, ScanLine, GraduationCap, ClipboardList, Cpu, BookOpen, Briefcase, Wrench,
-  Trophy, Heart,
+  Trophy, Heart, CalendarCheck, Armchair, Tags,
+  CalendarDays, ClipboardCheck, CalendarClock, Megaphone, ChartColumn, Plus, Download, Undo2,
+  CircleAlert, Hourglass, UserCheck, Activity, Sun, Sunrise, Moon, Trash2, Inbox, Send,
+  Camera, CameraOff, ImageUp, Eye, EyeOff,
 } from "lucide-react";
 
 // Old hand-drawn names are kept so every existing caller still works.
@@ -57,6 +60,35 @@ const ICONS = {
   wrench: Wrench,
   trophy: Trophy,
   heart: Heart,
+  "calendar-check": CalendarCheck,
+  armchair: Armchair,
+  tags: Tags,
+  // Manager workspace
+  "calendar-days": CalendarDays,
+  "clipboard-check": ClipboardCheck,
+  schedule: CalendarClock,
+  megaphone: Megaphone,
+  chart: ChartColumn,
+  plus: Plus,
+  download: Download,
+  undo: Undo2,
+  "alert-circle": CircleAlert,
+  hourglass: Hourglass,
+  "user-check": UserCheck,
+  activity: Activity,
+  sun: Sun,
+  sunrise: Sunrise,
+  moon: Moon,
+  trash: Trash2,
+  inbox: Inbox,
+  send: Send,
+  // Check-in desk
+  camera: Camera,
+  "camera-off": CameraOff,
+  image: ImageUp,
+  // Password fields
+  eye: Eye,
+  "eye-off": EyeOff,
 };
 
 // One size scale: 16 / 20 / 24.

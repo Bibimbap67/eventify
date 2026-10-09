@@ -236,7 +236,7 @@ export default function EventsPage() {
           ) : (
             <div className={`events-grid${entering ? " stagger" : ""}`}>
               {filteredEvents.map((event, index) => (
-                <EventCard key={event.id} event={event} accentIndex={index} />
+                <EventCard key={event.id} event={event} />
               ))}
             </div>
           )}
