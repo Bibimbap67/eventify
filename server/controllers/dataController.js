@@ -8,9 +8,10 @@
 // signed-in attendee can only touch their own registrations, a manager only the
 // events they own, and so on.
 const {
-  Event, Registration, Certificate, Notification, Session, Announcement, Feedback, Venue, AuditLog,
+  Event, Registration, Certificate, Notification, Session, Announcement, Feedback, Venue,
 } = require("../models/records");
 const { seatId, seatIndex, onMap, firstFreeSeat } = require("../utils/seating");
+const { audit, diff } = require("../utils/audit");
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -311,12 +312,83 @@ const RESOURCES = {
   },
 
   // Admin-only lists (AdminContext). Venues are readable by everyone.
+  // The audit log is not here on purpose: only the server writes it (utils/audit.js), and
+  // admins read it through GET /api/admin/audit-logs, so nobody can edit or delete entries.
   venues: { model: Venue, ...publicReadAdminWrite },
   sessions: { model: Session, scope: "admin", ...adminOnly },
   announcements: { model: Announcement, scope: "admin", ...adminOnly },
   feedback: { model: Feedback, scope: "admin", ...adminOnly },
-  "audit-logs": { model: AuditLog, ...adminOnly },
 };
+
+// ---- audit trail ---------------------------------------------------------------
+// Every change an admin makes through /batch is recorded with its outcome. Other users are
+// recorded only when they are refused on records that only an admin may change (`watch`),
+// such as approving their own event; their everyday writes are not admin activity.
+const AUDITED = {
+  events: { type: "event", name: (r) => r.title, watch: true },
+  "manager-events": { type: "event", name: (r) => r.title, watch: true },
+  venues: { type: "venue", name: (r) => r.name, watch: true },
+  sessions: { type: "session", name: (r) => r.title, watch: true },
+  announcements: { type: "announcement", name: (r) => r.title, watch: true },
+  feedback: { type: "feedback", name: (r) => r.participant, watch: true },
+  "manager-sessions": { type: "session", name: (r) => r.title },
+  "manager-announcements": { type: "announcement", name: (r) => r.title },
+  "manager-feedback": { type: "feedback", name: (r) => r.participant },
+  registrations: { type: "registration", name: (r) => r.name && `${r.name} · ${r.eventTitle || r.eventId}` },
+  "manager-registrations": { type: "registration", name: (r) => r.name && `${r.name} · ${r.eventTitle || r.eventId}` },
+  certificates: { type: "certificate", name: (r) => r.recipientName && `${r.recipientName} · ${r.eventTitle}`, created: "Issued", removed: "Revoked" },
+};
+
+// An event's new status, as the admin action that set it.
+function eventVerb(from, to) {
+  const before = String(from || "").toLowerCase();
+  const after = String(to || "").toLowerCase();
+  if (["opens soon", "approved"].includes(after)) return "Approved";
+  // Approving a manager's event opens registration straight away.
+  if (["registration open", "published"].includes(after)) return before === "pending" ? "Approved" : "Published";
+  return { rejected: "Rejected", cancelled: "Cancelled", completed: "Completed", archived: "Archived", pending: "Returned to pending" }[after] || "Changed status of";
+}
+
+function describeWrite(config, { op, before, after }) {
+  if (op === "remove") return { action: `${config.removed || "Deleted"} ${config.type}` };
+  if (!before) return { action: `${config.created || "Created"} ${config.type}` };
+  if (config.type === "event" && before.status !== after.status) {
+    return { action: `${eventVerb(before.status, after.status)} event`, details: { from: before.status, to: after.status } };
+  }
+  return { action: `Updated ${config.type}`, details: { changes: diff(before, after) } };
+}
+
+// One entry per action and outcome: deleting an event also deletes its registrations in the
+// same request, and that reads better as "23 registrations" than as 23 separate lines.
+async function auditBatch(req, results) {
+  const config = AUDITED[req.params.resource];
+  if (!config) return;
+  const groups = new Map();
+  for (const item of results) {
+    const status = item.error ? item.error.status || 400 : 200;
+    if (!isAdmin(req.user) && !(config.watch && status === 403)) continue;
+    const { action, details } = describeWrite(config, item);
+    if (!item.error && details?.changes && !Object.keys(details.changes).length) continue; // nothing changed
+    const outcome = status === 403 ? "denied" : item.error ? "failed" : "success";
+    const key = `${action}|${outcome}`;
+    if (!groups.has(key)) groups.set(key, { action, outcome, items: [] });
+    groups.get(key).items.push({ ...item, details });
+  }
+  for (const { action, outcome, items } of groups.values()) {
+    const [first] = items;
+    const reason = first.message && { reason: first.message };
+    await audit(req, items.length === 1
+      ? {
+        action, outcome, targetType: config.type, targetId: first.id,
+        target: config.name(first.after || first.before || {}) || first.id,
+        details: { ...first.details, ...reason },
+      }
+      : {
+        action, outcome, targetType: config.type, target: `${items.length} ${config.type}s`,
+        details: { count: items.length, ids: items.slice(0, 20).map((item) => item.id), ...reason },
+      });
+  }
+}
 
 // Fields the client may not set directly.
 const SERVER_FIELDS = ["_id", "id", "__v", "createdAt", "updatedAt", "registeredCount", "scope"];
@@ -359,15 +431,19 @@ const batch = async (req, res) => {
   const remove = Array.isArray(req.body?.remove) ? req.body.remove : [];
   const errors = [];
   const removedIds = [];
+  const results = []; // what happened to each record, for the audit trail
 
   for (const raw of save) {
     const id = String(raw?.id || "");
+    let before = null;
+    let record = raw;
     try {
       if (!id) throw new HttpError(400, "Record is missing an id.");
       const existing = await model.findById(id);
+      before = existing ? existing.toJSON() : null;
       if (existing && scope && existing.scope !== scope) deny();
-      const record = clean(raw);
-      await resource.save(req.user, record, existing ? existing.toJSON() : null);
+      record = clean(raw);
+      await resource.save(req.user, record, before);
       if (scope) record.scope = scope;
       if (existing) {
         existing.overwrite({ ...record, _id: id, createdAt: existing.createdAt });
@@ -375,26 +451,35 @@ const batch = async (req, res) => {
       } else {
         await model.create({ ...record, _id: id });
       }
+      results.push({ op: "save", id, before, after: record });
     } catch (err) {
-      errors.push({ id, message: describe(err) });
+      const message = describe(err);
+      errors.push({ id, message });
+      results.push({ op: "save", id, before, after: record, error: err, message });
     }
   }
 
   for (const rawId of remove) {
     const id = String(rawId);
+    let before = null;
     try {
       const existing = await model.findById(id);
       if (!existing) continue; // already gone
+      before = existing.toJSON();
       if (scope && existing.scope !== scope) deny();
-      await resource.remove(req.user, existing.toJSON());
+      await resource.remove(req.user, before);
       await existing.deleteOne();
       removedIds.push(id);
+      results.push({ op: "remove", id, before });
     } catch (err) {
-      errors.push({ id, message: describe(err) });
+      const message = describe(err);
+      errors.push({ id, message });
+      results.push({ op: "remove", id, before, error: err, message });
     }
   }
 
   if (removedIds.length && resource.afterRemove) await resource.afterRemove(removedIds);
+  await auditBatch(req, results);
 
   if (errors.length) return res.status(400).json({ message: errors[0].message, errors });
   res.json({ ok: true });

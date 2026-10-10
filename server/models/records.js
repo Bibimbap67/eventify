@@ -130,12 +130,21 @@ const Venue = model("Venue", {
   capacity: Number,
 });
 
+// Written only by the server (utils/audit.js). The actor comes from the signed-in user,
+// and the time is createdAt. `time` is kept for entries the old admin screen wrote itself.
 const AuditLog = model("AuditLog", {
-  action: String,
-  admin: String,
-  record: String,
+  action: String, // "Changed user role", "Approved event", ...
+  admin: String, // actor's name at the time
+  actorId: { type: String, index: true },
+  actorRole: String,
+  actorEmail: String,
+  targetType: String, // "user" | "event" | "venue" | "certificate" | "settings" | ...
+  targetId: String,
+  record: String, // readable name of the target
+  outcome: String, // "success" | "failed" | "denied" (old entries have none: success)
+  details: Mixed, // e.g. { from, to } or { changes } or { reason }
   time: String,
-});
+}, {}, [[{ createdAt: -1 }]]);
 
 // A single document with _id "global" holds the admin Settings page values.
 const Settings = model("Settings", {}, { collection: "settings" });

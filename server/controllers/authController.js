@@ -1,5 +1,11 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { audit } = require("../utils/audit");
+
+// Admin accounts are the keys to the platform, so changes to them go in the audit trail.
+const auditAdmin = (req, entry) => (req.user.role === "admin"
+  ? audit(req, { targetType: "user", targetId: req.user.id, target: `${req.user.name} (${req.user.email})`, ...entry })
+  : Promise.resolve());
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -52,6 +58,7 @@ const PROFILE_FIELDS = ["studentId", "department", "program", "yearLevel", "phon
 // Profile page: the signed-in user edits their own details (not role or status).
 const updateMe = async (req, res) => {
   const user = req.user;
+  const before = { name: user.name, email: user.email };
   if (req.body.name !== undefined) {
     const name = String(req.body.name).trim();
     if (!name) return res.status(400).json({ message: "Enter your full name." });
@@ -69,6 +76,11 @@ const updateMe = async (req, res) => {
     if (req.body[key] !== undefined) user[key] = String(req.body[key] ?? "");
   });
   await user.save();
+  const changes = {};
+  ["name", "email"].forEach((key) => {
+    if (before[key] !== user[key]) changes[key] = { from: before[key], to: user[key] };
+  });
+  if (Object.keys(changes).length) await auditAdmin(req, { action: "Updated own profile", details: { changes } });
   res.json({ user });
 };
 
@@ -76,12 +88,15 @@ const changePassword = async (req, res) => {
   const current = String(req.body.currentPassword || "");
   const next = String(req.body.newPassword || "");
   const user = await User.findById(req.user.id).select("+password");
-  if (!(await user.matchPassword(current))) {
-    return res.status(400).json({ message: "Current password is incorrect." });
-  }
-  if (next.length < 6) return res.status(400).json({ message: "Use at least 6 characters for the password." });
+  const refuse = async (message) => {
+    await auditAdmin(req, { action: "Changed own password", outcome: "failed", details: { reason: message } });
+    res.status(400).json({ message });
+  };
+  if (!(await user.matchPassword(current))) return refuse("Current password is incorrect.");
+  if (next.length < 6) return refuse("Use at least 6 characters for the password.");
   user.password = next; // hashed by the model before saving
   await user.save();
+  await auditAdmin(req, { action: "Changed own password" });
   res.json({ ok: true });
 };
 
