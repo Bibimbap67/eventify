@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import Icon from "../Icon.js";
-import Reveal from "./Reveal.js";
 import HowScene from "./HowScenes.js";
 
 // Each step has its own color; the sticky panel and the list use the same one.
@@ -14,7 +13,8 @@ const STEPS = [
 // Four steps that light up one by one as they cross the middle of the screen. On wide
 // screens a sticky panel beside them acts out the active step as a small animated scene;
 // on phones each step card carries its own scene, and only the active one plays.
-export default function HowItWorks() {
+// `children` (the page's call-to-action buttons) closes the section.
+export default function HowItWorks({ children }) {
   const [active, setActive] = useState(0);
   const [onScreen, setOnScreen] = useState(false);
   const sectionRef = useRef(null);
@@ -52,12 +52,12 @@ export default function HowItWorks() {
       aria-labelledby="how-it-works-title"
     >
       <div className="home-section__inner">
-        <Reveal className="section-head">
+        <div className="section-head">
           <div>
-            <span className="section-head__eyebrow">FOUR STEPS, ONE ACCOUNT</span>
-            <h2 className="section-head__title" id="how-it-works-title">HOW IT WORKS</h2>
+            <h2 className="section-head__title" id="how-it-works-title">How it works</h2>
+            <p className="section-head__note">Four steps, one account.</p>
           </div>
-        </Reveal>
+        </div>
 
         <div className="landing-how__layout">
           {/* Visual repeat of the active step; the list below carries the real content. */}
@@ -94,6 +94,8 @@ export default function HowItWorks() {
             ))}
           </ol>
         </div>
+
+        {children && <div className="landing-how__end">{children}</div>}
       </div>
     </section>
   );

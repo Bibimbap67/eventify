@@ -23,30 +23,6 @@ export function useReducedMotion() {
   return reduced;
 }
 
-// Becomes true the first time the element scrolls into view, then stays true.
-export function useInViewOnce(ref, { threshold = 0.12, rootMargin = "0px 0px -40px 0px" } = {}) {
-  const [inView, setInView] = useState(false);
-
-  useEffect(() => {
-    const element = ref.current;
-    if (!element || inView) return undefined;
-    if (!("IntersectionObserver" in window)) {
-      setInView(true);
-      return undefined;
-    }
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setInView(true);
-        observer.disconnect();
-      }
-    }, { threshold, rootMargin });
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [ref, inView, threshold, rootMargin]);
-
-  return inView;
-}
-
 // Runs `onFrame(scrollY)` at most once per animation frame while the page scrolls.
 export function useScrollFrame(onFrame, enabled = true) {
   useEffect(() => {

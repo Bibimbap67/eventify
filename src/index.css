@@ -13,6 +13,8 @@
   --font-display: "Archivo Black", "Arial Black", sans-serif;
   --font-mono: "Space Mono", "Courier New", monospace;
   --font-body: "Inter", system-ui, sans-serif;
+  /* Condensed Archivo for the landing posters: the same family as the headings, set like a gig poster. */
+  --font-poster: "Archivo", "Archivo Black", "Arial Narrow", sans-serif;
 
   /* Design system tokens. Old --color-* names stay; --color-blue is really ink, so new code uses --ink. */
   --bg: #fffdf5;
@@ -2380,19 +2382,6 @@ button[aria-busy="true"]:disabled { opacity: 1; }
 
   .reveal > * { opacity: 1 !important; }
   .skeleton::after { display: none; }
-
-  /* Landing page: scroll reveals start visible, the parallax stays still */
-  .landing-reveal {
-    opacity: 1 !important;
-    transform: none !important;
-  }
-
-  .landing-shape {
-    transform: none !important;
-  }
-
-  .landing-sticker { scale: none !important; opacity: 1 !important; }
-  .landing-hero .home-hero__title em { background-size: 100% 100% !important; box-shadow: 5px 5px 0 var(--color-black) !important; }
 }
 
 /* =====================================================================
@@ -3792,32 +3781,18 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
 }
 
 /* =====================================================================
-   LANDING PAGE: layout + scroll effects
-   Reveal on scroll, progress bar + back to top, category grid,
-   stats count-up, sticky "How it works", parallax shapes, swipe rail.
-   Motion uses transform/opacity only; reduced motion turns it off
-   (see the prefers-reduced-motion block above).
+   LANDING PAGE: the campus board
+   The hero is a blue wall: the headline is pasted up on paper strips and the
+   next three events hang beside it as posters (components/landing/Board.js),
+   slapped on once per page load. Below the wall everything holds still: one
+   dated list, the "How it works" scenes, the footer. Motion is transform and
+   opacity only; reduced motion turns it off (see the block above).
    ===================================================================== */
 
-.landing .home-section { padding: 64px 0; }
+.landing .home-section { padding: 72px 0; }
 .landing .section-head { margin-bottom: 32px; }
-.landing .section-head__link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; white-space: nowrap; }
-
-/* Eyebrows become small tilted stickers: ink text on a color chip instead of red text */
-.landing .section-head__eyebrow {
-  display: inline-block;
-  padding: 4px 8px;
-  color: var(--color-black);
-  background: var(--color-yellow);
-  border: 2px solid var(--color-black);
-  box-shadow: 2px 2px 0 var(--color-black);
-  rotate: -1.5deg;
-}
-
-.landing .home-section--events .section-head__eyebrow { color: var(--on-red); background: var(--red); }
-.landing .landing-stats-section .section-head__eyebrow { background: var(--color-white); }
-.landing .landing-how .section-head__eyebrow { background: var(--mint); }
-.landing .home-empty-state .section-head__eyebrow { rotate: none; }
+.landing .section-head__title { font-size: clamp(30px, 4vw, 48px); text-transform: uppercase; }
+.landing .section-head__note { margin: 10px 0 0; font-size: 16px; }
 
 .landing-label {
   font-family: var(--font-mono);
@@ -3826,18 +3801,6 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
   line-height: 1.3;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-/* A: reveal on scroll */
-.landing-reveal {
-  transition:
-    opacity var(--duration-reveal) var(--ease-out),
-    transform var(--duration-reveal) var(--ease-out);
-}
-
-.landing-reveal:not(.is-in) {
-  opacity: 0;
-  transform: translateY(12px);
 }
 
 /* B: scroll progress + back to top */
@@ -3972,7 +3935,7 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
   --btn-shadow: var(--color-black);
 }
 
-/* Hero: brand blue on a graph grid, same as the sign-in page (change --landing-hero-bg to recolor it) */
+/* Hero: the blue wall, on the same graph grid as the sign-in page */
 .landing-hero {
   --landing-hero-bg: var(--blue);
   position: relative;
@@ -3983,63 +3946,62 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
 
 .landing-hero__grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 540px);
   align-items: center;
-  gap: 48px;
-  padding: 64px 0 72px;
+  gap: 40px 64px;
+  padding: 64px 0 80px;
 }
 
-.landing-hero__copy { min-width: 0; }
-.landing-hero .home-hero__badge { color: var(--color-black); }
+.landing-hero__copy { min-width: 0; container-type: inline-size; }
 
+/* The headline is pasted up on paper: box-decoration-break gives every line its own strip,
+   padding and shadow, wherever the browser breaks it. Sized from its own column (cqi), so
+   the widest pair, "EVENTS, FROM" (8.7em with its strip), always fits on one line. */
 .landing-hero .home-hero__title {
-  margin: 20px 0 22px;
+  max-width: 12em;
+  margin: 0 0 28px;
   color: var(--color-black);
-  font-size: clamp(40px, 6vw, 72px);
-  line-height: 1.16;
+  font-size: clamp(36px, 5.2vw, 66px);
+  font-size: clamp(34px, min(11cqi, 7vw), 66px);
+  line-height: 1.34;
   text-transform: uppercase;
   text-wrap: balance;
 }
 
 .landing-hero .home-hero__title:focus { outline: none; }
+.landing-hero .home-hero__title .nowrap { white-space: nowrap; }
 
-/* The highlight sits behind the line above it (z-index -1 inside an isolated title), so its
-   top edge never covers that line's letters. It swipes in from the left once revealed. */
-.landing-hero .home-hero__title { isolation: isolate; }
-.landing-hero .home-hero__title em {
-  position: relative;
-  z-index: -1;
-  padding: 0 0.08em;
-  font-style: normal;
-  background: linear-gradient(var(--color-yellow), var(--color-yellow)) no-repeat left / 100% 100%;
+.landing-hero .home-hero__title > span {
+  padding: 0.04em 0.18em 0.02em;
+  background: var(--color-cream);
   box-shadow: 5px 5px 0 var(--color-black);
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
-  transition:
-    background-size 520ms var(--ease-out) 260ms,
-    box-shadow var(--duration-fast) var(--ease-out) 700ms;
-}
-
-.landing-hero .home-hero__title:not(.is-in) em {
-  background-size: 0% 100%;
-  box-shadow: 0 0 0 transparent;
 }
 
 .landing-hero .home-hero__lead {
-  max-width: 36em;
-  color: #111111;
+  max-width: 34em;
+  color: var(--color-black);
   font-size: 17px;
   font-weight: 500;
+  line-height: 1.55;
 }
 
 .landing-hero .home-search-bar {
+  max-width: 600px;
   margin-top: 28px;
   color: var(--color-black);
   box-shadow: 6px 6px 0 var(--color-black);
 }
 
 .landing-hero .home-search-bar__btn { min-width: 120px; }
-.landing-hero .home-hero__status-banner { color: var(--color-black); }
+
+.landing-hero .home-hero__status-banner {
+  max-width: 600px;
+  color: var(--color-black);
+  box-shadow: 4px 4px 0 var(--color-black);
+}
+
 .landing-hero .status-banner__link { display: inline-flex; align-items: center; gap: 6px; }
 
 .landing-hero__actions {
@@ -4049,25 +4011,215 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
   margin-top: 28px;
 }
 
-/* F: parallax shapes behind the "Next up" ticket */
-.landing-hero__visual {
-  position: relative;
+/* The poster wall: the soonest event is the big poster, the next two stack beside it,
+   each taped up at its own angle. One event is centered; two sit side by side. */
+.board-wall {
   display: grid;
-  place-items: center;
+  grid-template-columns: minmax(0, 1.16fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 34px 0;
   min-width: 0;
-  min-height: 420px;
+  margin: 0;
+  padding: 16px 0 0;
+  list-style: none;
 }
 
-.landing-hero__visual > .landing-reveal {
+.board-wall--loading { min-height: 600px; }
+
+.board-wall > li { --tilt: -3deg; position: relative; display: grid; min-width: 0; }
+.board-wall > li:first-child { grid-row: span 2; z-index: 1; }
+.board-wall > li:nth-child(2) { --tilt: 2.5deg; margin-left: 20px; }
+.board-wall > li:nth-child(3) { --tilt: -1.5deg; margin-left: 14px; }
+.board-wall > li:nth-child(2):last-child { grid-row: span 2; }
+.board-wall > li:only-child { grid-column: 1 / -1; justify-self: center; width: min(100%, 320px); margin: 0; }
+.board-wall > li:is(:hover, :focus-within) { z-index: 2; }
+
+.board-poster {
   position: relative;
-  z-index: 1;
-  width: min(100%, 380px);
+  isolation: isolate;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 14px;
+  padding: 26px 22px 16px;
+  color: var(--color-black);
+  text-decoration: none;
+  rotate: var(--tilt, 0deg);
+  transition:
+    rotate var(--duration-fast) var(--ease-out),
+    translate var(--duration-fast) var(--ease-out);
 }
 
-.landing-shapes {
+/* The face and the hard shadow are their own layers, so hover and press only move transforms */
+.board-poster::before,
+.board-poster::after {
+  content: "";
   position: absolute;
-  inset: -20px -20px -40px;
+  inset: 0;
   pointer-events: none;
+}
+
+.board-poster::before {
+  z-index: -2;
+  background: var(--color-black);
+  translate: 8px 8px;
+  transition: translate var(--duration-fast) var(--ease-out);
+}
+
+.board-poster::after {
+  z-index: -1;
+  background: var(--poster, var(--color-white));
+  border: var(--border-w) solid var(--color-black);
+}
+
+/* Under the pointer a poster straightens and lifts off the wall; pressed, it sinks into its shadow */
+@media (hover: hover) and (pointer: fine) {
+  .board-poster:hover { rotate: 0deg; translate: -3px -3px; }
+  .board-poster:hover::before { translate: 11px 11px; }
+}
+
+.board-poster:active { translate: 4px 4px; transition-duration: var(--duration-press); }
+.board-poster:active::before { translate: 4px 4px; transition-duration: var(--duration-press); }
+.board-poster:focus-visible { outline: 3px solid var(--color-black); outline-offset: 6px; }
+
+/* Masking tape: a cream strip with torn ends, stuck over the top edge */
+.board-poster__tape {
+  position: absolute;
+  top: -16px;
+  left: calc(50% - 46px);
+  width: 92px;
+  height: 30px;
+  background: var(--color-cream);
+  border-block: 2px solid var(--color-black);
+  rotate: -4deg;
+  clip-path: polygon(0 0, 100% 0, 94% 25%, 100% 50%, 94% 75%, 100% 100%, 0 100%, 6% 75%, 0 50%, 6% 25%);
+}
+
+.board-wall > li:nth-child(2) .board-poster__tape { left: 16%; rotate: 5deg; }
+.board-wall > li:nth-child(3) .board-poster__tape { left: auto; right: 14%; rotate: -7deg; }
+
+.board-poster__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+
+.board-poster__date {
+  display: grid;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+}
+
+.board-poster__date b {
+  margin: 6px 0 4px;
+  font-family: var(--font-display);
+  font-size: 64px;
+  font-weight: 400;
+  line-height: 0.82;
+  letter-spacing: -0.02em;
+}
+
+.board-poster__marks { display: grid; justify-items: end; gap: 14px; }
+
+.board-poster__cat {
+  padding: 4px 8px;
+  border: 2px solid var(--color-black);
+  font: 700 11px/1.2 var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* "Registered" is inked on like a rubber stamp */
+.board-poster__stamp {
+  padding: 4px 8px;
+  border: 4px double var(--color-black);
+  font: 700 12px/1.1 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  rotate: -8deg;
+}
+
+.board-poster__title {
+  display: -webkit-box;
+  padding-top: 14px;
+  overflow: hidden;
+  border-top: var(--border-w) solid var(--color-black);
+  font-family: var(--font-poster);
+  font-size: 34px;
+  font-stretch: 68%;
+  font-weight: 900;
+  line-height: 0.95;
+  text-transform: uppercase;
+  overflow-wrap: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.board-poster__facts {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  font: 700 12px/1.3 var(--font-mono);
+  text-transform: uppercase;
+}
+
+.board-poster__facts > span { display: flex; align-items: center; gap: 8px; }
+.board-poster__facts svg { flex: none; }
+
+.board-poster__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding-top: 10px;
+  border-top: 2px solid var(--color-black);
+  font-size: 14px;
+}
+
+.board-poster__foot b { font-weight: 800; }
+.board-poster__foot span { font: 700 12px/1.3 var(--font-mono); text-transform: uppercase; }
+
+/* Nothing published yet: one blank sheet says so */
+.board-poster--note {
+  --poster: var(--color-white);
+  grid-column: 1 / -1;
+  justify-self: center;
+  display: grid;
+  gap: 8px;
+  max-width: 320px;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  rotate: -2deg;
+}
+
+.board-poster--note b {
+  font-family: var(--font-poster);
+  font-size: 34px;
+  font-stretch: 68%;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* The page's one orchestrated moment: the posters slap onto the wall 80ms apart, then their
+   tape presses down. `backwards` holds the start pose through each delay and hands the
+   poster back to its hover transitions the moment it lands. Once per page load (Board.js). */
+.board-wall.is-entering .board-poster {
+  animation: poster-slap 450ms var(--ease-out) backwards;
+  animation-delay: calc(120ms + var(--i, 0) * 80ms);
+}
+
+.board-wall.is-entering .board-poster__tape {
+  animation: tape-press 200ms var(--ease-out) backwards;
+  animation-delay: calc(470ms + var(--i, 0) * 80ms);
+}
+
+@keyframes poster-slap {
+  from { opacity: 0; translate: 0 -28px; scale: 1.07; rotate: calc(var(--tilt, 0deg) - 5deg); }
+}
+
+@keyframes tape-press {
+  from { opacity: 0; scale: 1.3; }
 }
 
 /* SVG stickers (components/landing/Shapes.js): flat fill, ink outline, hard ink shadow */
@@ -4091,182 +4243,154 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
   text-align: center;
 }
 
-.landing-shape {
-  position: absolute;
-  display: block;
-  will-change: transform;
-}
-
-.landing-shape > .brutal-shape { width: 100%; height: 100%; }
-.landing-shape--burst { top: -24px; right: -64px; width: 280px; height: 280px; }
-.landing-shape--burst svg { animation: landing-spin 48s linear infinite; }
-.landing-shape--scallop { bottom: -6px; left: -24px; width: 150px; height: 150px; }
-.landing-shape--scallop .brutal-shape { --shape-fill: var(--coral); }
-.landing-shape--sparkle { top: 0; left: 34%; width: 76px; height: 76px; rotate: 10deg; }
-.landing-shape--sparkle .brutal-shape { --shape-fill: var(--mint); }
-.landing-shape--zigzag { right: 6px; bottom: 20px; width: 116px; height: 48px; rotate: -8deg; }
-.landing-shape--zigzag .brutal-shape { --shape-fill: var(--violet); }
-
 @keyframes landing-spin { to { rotate: 360deg; } }
 
-/* "N open now" sticker stuck on the ticket's corner. It pops in after the ticket arrives. */
-.landing-sticker {
-  --shape-fill: var(--red);
-  color: var(--on-red);
-  position: absolute;
-  top: -58px;
-  left: -82px;
-  z-index: 2;
-  width: 104px;
-  height: 104px;
-  rotate: -14deg;
-  pointer-events: none;
-  transition:
-    scale 420ms var(--ease-spring) 520ms,
-    opacity 160ms ease 520ms;
+/* "Coming up": every upcoming event on one ruled sheet, soonest first */
+.board-agenda { padding: 72px 0 80px; }
+
+.board-agenda__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 32px;
+  margin-bottom: 28px;
 }
 
-.landing-reveal:not(.is-in) .landing-sticker { scale: 0.4; opacity: 0; }
-
-.landing-sticker .brutal-shape__label {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: 0.04em;
+.board-agenda__head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1;
   text-transform: uppercase;
 }
 
-.landing-sticker .brutal-shape__label b {
-  display: block;
-  font-family: var(--font-display);
-  font-size: 30px;
-  font-weight: 400;
-  line-height: 1;
+.board-agenda__head p { margin: 10px 0 0; color: var(--ink-2); font-size: 16px; }
+.board-agenda__links { display: flex; flex-wrap: wrap; gap: 0 24px; }
+
+.board-agenda__links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--color-black);
+  font: 700 13px var(--font-mono);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
 }
 
-.landing-ticket {
-  position: relative;
-  display: grid;
-  gap: 14px;
-  padding: 22px;
-  color: var(--color-black);
+.board-agenda__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
   background: var(--color-white);
   border: var(--border-w) solid var(--color-black);
   box-shadow: 8px 8px 0 var(--color-black);
-  text-decoration: none;
-  rotate: -2deg;
-  transition: transform var(--duration-fast) var(--ease-out);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .landing-ticket:hover { transform: translate(-3px, -3px); }
-}
+.board-agenda__list > li + li { border-top: var(--border-w) solid var(--color-black); }
 
-.landing-ticket:active { transform: translate(3px, 3px); transition-duration: var(--duration-press); }
-.landing-ticket:focus-visible { outline: 3px solid var(--color-black); outline-offset: 6px; }
-
-.landing-ticket__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-
-.landing-ticket__tag {
-  padding: 4px 8px;
-  color: var(--color-black);
-  border: 2px solid var(--color-black);
-  background: var(--color-yellow);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.landing-ticket__title {
-  font-family: var(--font-display);
-  font-size: 26px;
-  line-height: 1.05;
-  text-transform: uppercase;
-  overflow-wrap: anywhere;
-}
-
-/* Perforation with two punched notches */
-.landing-ticket__perf {
-  position: relative;
-  margin: 2px -22px;
-  border-top: 2px dashed var(--color-black);
-}
-
-.landing-ticket__perf::before,
-.landing-ticket__perf::after {
-  content: "";
-  position: absolute;
-  top: -12px;
-  width: 22px;
-  height: 22px;
-  border: var(--border-w) solid var(--color-black);
-  border-radius: 50%;
-  background: var(--landing-hero-bg);
-}
-
-/* Only the half inside the ticket shows, so the notch reads as a cut-out */
-.landing-ticket__perf::before { left: -14px; clip-path: inset(0 0 0 50%); }
-.landing-ticket__perf::after { right: -14px; clip-path: inset(0 50% 0 0); }
-
-.landing-ticket__facts {
+.agenda-row {
   display: grid;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.3;
-  text-transform: uppercase;
+  grid-template-columns: 96px minmax(0, 1fr) auto 150px 56px;
+  min-height: 96px;
+  color: var(--color-black);
+  text-decoration: none;
+  transition: background-color var(--duration-fast) ease;
 }
 
-.landing-ticket__facts span { display: flex; align-items: center; gap: 8px; }
+.agenda-row__date {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: 12px 8px;
+  background: var(--poster, var(--color-yellow));
+  border-right: var(--border-w) solid var(--color-black);
+  font: 700 11px/1.2 var(--font-mono);
+  letter-spacing: 0.08em;
+}
 
-.landing-ticket__foot {
+.agenda-row__date b {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+}
+
+.agenda-row__main { display: grid; align-content: center; gap: 8px; min-width: 0; padding: 16px 24px; }
+.agenda-row__title { font-family: var(--font-display); font-size: 19px; line-height: 1.15; }
+
+.agenda-row__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  color: var(--ink-2);
+  font: 700 12px/1.3 var(--font-mono);
+}
+
+.agenda-row__facts > span { display: inline-flex; align-items: center; gap: 6px; }
+
+.agenda-row__tags {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px 12px;
-  padding-top: 12px;
-  border-top: 2px solid var(--color-black);
-  font-size: 13px;
+  align-content: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 0;
 }
 
-.landing-ticket__seats b { font-family: var(--font-display); font-size: 20px; font-variant-numeric: tabular-nums; }
+.agenda-row__cat,
+.agenda-row__match {
+  padding: 4px 8px;
+  border: 2px solid var(--color-black);
+  font: 700 11px/1.2 var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
 
-.landing-ticket__cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.agenda-row__match { background: var(--color-white); border-style: dashed; }
+
+.agenda-row__seats {
+  display: grid;
+  align-content: center;
+  justify-items: end;
+  gap: 4px;
+  padding: 12px 0 12px 16px;
+  text-align: right;
+}
+
+.agenda-row__seats b { font-size: 15px; font-weight: 800; }
+.agenda-row__seats span { color: var(--ink-2); font: 700 12px/1.3 var(--font-mono); }
+.agenda-row__reg { display: inline-flex; align-items: center; gap: 6px; color: var(--success-ink); }
+.agenda-row__arrow { align-self: center; justify-self: center; transition: transform var(--duration-fast) var(--ease-out); }
+
+@media (hover: hover) and (pointer: fine) {
+  .agenda-row:hover { background: var(--yellow-tint); }
+  .agenda-row:hover .agenda-row__arrow { transform: translate(3px, -3px); }
+}
+
+.agenda-row:active { background: var(--color-yellow); transition-duration: var(--duration-press); }
+.agenda-row:focus-visible { outline-offset: -6px; }
+.agenda-row--loading .agenda-row__date { background: var(--neutral-bg); }
+
+/* Categories close the list: one row of links, each in its category's color */
+.landing-categories { display: grid; gap: 14px; margin-top: 48px; }
+
+.landing-categories__title {
+  margin: 0;
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 18px;
   text-transform: uppercase;
 }
 
-/* C: browse by category: every category at once on a black band, so pill shadows flip to cream */
-.landing-categories {
-  --shadow-ink: var(--color-cream);
-  color: var(--color-cream);
-  border-bottom: var(--border-w) solid var(--color-black);
-  background: var(--color-black);
-}
-
-.landing-categories__inner {
-  width: min(1180px, calc(100% - 40px));
-  margin: 0 auto;
-  display: grid;
-  gap: 14px;
-  padding: 22px 0 26px;
-}
-
-.landing-categories h2 { margin: 0; }
-
 .landing-categories__list {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -4276,89 +4400,9 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 48px;
+  min-height: 44px;
   padding: 0 16px;
   font-size: 13px;
-  box-shadow: 3px 3px 0 var(--shadow-ink);
-  transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
-}
-
-.category-pill.landing-pill .ui-icon { transition: transform var(--duration-fast) var(--ease-spring); }
-
-@media (hover: hover) and (pointer: fine) {
-  .category-pill.landing-pill:hover { transform: translate(-2px, -2px); box-shadow: 5px 5px 0 var(--shadow-ink); }
-  .category-pill.landing-pill:hover .ui-icon { transform: rotate(-12deg) scale(1.15); }
-}
-
-.category-pill.landing-pill:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--shadow-ink); }
-.category-pill.landing-pill:focus-visible { outline: 3px solid var(--color-cream); outline-offset: 2px; }
-
-/* G: upcoming events (grid on wide screens, swipe rail on phones) */
-.landing-head-side { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
-
-.landing-rail-count {
-  display: none;
-  align-items: center;
-  padding: 4px 8px;
-  background: var(--color-white);
-  border: 2px solid var(--color-black);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.landing-rail-count span { margin-left: 8px; color: #555; }
-
-.landing .home-events-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.landing-card-slot { display: grid; min-width: 0; }
-.landing-card-slot .event-card { display: flex; flex-direction: column; }
-.landing-card-slot .event-card__body { flex: 1; display: flex; flex-direction: column; }
-.landing-card-slot .event-card__action { margin-top: auto; }
-
-/* D: stats band */
-.landing-stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 0;
-  background: var(--color-white);
-  border: var(--border-w) solid var(--color-black);
-  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-black);
-}
-
-.landing-stat { display: grid; align-content: start; gap: 6px; padding: 24px; transition: background-color var(--duration-fast) ease; }
-.landing-stat + .landing-stat { border-left: var(--border-w) solid var(--color-black); }
-.landing-stat dt { display: flex; align-items: center; gap: 10px; }
-
-.landing-stat__icon {
-  flex: none;
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  background: var(--blue);
-  border: 2px solid var(--color-black);
-  box-shadow: 2px 2px 0 var(--color-black);
-}
-
-.landing-stat:nth-child(3) .landing-stat__icon { background: var(--mint); }
-.landing-stat:nth-child(4) .landing-stat__icon { background: var(--coral); }
-.landing-stat dd { margin: 0; }
-
-.landing-stat__num {
-  font-family: var(--font-display);
-  font-size: clamp(34px, 4.6vw, 56px);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.landing-stat__hint { color: #45413a; font-size: 13px; }
-.landing-stat__icon { transition: background-color var(--duration-fast) ease; }
-
-@media (hover: hover) and (pointer: fine) {
-  .landing-stat:hover { color: var(--color-black); background: var(--color-yellow); }
-  .landing-stat:hover .landing-stat__hint { color: var(--color-black); }
-  .landing-stat:hover .landing-stat__icon { background: var(--color-white); }
 }
 
 /* E: sticky "How it works" */
@@ -4689,89 +4733,25 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
    shorthand would otherwise reset the play state to running. */
 .landing-how:not(.is-onscreen) .how-scene * { animation-play-state: paused; }
 
-/* Closing call to action: yellow zigzag ground with a checkered "finish line" under it */
-.landing-cta {
-  position: relative;
-  background-color: var(--color-yellow);
-  border-top: var(--border-w) solid var(--color-black);
-}
-
-.landing-cta::after {
-  content: "";
-  display: block;
-  height: 20px;
-  border-top: var(--border-w) solid var(--color-black);
-  background: repeating-conic-gradient(var(--color-black) 0 25%, var(--color-cream) 0 50%) 0 0 / 20px 20px;
-}
-
-.landing-cta__spark {
-  --shape-fill: var(--color-white);
-  position: absolute;
-  top: 22px;
-  left: -16px;
-  width: 56px;
-  height: 56px;
-  rotate: 12deg;
-}
-
-.landing-cta__inner {
-  position: relative;
-  width: min(1180px, calc(100% - 40px));
-  margin: 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px 40px;
-  padding: 96px 0 64px;
-}
-
-.landing-cta h2 {
-  max-width: 14em;
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(28px, 4vw, 44px);
-  line-height: 1;
-  text-transform: uppercase;
-  text-wrap: balance;
-}
-
-.landing-cta .landing-hero__actions { margin-top: 0; }
-.landing-cta .landing-btn:focus-visible { outline-color: var(--color-black); }
+.landing-how { border-top: var(--border-w) solid var(--color-black); }
+.landing-how__end { margin-top: 56px; }
+.landing-how__end .landing-hero__actions { margin-top: 0; }
 
 .landing .home-footer__col p { margin: 8px 0 0; }
 
 /* Responsive */
-@media (max-width: 960px) {
-  .landing-hero__grid { grid-template-columns: 1fr; gap: 40px; padding: 48px 0 56px; }
-  .landing-hero__visual { min-height: 0; padding: 24px 0 16px; }
-  .landing-shape--scallop { display: none; }
-  .landing-shape--burst { top: -30px; right: -60px; width: 190px; height: 190px; }
-  .landing-shape--sparkle { top: auto; bottom: -6px; left: -6px; width: 68px; height: 68px; }
-  .landing-shape--zigzag { right: 0; bottom: -8px; width: 92px; height: 38px; }
+@media (max-width: 1080px) {
+  .landing-hero__grid { grid-template-columns: minmax(0, 1fr); gap: 48px; padding: 48px 0 64px; }
+  .board-wall { justify-self: center; width: min(100%, 580px); }
 }
 
 @media (max-width: 899px) {
-  .landing .home-events-grid { grid-template-columns: 1fr; }
-
-  .landing .home-events-grid--rail {
-    grid-template-columns: none;
-    grid-auto-flow: column;
-    grid-auto-columns: min(84%, 360px);
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    padding: 4px 10px 16px 2px;
-  }
-
-  .landing .home-events-grid--rail::-webkit-scrollbar { display: none; }
-  .landing .home-events-grid--rail > * { scroll-snap-align: start; }
-  .landing-rail-count { display: inline-flex; }
-
-  .landing-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .landing-stat:nth-child(3) { border-left: 0; }
-  .landing-stat:nth-child(n + 3) { border-top: var(--border-w) solid var(--color-black); }
+  .agenda-row { grid-template-columns: 84px minmax(0, 1fr) 136px; }
+  .agenda-row__date { grid-row: span 2; }
+  .agenda-row__main { padding: 16px 18px 8px; }
+  .agenda-row__tags { grid-column: 2; justify-content: flex-start; padding: 0 18px 16px; }
+  .agenda-row__seats { grid-column: 3; grid-row: 1 / span 2; padding-right: 18px; }
+  .agenda-row__arrow { display: none; }
 
   .landing-how__layout { grid-template-columns: 1fr; }
   .landing-how__stage { display: none; }
@@ -4779,27 +4759,64 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
   .landing-step__icon { display: none; }
   .landing-step__scene { display: block; order: 99; justify-self: center; max-width: 320px; margin-top: 8px; }
   .landing-step.is-active .how-scene__backdrop { fill: var(--color-white); }
-
-  .landing-categories__list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 680px) {
-  .landing .home-section { padding: 44px 0; }
-  .landing-hero__grid { padding: 36px 0 44px; }
-  .landing-hero .home-hero__title { font-size: clamp(34px, 10vw, 44px); }
+  .landing .home-section { padding: 48px 0; }
+  .landing-hero__grid { gap: 32px; padding: 36px 0 44px; }
+  .landing-hero .home-hero__title { font-size: clamp(30px, 9.4vw, 44px); }
   .landing-hero .home-hero__lead { font-size: 16px; }
   .landing-hero__actions .landing-btn { flex: 1 1 auto; }
-  .landing-ticket { rotate: -1deg; }
-  .landing-sticker { top: -50px; left: 44%; width: 84px; height: 84px; }
-  .landing-sticker .brutal-shape__label { font-size: 9px; }
-  .landing-sticker .brutal-shape__label b { font-size: 22px; }
-  .landing-categories__inner,
-  .landing-cta__inner { width: min(100% - 28px, 1180px); }
-  .landing-categories__list { gap: 10px; }
-  .landing-cta__inner { padding: 64px 0 48px; }
-  .landing-cta__spark { top: 18px; left: auto; right: 0; width: 40px; height: 40px; }
-  .landing-stat { padding: 18px; }
+
+  /* Phones: the posters hang in one row you swipe through, the next one peeking in at the edge */
+  .board-wall {
+    display: flex;
+    gap: 22px;
+    justify-self: stretch;
+    width: auto;
+    margin: 0 -14px;
+    padding: 24px 14px 28px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 14px;
+    scrollbar-width: none;
+  }
+
+  .board-wall::-webkit-scrollbar { display: none; }
+  .board-wall > li { flex: 0 0 min(82%, 300px); margin: 0; scroll-snap-align: start; }
+  .board-wall > li:first-child { margin: 0; }
+  .board-wall--loading { min-height: 410px; }
+
+  .board-agenda { padding: 48px 0 56px; }
+  .agenda-row { grid-template-columns: 72px minmax(0, 1fr); min-height: 0; }
+  .agenda-row__date { grid-row: span 3; }
+  .agenda-row__date b { font-size: 30px; }
+  .agenda-row__main { padding: 14px 14px 6px; }
+  .agenda-row__title { font-size: 17px; }
+  .agenda-row__tags { padding: 4px 14px 6px; }
+  .agenda-row__seats {
+    grid-column: 2;
+    grid-row: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: 4px 12px;
+    padding: 4px 14px 14px;
+    text-align: left;
+  }
+
   .landing-to-top { right: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* Poster sizes for the wall collage (wider screens): the two beside the big one are smaller */
+@media (min-width: 681px) {
+  .board-wall > li + li .board-poster { gap: 10px; padding: 24px 18px 14px; }
+  .board-wall > li + li .board-poster__date b { font-size: 46px; }
+  .board-wall > li + li .board-poster__title { padding-top: 10px; font-size: 26px; -webkit-line-clamp: 3; }
+  .board-wall > li + li .board-poster__facts { font-size: 11px; }
+  .board-wall > li + li .board-poster__foot { font-size: 13px; }
 }
 
 /* =====================================================================
@@ -5063,24 +5080,6 @@ button.seatmap__seat:active:not(:disabled) { transform: scale(0.92); }
     linear-gradient(to bottom, var(--pattern-ink-strong) 2px, transparent 2px);
   background-size: 64px 64px;
   background-position: -2px -2px;
-}
-
-/* Diagonal hatch */
-.landing .landing-stats-section {
-  background-color: var(--blue-tint);
-  background-image: repeating-linear-gradient(-45deg, var(--pattern-ink) 0 2px, transparent 2px 14px);
-  background-size: auto;
-}
-
-/* Zigzag */
-.landing-cta {
-  background-image:
-    linear-gradient(135deg, var(--pattern-ink) 25%, transparent 25%),
-    linear-gradient(225deg, var(--pattern-ink) 25%, transparent 25%),
-    linear-gradient(315deg, var(--pattern-ink) 25%, transparent 25%),
-    linear-gradient(45deg, var(--pattern-ink) 25%, transparent 25%);
-  background-position: -14px 0, -14px 0, 0 0, 0 0;
-  background-size: 28px 28px;
 }
 
 /* Light dots on the black footer */
