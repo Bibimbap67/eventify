@@ -7,7 +7,7 @@ const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const connectDB = require("../config/db");
 const User = require("../models/User");
-const { Event, Registration, Notification } = require("../models/records");
+const { Event, Registration, Notification, AuditLog } = require("../models/records");
 
 const BASE = `http://localhost:${process.env.PORT || 5000}/api`;
 const tag = `selftest-${Date.now().toString(36)}`;
@@ -159,6 +159,7 @@ async function run() {
   } finally {
     const mine = { $regex: `^${tag}` };
     await Promise.all([
+      AuditLog.deleteMany({ actorEmail: mine }), // the throwaway admin's changes are audited too
       User.deleteMany({ email: mine }),
       Event.deleteMany({ _id: mine }),
       Registration.deleteMany({ eventId: mine }),
