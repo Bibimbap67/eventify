@@ -15,8 +15,13 @@ import VerifyPage from "./pages/VerifyPage.js";
 import CalendarPage from "./pages/CalendarPage.js";
 import AdminLayout from "./components/admin/AdminLayout.js";
 import AdminDashboard from "./pages/admin/AdminDashboard.js";
+import UsersAdmin from "./pages/admin/UsersAdmin.js";
 import EventsAdmin from "./pages/admin/EventsAdmin.js";
-import ListPage from "./pages/admin/ListPage.js";
+import VenuesAdmin from "./pages/admin/VenuesAdmin.js";
+import ReportsAdmin from "./pages/admin/ReportsAdmin.js";
+import RegistrationsAdmin from "./pages/admin/RegistrationsAdmin.js";
+import CertificatesAdmin from "./pages/admin/CertificatesAdmin.js";
+import AuditLog from "./pages/admin/AuditLog.js";
 import SettingsPage from "./pages/admin/SettingsPage.js";
 import ManagerLayout from "./components/manager/ManagerLayout.js";
 import ManagerScreen from "./pages/manager/ManagerScreen.js";
@@ -68,9 +73,21 @@ export default function App() {
 
         <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminProvider><AdminLayout /></AdminProvider></ProtectedRoute>}>
           <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<UsersAdmin />} />
           <Route path="events" element={<EventsAdmin />} />
+          <Route path="venues" element={<VenuesAdmin />} />
+          <Route path="reports" element={<ReportsAdmin />} />
+          <Route path="registrations" element={<RegistrationsAdmin />} />
+          <Route path="certificates" element={<CertificatesAdmin />} />
+          <Route path="audit-logs" element={<AuditLog />} />
           <Route path="settings" element={<SettingsPage />} />
-          <Route path=":page" element={<ListPage />} />
+          {/* Older admin links. Attendance is a filter on Registrations; sessions, speakers and
+              announcements are read-only in each event's details; feedback is in Reports. */}
+          <Route path="attendance" element={<Navigate to="/admin/registrations?attendance=checked-in" replace />} />
+          <Route path="sessions" element={<Navigate to="/admin/events" replace />} />
+          <Route path="announcements" element={<Navigate to="/admin/events" replace />} />
+          <Route path="feedback" element={<Navigate to="/admin/reports" replace />} />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
         </Route>
 
         <Route path="/manager" element={<ProtectedRoute requiredRole="manager"><ManagerLayout /></ProtectedRoute>}>

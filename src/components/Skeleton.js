@@ -27,8 +27,8 @@ export function EventCardSkeleton() {
 // Uses the real table markup and column headers so row height and widths match.
 export function TableSkeleton({ columns, rows = 5 }) {
   return (
-    <div className="table-wrap" aria-busy="true" aria-label="Loading">
-      <table className="table">
+    <div className="manager-table-wrap" aria-busy="true" aria-label="Loading">
+      <table className="manager-table">
         <thead>
           <tr>{columns.map((label) => <th key={label}>{label}</th>)}</tr>
         </thead>
@@ -50,9 +50,8 @@ export function TableSkeleton({ columns, rows = 5 }) {
 // shown while a saved session is being verified.
 export function ShellSkeleton({ role }) {
   if (role === "admin" || role === "manager") {
-    const shell = role === "admin"
-      ? { root: "admin", side: "sidebar", logo: "sidebar__logo", link: "sidebar__link", main: "admin__main", bar: "topbar", content: "admin__content" }
-      : { root: "manager-shell", side: "manager-sidebar", logo: "manager-brand", link: "manager-nav__link", main: "manager-main", bar: "manager-topbar", content: "manager-content" };
+    // The admin area uses the manager workspace's shell.
+    const shell = { root: role === "admin" ? "admin manager-shell" : "manager-shell", side: "manager-sidebar", logo: "manager-brand", link: "manager-nav__link", main: "manager-main", bar: "manager-topbar", content: "manager-content" };
     return (
       <div className={`${shell.root} shell-skeleton`} aria-busy="true" aria-label="Loading">
         <aside className={shell.side}>

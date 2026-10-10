@@ -7,32 +7,10 @@ import { useServerStore } from "./useServerStore.js";
 
 const Ctx = createContext(null);
 
-// State key -> MongoDB-backed API resource (see server/controllers/dataController.js).
-const ADMIN_RESOURCES = {
-  venues: "venues",
-  sessions: "sessions",
-  announcements: "announcements",
-  feedback: "feedback",
-  auditLogs: "audit-logs",
-};
-
-function emptyAdminData() {
-  return { venues: [], sessions: [], announcements: [], feedback: [], auditLogs: [] };
-}
-
-// Admin > Users labels <-> the role/status values stored on the user document.
-const ROLE_LABELS = { admin: "Admin", manager: "Event Manager", staff: "Staff", user: "Attendee" };
-const ROLE_VALUES = Object.fromEntries(Object.entries(ROLE_LABELS).map(([value, label]) => [label, value]));
-
-function toUserPayload(row) {
-  const payload = {};
-  ["name", "email", "password"].forEach((key) => {
-    if (row[key] !== undefined && row[key] !== "") payload[key] = row[key];
-  });
-  if (row.role !== undefined) payload.role = ROLE_VALUES[row.role] || row.role;
-  if (row.status !== undefined) payload.status = String(row.status).toLowerCase();
-  return payload;
-}
+// Venues are the only collection the admin area keeps in memory itself. Events, registrations
+// and certificates come from EventContext and ManagerContext. Users, reports and the audit log
+// are read a page at a time from /api/users and /api/admin, and the server writes the audit log.
+const ADMIN_RESOURCES = { venues: "venues" };
 
 const PUBLIC_STATUS = {
   Pending: "PENDING",
@@ -44,16 +22,6 @@ const PUBLIC_STATUS = {
   Archived: "ARCHIVED",
 };
 const ADMIN_STATUS = Object.fromEntries(Object.entries(PUBLIC_STATUS).map(([admin, attendee]) => [attendee, admin]));
-
-function toAdminEvent(event) {
-  return {
-    ...event,
-    date: event.adminDate || "",
-    start: event.adminStart || "",
-    end: event.adminEnd || "",
-    status: ADMIN_STATUS[event.status] || event.status,
-  };
-}
 
 const MANAGER_ADMIN_STATUS = {
   "Pending Approval": "Pending",
@@ -67,6 +35,23 @@ const MANAGER_ADMIN_STATUS = {
   Cancelled: "Cancelled",
 };
 
+export const ADMIN_STATUSES = Object.keys(PUBLIC_STATUS);
+
+// Admin-created and manager-created events store their status in different words.
+export const adminStatus = (event) => (event.scope === "admin"
+  ? ADMIN_STATUS[event.status] || event.status
+  : MANAGER_ADMIN_STATUS[event.status] || event.status);
+
+function toAdminEvent(event) {
+  return {
+    ...event,
+    date: event.adminDate || "",
+    start: event.adminStart || "",
+    end: event.adminEnd || "",
+    status: ADMIN_STATUS[event.status] || event.status,
+  };
+}
+
 function toManagerAdminEvent(event) {
   return {
     ...event,
@@ -74,14 +59,6 @@ function toManagerAdminEvent(event) {
     start: event.startTime || "",
     end: event.endTime || "",
     status: MANAGER_ADMIN_STATUS[event.status] || event.status,
-  };
-}
-
-function toAdminRegistration(registration) {
-  return {
-    ...registration,
-    date: registration.registrationDate || registration.date || "",
-    checkedInAt: registration.checkedInAt || null,
   };
 }
 
@@ -163,31 +140,19 @@ function makePublicEvent(event, venues) {
   };
 }
 
+// What the Settings page edits. Each one is used: the organization and term head the admin
+// sidebar, and the capacity pre-fills new events. The server refuses any other key.
 export const initialSettings = {
   orgName: "School of Information Technology",
-  portalTitle: "Eventify Portal",
-  contactEmail: "events@nu-moa.edu.ph",
-  timezone: "Asia/Manila (GMT+8)",
   academicTerm: "1st Term AY 2026-2027",
   defaultCapacity: 100,
-  autoConfirmRegistrations: false,
-  allowWaitlist: true,
-  strictDoubleBooking: true,
-  requireApproval: true,
-  emailReminders: true,
-  notifyOnPendingApproval: true,
-  autoIssueCertificates: false,
 };
 
 export function AdminProvider({ children }) {
-  const { user, accounts, createAccount, updateAccount, deleteAccount } = useAuth();
+  const { user } = useAuth();
   const manager = useManager();
-  const {
-    allEvents, allRegistrations, allCertificates,
-    updateEvent, addEvent, deleteEvent, deleteCertificate, updateRegistration, addRegistration, deleteRegistration,
-    resetToDefaultSeed,
-  } = useEventContext();
-  const { data: collections, setData: setCollections } = useServerStore(ADMIN_RESOURCES, user?.id || "guest");
+  const { allEvents, allRegistrations, allCertificates, updateEvent, addEvent, deleteEvent } = useEventContext();
+  const { data: collections, setData: setCollections, ready: venuesReady } = useServerStore(ADMIN_RESOURCES, user?.id || "guest");
   const [settings, setSettings] = useState(initialSettings);
   const [toastMsg, setToastMsg] = useState("");
 
@@ -199,151 +164,54 @@ export function AdminProvider({ children }) {
   }, []);
 
   const db = {
-    ...collections,
+    venues: collections.venues,
     events: [...allEvents.map(toAdminEvent), ...manager.allManagerEvents.map(toManagerAdminEvent)],
-    registrations: [...allRegistrations, ...manager.allManagerRegistrations].map(toAdminRegistration),
-    users: accounts.map((account) => ({
-      ...account,
-      status: account.status === "inactive" ? "Inactive" : "Active",
-      role: ROLE_LABELS[account.role] || "Attendee",
-    })),
-    certificates: allCertificates.map((certificate) => ({
-      ...certificate,
-      name: certificate.recipientName,
-      date: certificate.issueDate,
-    })),
+    registrations: [...allRegistrations, ...manager.allManagerRegistrations],
+    certificates: allCertificates,
   };
 
   const toast = useCallback((m) => {
     setToastMsg(m);
-    setTimeout(() => setToastMsg(""), 2500);
+    window.clearTimeout(toast.timer);
+    toast.timer = window.setTimeout(() => setToastMsg(""), 2600);
   }, []);
 
   const update = useCallback((coll, id, patch) => {
-    if (coll === "users") {
-      updateAccount(id, toUserPayload(patch)).catch((err) => toast(err.message));
-      return;
-    }
     if (coll === "events") {
-      if (manager.allManagerEvents.some((event) => event.id === id)) {
-        manager.updateEvent(id, toManagerEventPatch(patch, collections.venues));
-        return;
-      }
-      updateEvent(id, toPublicEventPatch(patch, collections.venues));
-      return;
-    }
-    if (coll === "registrations") {
-      const registrationPatch = { ...patch };
-      if (Object.hasOwn(patch, "date")) {
-        registrationPatch.registrationDate = patch.date;
-        delete registrationPatch.date;
-      }
-      if (Object.hasOwn(patch, "status")) {
-        registrationPatch.attendanceStatus = patch.status === "Cancelled" ? "Not Checked In" : undefined;
-        if (registrationPatch.attendanceStatus === undefined) delete registrationPatch.attendanceStatus;
-      }
-      if (manager.allManagerRegistrations.some((registration) => registration.id === id)) manager.updateRegistration(id, registrationPatch);
-      else updateRegistration(id, registrationPatch);
+      if (manager.allManagerEvents.some((event) => event.id === id)) manager.updateEvent(id, toManagerEventPatch(patch, collections.venues));
+      else updateEvent(id, toPublicEventPatch(patch, collections.venues));
       return;
     }
     setCollections((current) => ({
       ...current,
       [coll]: (current[coll] || []).map((record) => record.id === id ? { ...record, ...patch } : record),
     }));
-  }, [collections.venues, manager, setCollections, toast, updateAccount, updateEvent, updateRegistration]);
+  }, [collections.venues, manager, setCollections, updateEvent]);
 
   const add = useCallback((coll, row) => {
-    if (coll === "users") {
-      createAccount(toUserPayload(row)).catch((err) => toast(err.message));
-      return row;
-    }
-    const id = row.id || newId(coll);
-    const newRecord = { ...row, id };
-    if (coll === "events") {
-      addEvent(makePublicEvent(newRecord, collections.venues));
-    } else if (coll === "registrations") {
-      const account = accounts.find((item) => item.email.toLowerCase() === String(row.email).toLowerCase());
-      addRegistration({
-        ...newRecord,
-        userId: account?.id,
-        eventTitle: allEvents.find((event) => event.id === row.eventId)?.title || "",
-        registrationDate: row.date,
-        attendanceStatus: "Not Checked In",
-        checkedInAt: null,
-      });
-    } else {
-      setCollections((current) => ({
-        ...current,
-        [coll]: [newRecord, ...(current[coll] || [])],
-      }));
-    }
-    return newRecord;
-  }, [accounts, addEvent, addRegistration, allEvents, collections.venues, createAccount, setCollections, toast]);
+    const record = { ...row, id: row.id || newId(coll) };
+    if (coll === "events") addEvent(makePublicEvent(record, collections.venues));
+    else setCollections((current) => ({ ...current, [coll]: [record, ...(current[coll] || [])] }));
+    return record;
+  }, [addEvent, collections.venues, setCollections]);
 
   const remove = useCallback((coll, id) => {
-    if (coll === "users") {
-      deleteAccount(id).catch((err) => toast(err.message));
-      return;
-    }
     if (coll === "events") {
       if (manager.allManagerEvents.some((event) => event.id === id)) manager.deleteEvent(id);
       deleteEvent(id);
-      return;
-    }
-    if (coll === "certificates") {
-      deleteCertificate(id);
-      return;
-    }
-    if (coll === "registrations") {
-      if (manager.allManagerRegistrations.some((registration) => registration.id === id)) {
-        manager.updateRegistration(id, { status: "Cancelled", attendanceStatus: "Not checked in", checkedInAt: "" });
-      } else deleteRegistration(id);
       return;
     }
     setCollections((current) => ({
       ...current,
       [coll]: (current[coll] || []).filter((record) => record.id !== id),
     }));
-  }, [deleteAccount, deleteCertificate, deleteEvent, deleteRegistration, manager, setCollections, toast]);
+  }, [deleteEvent, manager, setCollections]);
 
-  const logAction = useCallback((action, record, admin = "System") => {
-    const now = new Date();
-    const dateStr = now.toISOString().slice(0, 10);
-    const timeStr = now.toTimeString().slice(0, 5);
-    const time = `${dateStr} ${timeStr}`;
-    setCollections((current) => ({
-      ...current,
-      auditLogs: [
-        {
-          id: newId("log"),
-          action,
-          admin: user?.name || admin,
-          record: String(record || "System"),
-          time,
-        },
-        ...(current.auditLogs || []),
-      ],
-    }));
-  }, [setCollections, user]);
-
-  const saveSettings = useCallback((next) => {
-    setSettings(next);
-    api("/settings", { method: "PUT", body: next }).catch((err) => toast(err.message));
-  }, [toast]);
-
-  const updateSettings = useCallback((patch) => {
-    saveSettings({ ...settings, ...patch });
-  }, [saveSettings, settings]);
-
-  const resetDb = useCallback(() => {
-    resetToDefaultSeed();
-    setCollections(emptyAdminData());
-    saveSettings(initialSettings);
-  }, [resetToDefaultSeed, saveSettings, setCollections]);
-
-  const clearAuditLogs = useCallback(() => {
-    setCollections((current) => ({ ...current, auditLogs: [] }));
-  }, [setCollections]);
+  // Resolves with the saved settings, or rejects with the server's message (shown by the form).
+  const saveSettings = useCallback(async (values) => {
+    const res = await api("/settings", { method: "PUT", body: values });
+    setSettings({ ...initialSettings, ...res.settings });
+  }, []);
 
   const venueName = useCallback(
     (id, eventId) => db.venues.find((v) => v.id === id)?.name || db.events.find((event) => event.id === eventId)?.venue || "—",
@@ -356,8 +224,7 @@ export function AdminProvider({ children }) {
   );
 
   const registered = useCallback(
-    (eventId) =>
-      (db.registrations || []).filter((r) => r.eventId === eventId && r.status !== "Cancelled").length,
+    (eventId) => db.registrations.filter((r) => r.eventId === eventId && r.status !== "Cancelled").length,
     [db.registrations]
   );
 
@@ -365,14 +232,12 @@ export function AdminProvider({ children }) {
     <Ctx.Provider
       value={{
         db,
+        venuesReady,
         settings,
-        updateSettings,
-        resetDb,
-        clearAuditLogs,
+        saveSettings,
         update,
         add,
         remove,
-        logAction,
         toast,
         toastMsg,
         venueName,
