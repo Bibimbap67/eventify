@@ -1,0 +1,251 @@
+/* ---------- Admin area ----------
+   The shell and the building blocks are the Event Manager workspace's (.manager-* in
+   index.css), so both internal areas share one look. This file only adds what the admin
+   needs on top: a collapsible sidebar, topbar menus, paging, and a few lists and panels.
+   index.css loads after this file, so rules that adjust a .manager-* class start with
+   .admin to win on specificity. Motion stays on transform/opacity, and the global
+   prefers-reduced-motion rule in index.css turns all of it off. */
+
+/* Sidebar: a red "Admin" sticker instead of the managers' yellow one */
+.admin .manager-brand > span { color: var(--on-red); background: var(--red); }
+.admin-org > div { min-width: 0; }
+
+.admin-sidebar__foot { display: grid; gap: 10px; }
+.admin .admin-collapse:hover { color: var(--color-cream); background: rgb(255 253 245 / 0.1); }
+.admin .admin-collapse { border-style: dashed; }
+
+/* Collapsed: an icon rail. Labels stay in the DOM for screen readers; `title` gives the tooltip. */
+@media (min-width: 721px) {
+  .admin .manager-sidebar {
+    transition:
+      flex-basis var(--duration-base) var(--ease-out),
+      width var(--duration-base) var(--ease-out);
+  }
+
+  .admin.admin--collapsed .manager-sidebar { flex-basis: 76px; width: 76px; overflow-x: hidden; }
+  .admin--collapsed .manager-brand { justify-content: center; padding-inline: 0; }
+  .admin--collapsed .manager-brand .logo__text,
+  .admin--collapsed .manager-brand > span,
+  .admin--collapsed .admin-org { display: none; }
+  .admin--collapsed .manager-nav { padding-inline: 12px; }
+  /* Group headings become thin dividers */
+  .admin--collapsed .manager-nav__heading { height: 2px; margin: 4px 6px; padding: 0; overflow: hidden; color: transparent; background: rgb(255 253 245 / 0.18); }
+  .admin--collapsed .manager-nav__link { position: relative; justify-content: center; padding: 5px 0; }
+  .admin--collapsed .manager-nav__badge { position: absolute; top: -6px; right: -4px; min-width: 20px; padding: 0 5px; }
+  .admin--collapsed .admin-sidebar__foot { padding-inline: 12px; }
+  .admin--collapsed .admin-sidebar__foot button { padding: 0; }
+
+  .admin--collapsed .manager-nav__label,
+  .admin--collapsed .admin-sidebar__foot span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-collapse { display: none !important; } /* the phone drawer is always full width */
+}
+
+/* Topbar: sound, recent activity and the profile menu */
+.admin-topbar__actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.admin-menu { position: relative; }
+
+.admin-menu__panel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(280px, calc(100vw - 28px));
+  padding: 4px 0 0;
+  background: var(--color-white);
+  border: var(--border-w) solid var(--color-black);
+  box-shadow: var(--shadow);
+  transform-origin: top right;
+  animation: scale-in var(--duration-fast) var(--ease-out) both;
+}
+
+.admin-menu__panel--wide { width: min(380px, calc(100vw - 28px)); }
+.admin-menu__heading { margin: 0; padding: 8px 14px 10px; border-bottom: 2px solid var(--color-black); font: 700 var(--text-xs) var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; }
+.admin-menu__note { margin: 0; padding: 14px; color: var(--ink-2); font-size: 13px; }
+.admin-menu__who { display: grid; gap: 2px; margin: 0; padding: 8px 14px 12px; border-bottom: 2px solid var(--color-black); }
+.admin-menu__who small { color: var(--ink-2); font-size: 12px; overflow-wrap: anywhere; }
+
+.admin-menu__item,
+.admin-menu__footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 14px;
+  color: var(--color-black);
+  background: none;
+  border: 0;
+  font: 600 14px var(--font-body);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) ease;
+}
+
+.admin-menu__item + .admin-menu__item { border-top: 2px dashed rgb(10 10 10 / 0.2); }
+.admin-menu__footer { justify-content: space-between; border-top: 2px solid var(--color-black); font-size: 13px; }
+.admin-menu__item:hover,
+.admin-menu__footer:hover { background: var(--yellow-tint); }
+
+.admin-activity-list { display: grid; max-height: 340px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.admin-activity-list li { display: grid; gap: 3px; padding: 10px 14px; border-bottom: 2px dashed rgb(10 10 10 / 0.2); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+.admin-activity-list li:last-child { border-bottom: 0; }
+.admin-activity-list small { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--ink-2); font: 12px var(--font-mono); }
+
+.admin-profile-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 8px 0 0;
+  color: var(--color-black);
+  background: var(--color-white);
+  border: 2px solid var(--color-black);
+  box-shadow: 2px 2px 0 var(--color-black);
+  font: 700 13px var(--font-body);
+  cursor: pointer;
+  transition: transform var(--duration-press) var(--ease-out), box-shadow var(--duration-press) var(--ease-out);
+}
+
+.admin-profile-button .manager-avatar { width: 36px; height: 36px; border-width: 0 2px 0 0; }
+.admin-profile-button__name { max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (hover: hover) and (pointer: fine) {
+  .admin-profile-button:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--color-black); }
+}
+
+.admin-profile-button:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--color-black); }
+
+@media (max-width: 720px) {
+  .admin-topbar__actions { gap: 8px; }
+  .admin-profile-button__name,
+  .admin-profile-button > .ui-icon { display: none; }
+  .admin-profile-button { padding: 0; }
+  .admin-profile-button .manager-avatar { border-width: 0; }
+}
+
+/* Audit outcome tags: green done, yellow failed, red refused */
+.admin-outcome { display: inline-block; padding: 1px 7px; border: 2px solid var(--color-black); border-radius: var(--radius-pill); color: var(--color-black); background: var(--mint); font: 700 var(--text-xs) var(--font-mono); text-transform: uppercase; white-space: nowrap; }
+.admin-outcome--failed { background: var(--color-yellow); }
+.admin-outcome--denied { color: var(--on-red); background: var(--red); }
+
+/* Lists: paging, loading, errors */
+.admin-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.admin-pager__count,
+.admin-pager__page { color: var(--ink-2); font: 700 12px var(--font-mono); }
+.admin-pager__buttons { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+.admin-busy { opacity: 0.55; pointer-events: none; transition: opacity var(--duration-fast) ease; }
+
+.admin-error { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 16px; background: #ffe4e4; border: 2px solid var(--color-black); box-shadow: var(--shadow-sm); }
+.admin-error > span { display: grid; flex: 1 1 220px; gap: 2px; }
+.admin-error small { color: var(--ink-2); font-size: 13px; }
+.admin-error > .ui-icon { color: var(--danger-ink); }
+
+/* Toolbars: labelled selects next to the search box. A select is as wide as its longest
+   option (event titles), so it is allowed to shrink instead of pushing the page sideways. */
+.admin .manager-toolbar__field { min-width: 0; max-width: 100%; }
+.admin .manager-toolbar__field select {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 40px;
+  padding: 0 10px;
+  color: var(--color-black);
+  background: var(--color-white);
+  border: 2px solid var(--color-black);
+  font: 600 13px var(--font-body);
+}
+
+@media (max-width: 720px) {
+  .admin .manager-toolbar__field select { flex: 1 1 0; width: 0; }
+}
+
+.admin .manager-tab { cursor: pointer; }
+.admin-note { margin: 0; padding: 10px 14px; background: var(--blue-tint); border: 2px solid var(--color-black); font-size: 13px; line-height: 1.5; }
+.admin-note .ui-icon { vertical-align: -3px; margin-right: 4px; }
+.admin-note--spaced { margin-top: 14px; }
+
+/* Summary strip above an oversight list */
+.admin-summary { display: flex; flex-wrap: wrap; gap: 8px 10px; margin: 0; padding: 0; list-style: none; }
+.admin-summary li { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 10px; background: var(--color-white); border: 2px solid var(--color-black); font: 700 12px var(--font-mono); text-transform: uppercase; }
+.admin-summary b { font: 18px var(--font-display); font-variant-numeric: tabular-nums; }
+
+/* Dashboard */
+.admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); align-items: start; gap: 18px; }
+.admin-stack { display: grid; align-content: start; gap: 18px; min-width: 0; }
+
+.admin-bars { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.admin-bars li { display: grid; grid-template-columns: minmax(104px, 0.9fr) minmax(70px, 2fr) 4ch; align-items: center; gap: 10px; font: 700 12px var(--font-mono); }
+.admin-bars a { color: inherit; text-decoration-thickness: 2px; text-underline-offset: 2px; }
+.admin-bars b { text-align: right; font-variant-numeric: tabular-nums; }
+.admin-bars__track { height: 14px; overflow: hidden; background: var(--color-white); border: 2px solid var(--color-black); }
+.admin-bars__track > span { display: block; width: var(--fill); height: 100%; background: var(--tone, var(--blue)); transform-origin: left; animation: grow var(--duration-slow) var(--ease-out) both; }
+
+.admin-bars-note { margin-top: 14px; }
+.admin .admin-activity { grid-template-columns: minmax(0, 1fr); }
+.admin-activity li > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+
+.admin-queue { display: grid; gap: 10px; margin: 0 0 12px; padding: 0; list-style: none; }
+.admin-queue li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; background: var(--color-cream); border: 2px solid var(--color-black); }
+.admin-queue strong { display: block; font-size: 14px; overflow-wrap: anywhere; }
+.admin-queue small { color: var(--ink-2); font-size: 12px; }
+.admin-queue .manager-date-tile { width: 46px; min-height: 46px; }
+.admin-queue .manager-date-tile strong { font-size: 18px; }
+
+@media (max-width: 560px) {
+  .admin-queue li { grid-template-columns: auto minmax(0, 1fr); }
+  .admin-queue .manager-row-buttons { grid-column: 1 / -1; }
+}
+
+/* Tables */
+.admin-you { margin-left: 6px; padding: 0 6px; background: var(--color-yellow); border: 2px solid var(--color-black); font: 700 10px var(--font-mono); text-transform: uppercase; vertical-align: 1px; }
+.admin .manager-row-buttons .manager-text-button:disabled { color: var(--ink-2); cursor: not-allowed; text-decoration: none; opacity: 0.6; }
+.admin-cell-sub { display: block; margin-top: 2px; color: var(--ink-2); font: 400 12px var(--font-body); }
+.admin-meter-cell { display: grid; gap: 5px; min-width: 110px; }
+.admin-meter-cell .manager-meter { height: 10px; }
+
+/* Dialog forms: radio cards for roles, hints under fields */
+.admin-choices { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
+.admin-choices legend { margin-bottom: 8px; font: 700 12px var(--font-mono); text-transform: uppercase; }
+
+.admin-choice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 2px 10px;
+  padding: 10px 12px;
+  background: var(--color-white);
+  border: 2px solid var(--color-black);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) ease, box-shadow var(--duration-press) var(--ease-out);
+}
+
+.admin-choice input { margin: 3px 0 0; accent-color: var(--color-black); }
+.admin-choice small { grid-column: 2; color: var(--ink-2); font-size: 12px; line-height: 1.4; }
+.admin-choice:has(input:checked) { background: var(--yellow-tint); box-shadow: 3px 3px 0 var(--color-black); }
+.admin-choice:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.admin .admin-hint { color: var(--ink-2); font: 400 12px/1.4 var(--font-body); letter-spacing: 0; text-transform: none; }
+.admin-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.admin-dirty { margin-right: auto; color: var(--warning-ink); font: 700 12px var(--font-mono); text-transform: uppercase; }
+
+/* Read-only detail views (event details, audit entry) */
+.admin-detail { display: grid; gap: 16px; }
+.admin-detail h3 { display: flex; align-items: center; gap: 8px; margin: 0; font: 15px var(--font-display); text-transform: uppercase; }
+.admin-detail .manager-definition-list dd { overflow-wrap: anywhere; }
+.admin-plain-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.admin-plain-list li { padding: 10px 12px; background: var(--color-cream); border: 2px solid var(--color-black); font-size: 13px; line-height: 1.45; }
+.admin-plain-list small { display: block; margin-top: 2px; color: var(--ink-2); font-size: 12px; }
+.modal.admin-dialog { max-width: 640px; }
+
+/* Settings */
+.admin-settings-panel { max-width: 760px; }

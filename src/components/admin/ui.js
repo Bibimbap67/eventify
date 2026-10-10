@@ -1,6 +1,6 @@
 import React from "react";
 import Icon from "../Icon.js";
-import { useDialog, useEntering } from "../Motion.js";
+import { useDialog } from "../Motion.js";
 
 export function StatusBadge({ value }) {
   const statusText = String(value || "").toLowerCase();
@@ -62,47 +62,5 @@ export function ConfirmModal({
         </>
       )}
     </Modal>
-  );
-}
-
-export function FormField({ label, error, children }) {
-  return (
-    <label className="field">
-      <span className="field__label">{label}</span>
-      {children}
-      {error && <span className="field__error">{error}</span>}
-    </label>
-  );
-}
-
-export function DataTable({ columns, rows, renderActions }) {
-  const entering = useEntering();
-  if (!rows || rows.length === 0) {
-    return <p className="empty">No records match your filters.</p>;
-  }
-
-  return (
-    <div className={`table-wrap${entering ? " stagger" : ""}`}>
-      <table className="table">
-        <thead>
-          <tr>
-            {columns.map((column) => (
-              <th key={column.label}>{column.label}</th>
-            ))}
-            {renderActions && <th>Actions</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.id}>
-              {columns.map((column) => (
-                <td key={column.label}>{column.render(row)}</td>
-              ))}
-              {renderActions && <td className="table__actions">{renderActions(row)}</td>}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   );
 }

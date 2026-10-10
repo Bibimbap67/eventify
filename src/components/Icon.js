@@ -9,6 +9,7 @@ import {
   CalendarDays, ClipboardCheck, CalendarClock, Megaphone, ChartColumn, Plus, Download, Undo2,
   CircleAlert, Hourglass, UserCheck, Activity, Sun, Sunrise, Moon, Trash2, Inbox, Send,
   Camera, CameraOff, ImageUp, Eye, EyeOff,
+  Settings, PanelLeftClose, PanelLeftOpen, RotateCw, KeyRound, Ban, ExternalLink, History, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
 // Old hand-drawn names are kept so every existing caller still works.
@@ -89,6 +90,17 @@ const ICONS = {
   // Password fields
   eye: Eye,
   "eye-off": EyeOff,
+  // Admin area
+  settings: Settings,
+  "panel-close": PanelLeftClose,
+  "panel-open": PanelLeftOpen,
+  refresh: RotateCw,
+  key: KeyRound,
+  ban: Ban,
+  external: ExternalLink,
+  history: History,
+  "chevron-left": ChevronLeft,
+  "chevron-right": ChevronRight,
 };
 
 // One size scale: 16 / 20 / 24.
