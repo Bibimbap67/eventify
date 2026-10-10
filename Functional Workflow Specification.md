@@ -48,7 +48,7 @@
    |---|---|---|
    | **Public** | `/` (Home), `/login`, `/events`, `/events/:id` | None |
    | **Attendee** (`role: user`) | `/my-events`, `/schedule`, `/attendance`, `/certificates`, `/notifications`, `/profile`, `/workspace` | `requiredRole="user"` |
-   | **Admin** (`role: admin`) | `/admin` → Dashboard, `events`, `settings`, `:page` (ListPage for all other sidebar entries) | `requiredRole="admin"` + `AdminProvider` + `AdminLayout` (sidebar + `<Outlet/>`) |
+   | **Admin** (`role: admin`) | `/admin` → Dashboard, `users`, `events`, `venues`, `reports`, `registrations`, `certificates`, `audit-logs`, `settings` (old `attendance`, `sessions`, `announcements`, `feedback` links redirect) | `requiredRole="admin"` + `AdminProvider` + `AdminLayout` (sidebar + `<Outlet/>`) |
    | **Manager** (`role: manager`) | `/manager` → Overview, `events`, `events/:eventId[/:tab]`, `registrations`, `attendance`, `schedule`, `participants`, `announcements`, `feedback`, `reports` | `requiredRole="manager"` + `ManagerLayout` → all render sections of `ManagerScreen` |
    | **Fallback** | `*` | Redirect → `/` |
 
@@ -122,27 +122,33 @@
 
    ---
 
-   ## 🛡️ 6. Admin Workflow (`AdminContext` — orchestrates the other contexts)
+   ## 🛡️ 6. Admin Workflow (platform-wide jobs only)
+
+   Running a single event (registrations, check-in, sessions, announcements) belongs to its Event Manager; the admin oversees it read-only.
 
    ```
-   AdminLayout sidebar (13 sections)
+   AdminLayout sidebar (grouped, collapsible)
       │
-      ├─ Dashboard / Reports / Audit Logs  ← read-only views of aggregated data
-      ├─ Events, Registrations, Users, Venues, Sessions,
-      │  Announcements, Feedback, Certificates  → generic ListPage (/:page)
-      │        │
-      │        ▼
-      │   AdminContext.update() / add() / remove()
-      │        │  • Status translation layer between 3 vocabularies:
-      │        │     Admin:   Pending → Approved → Published → Completed
-      │        │     Public:  PENDING → OPENS SOON → REGISTRATION OPEN → COMPLETED
-      │        │     Manager: Pending → Approved → Published → Completed
-      │        │  • Writes flow through to EventContext AND ManagerContext
-      │        ▼
-      │   logAction() → auditLogs (who did what, when)
-      │
-      └─ Settings → updateSettings() / resetDb() / clearAuditLogs()
+      ├─ Overview   Dashboard ─────────► GET /api/admin/overview (counts by role/status, recent activity)
+      ├─ Platform   Users & roles ─────► GET /api/users?page&role&status&q&sort (server paging + tab counts)
+      │             │                    POST / PATCH / DELETE /api/users (role, status, details, delete)
+      │             Events & approvals ─► AdminContext.update() / add() / remove()
+      │             │  • Status translation layer between 3 vocabularies:
+      │             │     Admin:   Pending → Approved → Published → Completed
+      │             │     Public:  PENDING → OPENS SOON → REGISTRATION OPEN → COMPLETED
+      │             │     Manager: Pending → Approved → Published → Completed
+      │             │  • Writes flow through to EventContext AND ManagerContext
+      │             │  • Details (read-only sessions, speakers, announcements): GET /api/admin/events/:id
+      │             Venues ────────────► AdminContext (venues collection)
+      ├─ Oversight  Reports ───────────► GET /api/admin/reports/events (per-event totals, CSV export)
+      │             Registrations ─────► GET /api/admin/registrations (read-only, filtered, paged)
+      │             Certificates ──────► read-only list with links to the public check
+      └─ System     Audit log ─────────► GET /api/admin/audit-logs (filtered, paged)
+                    Settings ──────────► PUT /api/settings (validated), PATCH /api/auth/me,
+                                         POST /api/auth/password, GET /api/admin/export
    ```
+
+   **Audit log:** written only by the server (`server/utils/audit.js`). The actor comes from the signed-in user's token, the time is the document's `createdAt`, and each entry records its outcome (`success`, `failed` or `denied`). Users, settings, the admin's own profile and password, and every admin write through `/api/data/:resource/batch` are recorded, as are non-admins refused on admin APIs or admin-only records. There is no API to edit or delete entries. `npm run selftest:admin` (in `/server`) checks these rules.
 
    ---
 
@@ -157,12 +163,12 @@
    | `registrations` | `registrations`, `manager-registrations` | EventContext / ManagerContext | attendee registrations, attendance, feedback answers |
    | `certificates` | `certificates` | EventContext | issued certificates |
    | `notifications` | `notifications` (scope `attendee`), `manager-notifications` (scope `manager`) | EventContext / ManagerContext | attendee and manager notifications |
-   | `sessions` | `sessions`, `manager-sessions` | AdminContext / ManagerContext | sessions & speakers |
-   | `announcements` | `announcements`, `manager-announcements` | AdminContext / ManagerContext | announcements |
-   | `feedback` | `feedback`, `manager-feedback` | AdminContext / ManagerContext | feedback ratings and comments |
+   | `sessions` | `manager-sessions` (the admin-scope `sessions` resource is no longer used by any screen) | ManagerContext | sessions & speakers |
+   | `announcements` | `manager-announcements` (admin-scope `announcements` likewise unused) | ManagerContext | announcements |
+   | `feedback` | `manager-feedback` (admin-scope `feedback` likewise unused) | ManagerContext | feedback ratings and comments |
    | `venues` | `venues` | AdminContext (managers read the names) | venues |
-   | `auditlogs` | `audit-logs` | AdminContext | admin activity log |
-   | `settings` | `/api/settings` | AdminContext | one document (`_id: "global"`) with platform settings |
+   | `auditlogs` | read: `GET /api/admin/audit-logs`; written only by the server | server | admin activity log |
+   | `settings` | `/api/settings` | AdminContext | one document (`_id: "global"`): organization name, academic term, default capacity |
 
    Profile fields (student ID, program, phone, ...) are stored on the user document via `PATCH /api/auth/me`.
 
