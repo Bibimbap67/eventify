@@ -149,7 +149,7 @@ const CLICK_SOUNDS = [
   ['.star-btn, .category-pill, .tab-btn, .filter-btn, .day-tab-btn, .settings-tab, [role="tab"], .auth-tabs__tab', "pop"],
   ['[aria-pressed], [role="switch"], input[type="checkbox"], input[type="radio"]', "switch"],
   ['button[type="submit"], .btn--primary, .btn-sm--yellow, .manager-button--primary, .landing-btn--primary, .landing-btn--blue, .btn-ticket-register, .home-search-bar__btn', "thock"],
-  ['a[href], [role="link"], .event-card, .landing-ticket', "snap"],
+  ['a[href], [role="link"], .event-card', "snap"],
 ];
 
 function soundFor(el) {
