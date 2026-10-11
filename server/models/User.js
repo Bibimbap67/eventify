@@ -20,6 +20,9 @@ const userSchema = new mongoose.Schema(
     yearLevel: { type: String, default: "", trim: true },
     phone: { type: String, default: "", trim: true },
     avatar: { type: String, default: "" },
+    // Forgot password: only a hash of the emailed token is kept, so a database leak can't reset passwords.
+    resetTokenHash: { type: String, select: false },
+    resetTokenExpires: { type: Date, select: false },
   },
   {
     timestamps: true,

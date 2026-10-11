@@ -1,6 +1,11 @@
+const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { audit } = require("../utils/audit");
+const { sendMail } = require("../utils/mail");
+
+const RESET_TTL_MS = 30 * 60 * 1000;
+const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
 
 // Admin accounts are the keys to the platform, so changes to them go in the audit trail.
 const auditAdmin = (req, entry) => (req.user.role === "admin"
@@ -112,4 +117,46 @@ const changePassword = async (req, res) => {
   res.json({ ok: true });
 };
 
-module.exports = { signup, login, me, updateMe, changePassword };
+// The same answer whether or not the account exists, so this form can't reveal who has one.
+const RESET_SENT = "If an account uses that email, we sent it a link to reset the password. The link works for 30 minutes.";
+
+const forgotPassword = async (req, res) => {
+  const email = String(req.body.email || "").trim().toLowerCase();
+  if (!EMAIL_RE.test(email)) return res.status(400).json({ message: "Enter a valid email address." });
+
+  const user = await User.findOne({ email, status: "active" }).select("+resetTokenExpires");
+  // At most one email a minute per account, so nobody can flood an inbox through this form.
+  const recentlySent = user?.resetTokenExpires && user.resetTokenExpires - RESET_TTL_MS > Date.now() - 60 * 1000;
+  if (user && !recentlySent) {
+    const token = crypto.randomBytes(32).toString("hex");
+    user.resetTokenHash = hashToken(token);
+    user.resetTokenExpires = new Date(Date.now() + RESET_TTL_MS);
+    await user.save();
+    const link = `${process.env.CLIENT_URL || "http://localhost:3000"}/reset-password/${token}`;
+    // Not awaited: a slow mail server must not make known emails answer slower than unknown ones.
+    sendMail({
+      to: user.email,
+      subject: "Reset your Eventify password",
+      text: `Hi ${user.name},\n\nSomeone asked to reset the password for your Eventify account. Open this link to choose a new one:\n\n${link}\n\nThe link works once and expires in 30 minutes. If you didn't ask for this, ignore this email and your password stays the same.\n\nEventify · NU MOA School of Information Technology`,
+    }).catch((err) => console.error("Could not send the password reset email:", err.message));
+  }
+  res.json({ message: RESET_SENT });
+};
+
+const resetPassword = async (req, res) => {
+  const token = String(req.body.token || "");
+  const password = String(req.body.password || "");
+  if (password.length < 6) return res.status(400).json({ message: "Use at least 6 characters for the password." });
+
+  // The token fields are selected so that clearing them below is saved.
+  const user = token && await User.findOne({ resetTokenHash: hashToken(token), resetTokenExpires: { $gt: new Date() } })
+    .select("+resetTokenHash +resetTokenExpires");
+  if (!user) return res.status(400).json({ message: "This reset link is invalid or has expired. Ask for a new one." });
+  user.password = password; // hashed by the model before saving
+  user.resetTokenHash = undefined; // a link works once
+  user.resetTokenExpires = undefined;
+  await user.save();
+  res.json({ ok: true });
+};
+
+module.exports = { signup, login, me, updateMe, changePassword, forgotPassword, resetPassword };

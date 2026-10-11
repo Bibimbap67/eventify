@@ -44,6 +44,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/reset-password/:token" element={<LoginPage />} />
 
         {/* Attendee experience */}
         <Route path="/events" element={<EventsPage />} />

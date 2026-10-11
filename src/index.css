@@ -436,6 +436,33 @@ textarea {
   margin: -6px 0 18px;
 }
 
+/* "Check your email" / "Password changed": the error's box in the success fill, rising in as it answers the submit. */
+.auth-card__notice {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--success-fg);
+  background: var(--success-bg);
+  border: 2px solid var(--color-black);
+  padding: 10px 12px;
+  margin: -6px 0 18px;
+  animation: rise var(--duration-base) var(--ease-out) both;
+}
+
+/* "Forgot password?" sits right under the password field, quieter than the main button. */
+.auth-card__link {
+  display: block;
+  margin: -8px 0 18px auto;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: 600 14px var(--font-body);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
 /* ---------- Tabs ---------- */
 
 .auth-tabs {

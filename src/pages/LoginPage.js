@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.js";
+import { api } from "../api.js";
 import Logo from "../components/Logo.js";
 import AuthTabs from "../components/AuthTabs.js";
 import TextField from "../components/TextField.js";
@@ -11,6 +12,14 @@ import { prefersReducedMotion } from "../components/Motion.js";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STAMP_MS = 700; // time to show the "Admitted" stamp before leaving the page
 const QR_SIZE = 15;
+
+// Each mode's heading, intro, submit label and the tag on the pass preview.
+const MODES = {
+  signin: { title: "Welcome back", lead: "Sign in to see your tickets, schedule, and certificates.", submit: "SIGN IN", busy: "SIGNING IN…", tag: "Welcome back" },
+  signup: { title: "Create your account", lead: "Sign up to join events and get your QR ticket.", submit: "CREATE ACCOUNT", busy: "CREATING ACCOUNT…", tag: "New member" },
+  forgot: { title: "Reset your password", lead: "Enter your account email. We'll send you a link to choose a new password.", submit: "SEND RESET LINK", busy: "SENDING…", tag: "Replacement" },
+  reset: { title: "Choose a new password", lead: "Use at least 6 characters. The link in your email works once.", submit: "SAVE NEW PASSWORD", busy: "SAVING…", tag: "Replacement" },
+};
 
 // The pass preview's QR: three corner squares like a real code, and the rest drawn
 // from the holder text, so the pattern changes as the person types. Decoration only.
@@ -49,8 +58,9 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo = location.state?.from?.pathname || "/events";
+  const { token } = useParams(); // set on /reset-password/:token, the link from the reset email
 
-  const [mode, setMode] = useState("signin"); // "signin" | "signup"
+  const [mode, setMode] = useState(token ? "reset" : "signin"); // "signin" | "signup" | "forgot" | "reset"
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -59,6 +69,7 @@ export default function LoginPage() {
   });
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState("");
+  const [notice, setNotice] = useState(location.state?.notice || "");
   const [loading, setLoading] = useState(false);
   const [admitted, setAdmitted] = useState(false);
   const cardRef = useRef(null);
@@ -82,34 +93,70 @@ export default function LoginPage() {
     setMode(nextMode);
     setErrors({});
     setFormError("");
+    setNotice("");
   }
+
+  const choosingPassword = mode === "signup" || mode === "reset";
 
   function validate() {
     const next = {};
     if (mode === "signup" && !form.name.trim()) {
       next.name = "Enter your full name.";
     }
-    if (!form.email.trim()) {
-      next.email = "Email is required.";
-    } else if (!EMAIL_RE.test(form.email.trim())) {
-      next.email = "Enter a valid email address.";
+    if (mode !== "reset") {
+      if (!form.email.trim()) {
+        next.email = "Email is required.";
+      } else if (!EMAIL_RE.test(form.email.trim())) {
+        next.email = "Enter a valid email address.";
+      }
     }
-    if (!form.password) {
-      next.password = "Password is required.";
-    } else if (mode === "signup" && form.password.length < 6) {
-      next.password = "Use at least 6 characters.";
+    if (mode !== "forgot") {
+      if (!form.password) {
+        next.password = "Password is required.";
+      } else if (choosingPassword && form.password.length < 6) {
+        next.password = "Use at least 6 characters.";
+      }
     }
-    if (mode === "signup" && form.confirmPassword !== form.password) {
+    if (choosingPassword && form.confirmPassword !== form.password) {
       next.confirmPassword = "Passwords do not match.";
     }
     setErrors(next);
     return Object.keys(next).length === 0;
   }
 
+  // Forgot password and the emailed reset link. Neither signs anyone in.
+  async function recoverPassword() {
+    setLoading(true);
+    setFormError("");
+    setNotice("");
+    try {
+      if (mode === "forgot") {
+        const data = await api("/auth/forgot-password", { method: "POST", body: { email: form.email.trim() } });
+        setNotice(data.message);
+      } else {
+        await api("/auth/reset-password", { method: "POST", body: { token, password: form.password } });
+        const done = "Password changed. Sign in with your new password.";
+        setForm((prev) => ({ ...prev, password: "", confirmPassword: "" }));
+        setMode("signin");
+        setNotice(done);
+        // Drop the used token from the address bar.
+        navigate("/login", { replace: true, state: { notice: done } });
+      }
+    } catch (err) {
+      setFormError(err.message || "Something went wrong. Try again.");
+      shake(cardRef.current);
+    }
+    setLoading(false);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!validate()) {
       shake(cardRef.current);
+      return;
+    }
+    if (mode === "forgot" || mode === "reset") {
+      recoverPassword();
       return;
     }
 
@@ -162,12 +209,12 @@ export default function LoginPage() {
             <div className="auth-pass" ref={passRef} data-admitted={admitted ? "" : undefined}>
               <div className="auth-pass__top">
                 <span className="auth-pass__brand">Eventify pass</span>
-                <span key={mode} className="auth-pass__tag">{mode === "signin" ? "Welcome back" : "New member"}</span>
+                <span key={mode} className="auth-pass__tag">{MODES[mode].tag}</span>
               </div>
               <div className="auth-pass__holder">
                 <span className="auth-pass__label">Holder</span>
                 <span className={`auth-pass__name${holder ? "" : " auth-pass__name--empty"}`}>
-                  {holder || (mode === "signin" ? "your@email" : "Your name")}
+                  {holder || (mode === "signup" ? "Your name" : "your@email")}
                   <span className="auth-pass__caret" />
                 </span>
               </div>
@@ -190,21 +237,17 @@ export default function LoginPage() {
 
       <main className="auth-panel">
         <div className="auth-card" ref={cardRef}>
-          <AuthTabs mode={mode} onChange={switchMode} />
+          {/* Resetting a password is part of signing in, so that tab stays selected. */}
+          <AuthTabs mode={mode === "signup" ? "signup" : "signin"} onChange={switchMode} />
 
           <div className="auth-card__body">
             <div key={mode} className="auth-card__head">
-              <h2 className="auth-card__title">
-                {mode === "signin" ? "Welcome back" : "Create your account"}
-              </h2>
-              <p className="auth-card__lead">
-                {mode === "signin"
-                  ? "Sign in to see your tickets, schedule, and certificates."
-                  : "Sign up to join events and get your QR ticket."}
-              </p>
+              <h2 className="auth-card__title">{MODES[mode].title}</h2>
+              <p className="auth-card__lead">{MODES[mode].lead}</p>
             </div>
 
             {formError && <p className="auth-card__error" role="alert">{formError}</p>}
+            {notice && <p className="auth-card__notice" role="status">{notice}</p>}
 
             <form onSubmit={handleSubmit} noValidate>
               {mode === "signup" && (
@@ -219,29 +262,39 @@ export default function LoginPage() {
                 />
               )}
 
-              <TextField
-                id="email"
-                label="Email address"
-                type="email"
-                value={form.email}
-                onChange={updateField("email")}
-                error={errors.email}
-                autoComplete="email"
-                placeholder="you@school.edu"
-              />
+              {mode !== "reset" && (
+                <TextField
+                  id="email"
+                  label="Email address"
+                  type="email"
+                  value={form.email}
+                  onChange={updateField("email")}
+                  error={errors.email}
+                  autoComplete="email"
+                  placeholder="you@school.edu"
+                />
+              )}
 
-              <TextField
-                id="password"
-                label="Password"
-                type="password"
-                value={form.password}
-                onChange={updateField("password")}
-                error={errors.password}
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                placeholder="••••••••"
-              />
+              {mode !== "forgot" && (
+                <TextField
+                  id="password"
+                  label={mode === "reset" ? "New password" : "Password"}
+                  type="password"
+                  value={form.password}
+                  onChange={updateField("password")}
+                  error={errors.password}
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  placeholder="••••••••"
+                />
+              )}
 
-              {mode === "signup" && (
+              {mode === "signin" && (
+                <button type="button" className="auth-card__link" onClick={() => switchMode("forgot")}>
+                  Forgot password?
+                </button>
+              )}
+
+              {choosingPassword && (
                 <TextField
                   id="confirmPassword"
                   label="Confirm password"
@@ -257,10 +310,10 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 loading={loading}
-                loadingText={admitted ? "SIGNED IN" : mode === "signin" ? "SIGNING IN…" : "CREATING ACCOUNT…"}
+                loadingText={admitted ? "SIGNED IN" : MODES[mode].busy}
                 showArrow
               >
-                {mode === "signin" ? "SIGN IN" : "CREATE ACCOUNT"}
+                {MODES[mode].submit}
               </Button>
             </form>
 
