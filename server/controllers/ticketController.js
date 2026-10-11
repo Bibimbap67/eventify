@@ -12,6 +12,7 @@
 // so they are never accepted for check-in.
 const crypto = require("crypto");
 const { Event, Registration, Certificate, Notification } = require("../models/records");
+const { checkInOpensAt, opensLabel } = require("../utils/checkIn");
 
 const QR_PREFIX = "EVENTIFY-TICKET:";
 const QR_RE = /^EVENTIFY-TICKET:([a-f0-9]{32})$/;
@@ -92,6 +93,8 @@ const checkIn = async (req, res) => {
   if (registration.status === "Cancelled") return refuse("This ticket was cancelled by the attendee.", attendee);
   if (registration.status !== "Confirmed") return refuse(`This registration is ${registration.status || "not confirmed"}.`, attendee);
   if (CLOSED_EVENT_STATUS.includes(event.status)) return refuse(`Check-in is closed: ${event.title} is ${event.status.toLowerCase()}.`, attendee);
+  const opensAt = checkInOpensAt(event);
+  if (opensAt && Date.now() < opensAt) return refuse(`Too early. Check-in opens when ${event.title} starts, ${opensLabel(opensAt)}.`, attendee);
   if (isCheckedIn(registration)) {
     return refuse(`Already checked in${registration.checkedInAt ? ` at ${registration.checkedInAt}` : ""}.`, attendee, "duplicate");
   }

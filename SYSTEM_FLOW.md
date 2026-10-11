@@ -245,6 +245,9 @@ Staff scan each ticket with the camera. The server checks the ticket and tells t
 < Is the event still open? > --No--> (STOP) "Check-in is closed."
   | Yes
   v
+< Has the event started? > --No--> (STOP) "Too early. Check-in opens when the event starts."
+  | Yes
+  v
 < Already checked in? > --Yes--> (STOP) "Already checked in."
   | No
   v
@@ -258,6 +261,7 @@ Staff scan each ticket with the camera. The server checks the ticket and tells t
 
 - If two desks scan the same ticket at the same time, only one lets the person in.
 - Only Staff accounts can open the check-in desk.
+- Check-in opens at the event's start time (its date and start time). Until then the Event Manager's **Check in** button is locked and reads "Opens Oct 11, 10:00 AM"; it unlocks by itself at the start time, without a page reload.
 
 ---
 

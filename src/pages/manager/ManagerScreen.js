@@ -10,6 +10,7 @@ import SeatMap, { SeatingField } from "../../components/SeatMap.js";
 import FeedbackSummary, { Stars } from "../../components/FeedbackSummary.js";
 import { summarizeFeedback } from "../../data/feedback.js";
 import { seatOf } from "../../data/seating.js";
+import { checkInOpensAt, opensLabel } from "../../data/checkIn.js";
 import {
   ArchiveSwitch, CapacityBar, DateTile, EmptyState, FilterChips, Metric, PAST_STATUSES, PanelHeader, PersonCell, PrepChip,
   SearchField, SectionHeading, StatusBadge, Table, attendanceKey, countRegistrations, countdownLabel, eventDate,
@@ -520,8 +521,24 @@ function useCheckIn(onToggle) {
   return [toggle, flashId];
 }
 
-function CheckInControl({ item, onToggle }) {
+function CheckInControl({ item, event, onToggle }) {
   const state = attendanceKey(item.attendanceStatus);
+  const opensAt = checkInOpensAt(event);
+  const wait = opensAt ? opensAt - Date.now() : 0;
+  const [, rerender] = useState(0);
+  // Re-render the moment the event starts so the button unlocks without a page refresh.
+  useEffect(() => {
+    if (wait <= 0) return undefined;
+    const timer = setTimeout(() => rerender((n) => n + 1), wait + 50);
+    return () => clearTimeout(timer);
+  }, [opensAt?.getTime()]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (state === "waiting" && wait > 0) {
+    return (
+      <button type="button" className="manager-button manager-button--small" disabled title="Check-in opens when the event starts">
+        <Icon name="clock" size={16} /> Opens {opensLabel(opensAt)}
+      </button>
+    );
+  }
   if (state === "attended") return <span className="manager-checkin__done"><Icon name="check" size={16} /> Attended</span>;
   if (state === "checked-in") {
     return (
@@ -606,7 +623,7 @@ function RegistrationDesk({ rows, showEvent, initialStatus = "All", withCheckIn 
         }
         if (row.status === "Confirmed") {
           return withCheckIn
-            ? <span className="manager-row-buttons"><CheckInControl item={row} onToggle={toggleCheckIn} />{!isCheckedIn(row) && cancelButton(row)}</span>
+            ? <span className="manager-row-buttons"><CheckInControl item={row} event={eventMap.get(row.eventId)} onToggle={toggleCheckIn} />{!isCheckedIn(row) && cancelButton(row)}</span>
             : cancelButton(row);
         }
         return <span className="manager-muted">—</span>;
@@ -661,7 +678,7 @@ function AttendanceDesk({ rows, showEvent }) {
               <PersonCell name={item.name} detail={showEvent ? `${eventMap.get(item.eventId)?.title || "Assigned event"} · ${item.email}` : item.email} seed={item.userId} />
               <StatusBadge value={item.attendanceStatus} />
               <span className="manager-checkin__time">{item.checkedInAt ? <><Icon name="clock" size={16} /> {item.checkedInAt}</> : "—"}</span>
-              <CheckInControl item={item} onToggle={toggle} />
+              <CheckInControl item={item} event={eventMap.get(item.eventId)} onToggle={toggle} />
             </li>
           ))}
         </ul>

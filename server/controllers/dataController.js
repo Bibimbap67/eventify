@@ -12,6 +12,7 @@ const {
 } = require("../models/records");
 const { seatId, seatIndex, onMap, firstFreeSeat } = require("../utils/seating");
 const { audit, diff } = require("../utils/audit");
+const { checkInOpensAt, opensLabel } = require("../utils/checkIn");
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -230,6 +231,10 @@ function registrations(scope) {
         if (scope !== "manager") deny();
         if (!(await ownsEvent(user, record.eventId))) deny();
         if (existing && !(await ownsEvent(user, existing.eventId))) deny();
+        const checkingIn = String(record.attendanceStatus || "").toLowerCase() === "checked in" &&
+          String(existing?.attendanceStatus || "").toLowerCase() !== "checked in";
+        const opensAt = checkingIn && checkInOpensAt(await Event.findById(record.eventId));
+        if (opensAt && Date.now() < opensAt) deny(`Check-in opens when the event starts, ${opensLabel(opensAt)}.`);
         return placeSeat(record, existing, scope);
       }
       // Attendee: only their own registration, and the event cannot be swapped.
