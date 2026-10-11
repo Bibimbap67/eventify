@@ -82,6 +82,8 @@ const Certificate = model("Certificate", {
 }, {}, [
   // One certificate per attendee per event (admins can still add hand-made ones without a userId).
   [{ eventId: 1, userId: 1 }, { unique: true, partialFilterExpression: { userId: { $type: "string" } } }],
+  // The public check page looks a certificate up by this ID, so two certificates may never share one.
+  [{ credentialId: 1 }, { unique: true, partialFilterExpression: { credentialId: { $type: "string" } } }],
 ]);
 
 const Notification = model("Notification", {

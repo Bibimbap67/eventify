@@ -157,7 +157,8 @@ export function EventProvider({ children }) {
       .filter((registration) => !issuedKeys.has(`${registration.eventId}:${registration.userId}`))
       .map((registration) => {
         const now = new Date();
-        const credentialId = `CERT-NU-${now.getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+        // 8 random characters: 4 digits collided often, and the server refuses a repeated ID.
+        const credentialId = `CERT-NU-${now.getFullYear()}-${Math.random().toString(36).slice(2, 10).toUpperCase().padEnd(8, "0")}`;
         return {
           id: newId("cert"),
           userId: registration.userId,
