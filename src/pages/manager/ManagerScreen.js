@@ -11,7 +11,7 @@ import FeedbackSummary, { Stars } from "../../components/FeedbackSummary.js";
 import { summarizeFeedback } from "../../data/feedback.js";
 import { seatOf } from "../../data/seating.js";
 import {
-  CapacityBar, DateTile, EmptyState, FilterChips, Metric, PAST_STATUSES, PanelHeader, PersonCell, PrepChip,
+  ArchiveSwitch, CapacityBar, DateTile, EmptyState, FilterChips, Metric, PAST_STATUSES, PanelHeader, PersonCell, PrepChip,
   SearchField, SectionHeading, StatusBadge, Table, attendanceKey, countRegistrations, countdownLabel, eventDate,
   eventRegistrations, getAttendance, isCheckedIn, plural, relativeDay,
 } from "../../components/manager/parts.js";
@@ -310,6 +310,7 @@ function ManagerEvents() {
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("All");
+  const [view, setView] = useState("current"); // "current" | "archive"
   const [dateOrder, setDateOrder] = useState("Soonest first");
   const [dateFilter, setDateFilter] = useState("");
   const [form, setForm] = useState(EMPTY_EVENT);
@@ -320,18 +321,20 @@ function ManagerEvents() {
   const setCreating = (open) => setParams(open ? { new: "1" } : {}, { replace: true });
   const patch = (field) => (e) => setForm((current) => ({ ...current, [field]: e.target.value }));
 
-  const rows = useMemo(() => [...events]
+  const archived = events.filter((event) => event.status === "Archived");
+  const inView = useMemo(() => events.filter((event) => (event.status === "Archived") === (view === "archive")), [events, view]);
+  const rows = useMemo(() => [...inView]
     .filter((event) => event.title.toLowerCase().includes(query.toLowerCase()))
     .filter((event) => status === "All" || event.status === status)
     .filter((event) => !dateFilter || event.date >= dateFilter)
     .sort((a, b) => (dateOrder === "Soonest first" ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date))),
-  [dateFilter, dateOrder, events, query, status]);
+  [dateFilter, dateOrder, inView, query, status]);
   const active = rows.filter((event) => !PAST_STATUSES.includes(event.status));
   const past = rows.filter((event) => PAST_STATUSES.includes(event.status));
-  const statusOptions = ["All", ...new Set(events.map((event) => event.status))].map((value) => ({
+  const statusOptions = ["All", ...new Set(inView.map((event) => event.status))].map((value) => ({
     value,
     label: value,
-    count: value === "All" ? events.length : events.filter((event) => event.status === value).length,
+    count: value === "All" ? inView.length : inView.filter((event) => event.status === value).length,
   }));
 
   function submitEvent(e) {
@@ -405,6 +408,13 @@ function ManagerEvents() {
         </section>
       )}
 
+      <ArchiveSwitch
+        value={view}
+        onChange={(next) => { setView(next); setStatus("All"); }}
+        current={events.length - archived.length}
+        archived={archived.length}
+      />
+
       <div className="manager-toolbar">
         <SearchField label="Search assigned events" placeholder="Search events" value={query} onChange={setQuery} />
         <label className="manager-toolbar__field">On or after <input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} /></label>
@@ -412,17 +422,23 @@ function ManagerEvents() {
           <option>Soonest first</option>
           <option>Latest first</option>
         </select>
-        <FilterChips label="Filter by event status" options={statusOptions} value={status} onChange={setStatus} />
+        {view === "current" && <FilterChips label="Filter by event status" options={statusOptions} value={status} onChange={setStatus} />}
       </div>
 
-      {active.length > 0 && renderCards(active)}
-      {past.length > 0 && (
+      {view === "archive" ? rows.length > 0 && renderCards(rows) : (
         <>
-          <h3 className="manager-subheading">Past & cancelled <span>{past.length}</span></h3>
-          {renderCards(past)}
+          {active.length > 0 && renderCards(active)}
+          {past.length > 0 && (
+            <>
+              <h3 className="manager-subheading">Past & cancelled <span>{past.length}</span></h3>
+              {renderCards(past)}
+            </>
+          )}
         </>
       )}
-      {!rows.length && <EmptyState icon="search" title="No assigned events match these filters">Clear the search or pick another status.</EmptyState>}
+      {!rows.length && (view === "archive" && !archived.length
+        ? <EmptyState icon="archive" title="Nothing archived yet">Open a completed or cancelled event and choose Archive event. It moves here with its registrations, attendance and certificates.</EmptyState>
+        : <EmptyState icon="search" title="No assigned events match these filters">Clear the search or pick another status.</EmptyState>)}
     </div>
   );
 }
@@ -1039,6 +1055,34 @@ function EventWorkspace({ event, tab }) {
                 </button>
               )}
               {event.status === "Completed" && <p className="manager-complete-note"><Icon name="check-circle" size={16} /> Completed {event.completedAt || ""}. Results and feedback are in the Reports and Feedback tabs.</p>}
+              {["Completed", "Cancelled"].includes(event.status) && (
+                <button
+                  type="button"
+                  className="manager-button"
+                  onClick={() => {
+                    // Archiving remembers the status it came from, so Restore can put it back.
+                    updateEvent(event.id, { status: "Archived", archivedFrom: event.status, archivedAt: new Date().toISOString().slice(0, 10) });
+                    toast("Event archived. It's under My events > Archive.");
+                  }}
+                >
+                  <Icon name="archive" size={16} /> Archive event
+                </button>
+              )}
+              {event.status === "Archived" && (
+                <>
+                  <p className="manager-complete-note"><Icon name="archive" size={16} /> Archived {event.archivedAt || ""}. Its registrations, attendance and certificates are kept.</p>
+                  <button
+                    type="button"
+                    className="manager-button"
+                    onClick={() => {
+                      updateEvent(event.id, { status: event.archivedFrom || "Completed" });
+                      toast("Event restored.");
+                    }}
+                  >
+                    <Icon name="restore" size={16} /> Restore event
+                  </button>
+                </>
+              )}
             </section>
           </div>
         </>

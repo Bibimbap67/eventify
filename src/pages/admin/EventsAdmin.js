@@ -7,7 +7,7 @@ import { ConfirmModal, Modal } from "../../components/admin/ui.js";
 import { SeatingField } from "../../components/SeatMap.js";
 import { TableSkeleton, useSkeleton } from "../../components/Skeleton.js";
 import {
-  CapacityBar, FilterChips, SectionHeading, StatusBadge, Table, plural,
+  ArchiveSwitch, CapacityBar, FilterChips, SectionHeading, StatusBadge, Table, plural,
 } from "../../components/manager/parts.js";
 import { LoadError, SearchFilter, formatDay, useApi, useFilters } from "../../components/admin/parts.js";
 
@@ -18,13 +18,15 @@ const ACTIONS = [
   ["Reject", ["Pending"], "Rejected", true],
   ["Cancel", ["Approved", "Published"], "Cancelled", true],
   ["Archive", ["Completed", "Rejected", "Cancelled"], "Archived", false],
+  // Back to the status it was archived from (older archives didn't record one: Completed).
+  ["Restore", ["Archived"], (event) => event.archivedFrom || "Completed", false],
 ];
 const CONFIRM = {
   Reject: (event) => `${event.title} won't be published and nobody can register.${event.scope === "manager" ? " Its manager sees it as rejected in their workspace." : ""}`,
   Cancel: (event) => `${event.title} is called off. Registration closes and existing tickets stop working at the check-in desk.`,
 };
 const CLOSED = ["Rejected", "Cancelled", "Archived"];
-const DEFAULTS = { status: "", q: "", sort: "soonest" };
+const DEFAULTS = { view: "current", status: "", q: "", sort: "soonest" };
 const COLUMNS = ["Event", "Date", "Venue", "Registered", "Status", "Actions"];
 
 export default function EventsAdmin() {
@@ -36,16 +38,20 @@ export default function EventsAdmin() {
   const loading = useSkeleton(db.events.length === 0, "events");
 
   const q = filters.q.toLowerCase();
-  const rows = db.events
+  const archived = db.events.filter((event) => event.status === "Archived");
+  const inView = filters.view === "archive" ? archived : db.events.filter((event) => event.status !== "Archived");
+  const rows = inView
     .filter((event) => (!filters.status || event.status === filters.status) && `${event.title} ${event.organizer || ""}`.toLowerCase().includes(q))
     .sort((a, b) => (filters.sort === "latest" ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)));
-  const statusOptions = [{ value: "", label: "All", count: db.events.length }, ...ADMIN_STATUSES.map((status) => ({
-    value: status, label: status, count: db.events.filter((event) => event.status === status).length,
+  const statusOptions = [{ value: "", label: "All", count: inView.length }, ...ADMIN_STATUSES.filter((status) => status !== "Archived").map((status) => ({
+    value: status, label: status, count: inView.filter((event) => event.status === status).length,
   }))].filter((option) => !option.value || option.count > 0 || option.value === filters.status);
 
   function changeStatus(event, label, to) {
-    update("events", event.id, { status: to });
-    toast(`${event.title}: ${to.toLowerCase()}.`, CLOSED.includes(to) ? "warning" : "success");
+    // Archiving remembers the status it came from, so Restore can put the event back exactly.
+    const archiving = to === "Archived" ? { archivedFrom: event.status, archivedAt: new Date().toISOString().slice(0, 10) } : {};
+    update("events", event.id, { status: to, ...archiving });
+    toast(`${event.title}: ${label === "Restore" ? "restored" : to.toLowerCase()}.`, CLOSED.includes(to) ? "warning" : "success");
   }
 
   const columns = [
@@ -77,23 +83,34 @@ export default function EventsAdmin() {
         </span>
       ),
     },
-    { label: "Status", render: (event) => <StatusBadge value={event.status} /> },
+    {
+      label: "Status",
+      render: (event) => (
+        <span>
+          <StatusBadge value={event.status} />
+          {event.status === "Archived" && event.archivedAt && <span className="admin-cell-sub">Since {formatDay(event.archivedAt)}</span>}
+        </span>
+      ),
+    },
     {
       label: "Actions",
       render: (event) => (
         <span className="manager-row-buttons">
-          {ACTIONS.filter(([, from]) => from.includes(event.status)).map(([label, , to, confirm]) => (
-            <button
-              key={label}
-              type="button"
-              className={label === "Approve" || label === "Publish"
-                ? "manager-button manager-button--small manager-button--go"
-                : `manager-text-button${confirm ? " manager-text-button--danger" : ""}`}
-              onClick={() => (confirm ? setConfirming({ event, label, to }) : changeStatus(event, label, to))}
-            >
-              {label}
-            </button>
-          ))}
+          {ACTIONS.filter(([, from]) => from.includes(event.status)).map(([label, , target, confirm]) => {
+            const to = typeof target === "function" ? target(event) : target;
+            return (
+              <button
+                key={label}
+                type="button"
+                className={label === "Approve" || label === "Publish"
+                  ? "manager-button manager-button--small manager-button--go"
+                  : `manager-text-button${confirm ? " manager-text-button--danger" : ""}`}
+                onClick={() => (confirm ? setConfirming({ event, label, to }) : changeStatus(event, label, to))}
+              >
+                {label}
+              </button>
+            );
+          })}
           <button type="button" className="manager-text-button" onClick={() => setViewing(event)}>Details</button>
           <button type="button" className="manager-text-button manager-text-button--danger" onClick={() => setConfirming({ event, label: "Delete" })}>Delete</button>
         </span>
@@ -114,6 +131,13 @@ export default function EventsAdmin() {
         )}
       />
 
+      <ArchiveSwitch
+        value={filters.view}
+        onChange={(view) => setFilters({ view, status: "" })}
+        current={db.events.length - archived.length}
+        archived={archived.length}
+      />
+
       <div className="manager-toolbar">
         <SearchFilter label="Search events" placeholder="Search title or organizer" value={filters.q} onSearch={(value) => setFilters({ q: value })} />
         <label className="manager-toolbar__field">
@@ -123,7 +147,7 @@ export default function EventsAdmin() {
             <option value="latest">Date: latest first</option>
           </select>
         </label>
-        <FilterChips label="Filter by status" options={statusOptions} value={filters.status} onChange={(status) => setFilters({ status })} />
+        {filters.view !== "archive" && <FilterChips label="Filter by status" options={statusOptions} value={filters.status} onChange={(status) => setFilters({ status })} />}
       </div>
 
       {loading ? (
@@ -132,7 +156,9 @@ export default function EventsAdmin() {
         <Table
           columns={columns}
           rows={rows}
-          empty={db.events.length ? "No events match these filters." : "No events yet."}
+          empty={filters.view === "archive" && !archived.length
+            ? "Nothing archived yet. Archive a completed, rejected or cancelled event to keep it here with its records."
+            : db.events.length ? "No events match these filters." : "No events yet."}
           emptyIcon="calendar-days"
         />
       )}

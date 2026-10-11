@@ -158,7 +158,9 @@ function events(scope) {
       if (!existing) {
         record.status = "Pending"; // new events wait for admin approval
       } else if (record.status !== existing.status && !MANAGER_STATUS_CHANGES.includes(record.status)) {
-        deny("Only an administrator can approve or publish an event.");
+        // A finished event may go to the archive; restoring it is a change back to Completed or Cancelled.
+        const archiving = record.status === "Archived" && MANAGER_STATUS_CHANGES.includes(existing.status);
+        if (!archiving) deny("Only an administrator can approve or publish an event.");
       }
     },
     async remove(user, existing) {

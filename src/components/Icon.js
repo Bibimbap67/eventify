@@ -10,6 +10,7 @@ import {
   CircleAlert, Hourglass, UserCheck, Activity, Sun, Sunrise, Moon, Trash2, Inbox, Send,
   Camera, CameraOff, ImageUp, Eye, EyeOff,
   Settings, PanelLeftClose, PanelLeftOpen, RotateCw, KeyRound, Ban, ExternalLink, History, ChevronLeft, ChevronRight,
+  Archive, ArchiveRestore,
 } from "lucide-react";
 
 // Old hand-drawn names are kept so every existing caller still works.
@@ -101,6 +102,8 @@ const ICONS = {
   history: History,
   "chevron-left": ChevronLeft,
   "chevron-right": ChevronRight,
+  archive: Archive,
+  restore: ArchiveRestore,
 };
 
 // One size scale: 16 / 20 / 24.

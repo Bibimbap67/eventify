@@ -1,12 +1,46 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import Icon from "../Icon.js";
-import { CountUp, useEntering } from "../Motion.js";
+import { CountUp, prefersReducedMotion, useEntering } from "../Motion.js";
 import { avatarUri } from "../avatar.js";
 
 // Shared pieces of the Event Manager workspace (pages live in pages/manager/ManagerScreen.js).
 
-export const PAST_STATUSES = ["Completed", "Cancelled"];
+export const PAST_STATUSES = ["Completed", "Cancelled", "Archived"];
+
+// Current events or the archive, each with its count (admin Events and manager My events).
+export function ArchiveSwitch({ value, onChange, current, archived }) {
+  return (
+    <div className="manager-tabs" role="group" aria-label="Current or archived events">
+      {[["current", "Current", "calendar-days", current], ["archive", "Archive", "archive", archived]].map(([id, label, icon, count]) => (
+        <button
+          key={id}
+          type="button"
+          className={`manager-tab${value === id ? " manager-tab--active" : ""}`}
+          aria-pressed={value === id}
+          onClick={() => onChange(id)}
+        >
+          <Icon name={icon} size={16} /> {label} <TabCount value={count} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Bumps when the number changes, so archiving or restoring shows which list the event moved to.
+function TabCount({ value }) {
+  const ref = useRef(null);
+  const last = useRef(value);
+  useEffect(() => {
+    if (last.current === value) return;
+    last.current = value;
+    const frames = prefersReducedMotion()
+      ? [{ opacity: 0.35 }, { opacity: 1 }]
+      : [{ transform: "scale(1.35)" }, { transform: "none" }];
+    ref.current?.animate?.(frames, { duration: 240, easing: "cubic-bezier(0.23, 1, 0.32, 1)" });
+  }, [value]);
+  return <span ref={ref} className="manager-tab__count">{value}</span>;
+}
 
 export function slug(value) {
   return String(value || "").toLowerCase().replace(/[^a-z]+/g, "-").replace(/^-|-$/g, "");
