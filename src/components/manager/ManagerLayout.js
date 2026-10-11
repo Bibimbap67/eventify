@@ -139,6 +139,9 @@ export default function ManagerLayout() {
             {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
           </span>
           <SoundToggle className="icon-btn manager-topbar__sound" />
+          <Link to="/profile" className="icon-btn" aria-label="Your profile and password" title="Your profile and password">
+            <Icon name="user" size={18} />
+          </Link>
           <Link to="/manager/events?new=1" className="manager-button manager-button--primary manager-topbar__new">
             <Icon name="plus" size={16} /> <span>New event</span>
           </Link>

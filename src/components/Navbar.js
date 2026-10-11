@@ -186,6 +186,7 @@ export default function Navbar() {
               >
                 <Icon name="certificate" size={17} /> My Certificates
               </Link>
+              </>}
               <Link
                 to="/profile"
                 onClick={() => setProfileOpen(false)}
@@ -193,7 +194,6 @@ export default function Navbar() {
               >
                 <Icon name="user" size={17} /> Profile & Preferences
               </Link>
-              </>}
 
               <div className="profile-dropdown__divider" />
 

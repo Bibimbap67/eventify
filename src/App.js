@@ -56,7 +56,8 @@ export default function App() {
         <Route path="/attendance" element={<ProtectedRoute requiredRole="user"><AttendancePage /></ProtectedRoute>} />
         <Route path="/certificates" element={<ProtectedRoute requiredRole="user"><CertificatesPage /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute requiredRole="user"><NotificationsPage /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute requiredRole="user"><ProfilePage /></ProtectedRoute>} />
+        {/* Every role keeps its own name, email and password here. */}
+        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
         {/* Internal / authenticated area, reached via the "Workspace" nav button */}
         <Route
