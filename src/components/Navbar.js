@@ -6,6 +6,7 @@ import Logo from "./Logo.js";
 import NotificationDropdown from "./NotificationDropdown.js";
 import Icon from "./Icon.js";
 import SoundToggle from "./SoundToggle.js";
+import { avatarUri } from "./avatar.js";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -43,11 +44,6 @@ export default function Navbar() {
   };
 
   const displayName = userProfile.name || user?.name || "Guest User";
-  const userInitials = displayName
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("");
 
   return (
     <header className="navbar">
@@ -155,7 +151,7 @@ export default function Navbar() {
             onClick={() => setProfileOpen(!profileOpen)}
             aria-label="User Profile"
           >
-            <span className="navbar__avatar-initials">{userInitials}</span>
+            <img className="navbar__avatar-img" src={avatarUri(user?.id)} alt="" />
             <span className="navbar__user-name">{displayName.split(" ")[0]}</span>
             <span className="navbar__caret"><Icon name="caret" size={16} /></span>
           </button>

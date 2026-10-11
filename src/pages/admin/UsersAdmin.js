@@ -48,7 +48,7 @@ export default function UsersAdmin() {
       toast(success);
       reload();
     } catch (err) {
-      toast(err.message);
+      toast(err.message, "error");
     }
   }
 
@@ -57,7 +57,7 @@ export default function UsersAdmin() {
       label: "User",
       render: (row) => (
         <span className="manager-person">
-          <Avatar name={row.name} />
+          <Avatar name={row.name} seed={row.id} />
           <span>
             <strong>{row.name}{row.id === me?.id && <span className="admin-you">You</span>}</strong>
             <small>{row.email}</small>

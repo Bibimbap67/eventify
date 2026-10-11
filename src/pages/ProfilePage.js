@@ -2,8 +2,12 @@ import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar.js";
 import Spinner from "../components/Spinner.js";
 import Icon from "../components/Icon.js";
-import Toast from "../components/Toast.js";
+import { notify } from "../components/Toast.js";
+import { avatarUri } from "../components/avatar.js";
 import { useEventContext } from "../context/EventContext.js";
+import { ACADEMIC_PROGRAMS, STUDENT_ID_EXAMPLE, departmentOf, formatStudentId, validStudentId } from "../data/student.js";
+
+const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
 
 export default function ProfilePage() {
   const { userProfile, updateProfile, registrations, certificates } = useEventContext();
@@ -11,27 +15,33 @@ export default function ProfilePage() {
   const [form, setForm] = useState({ ...userProfile });
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [toastMsg, setToastMsg] = useState("");
+  const [idError, setIdError] = useState("");
 
   // Show the saved profile once it loads (or after saving).
   useEffect(() => {
     if (!isEditing) setForm({ ...userProfile });
   }, [isEditing, userProfile]);
 
-  const showToast = (msg) => {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(""), 3000);
+  const stopEditing = () => {
+    setForm({ ...userProfile });
+    setIdError("");
+    setIsEditing(false);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
+    // Only an ID typed here is checked, so an older one never blocks saving (the server agrees).
+    if (form.studentId && form.studentId !== userProfile.studentId && !validStudentId(form.studentId)) {
+      setIdError(`Enter your student ID like ${STUDENT_ID_EXAMPLE}: the year you entered NU, a dash, then 7 digits.`);
+      return;
+    }
     setSaving(true);
     try {
       await updateProfile(form);
       setIsEditing(false);
-      showToast("Profile saved.");
+      notify("Your profile is up to date.", "success", "Profile saved");
     } catch (err) {
-      showToast(err.message);
+      notify(err.message, "error", "Profile not saved");
     } finally {
       setSaving(false);
     }
@@ -62,14 +72,7 @@ export default function ProfilePage() {
               <Icon name="edit" size={16} /> Edit Profile
             </button>
           ) : (
-            <button
-              type="button"
-              className="btn-sm"
-              onClick={() => {
-                setForm({ ...userProfile });
-                setIsEditing(false);
-              }}
-            >
+            <button type="button" className="btn-sm" onClick={stopEditing}>
               Cancel Editing
             </button>
           )}
@@ -78,13 +81,7 @@ export default function ProfilePage() {
         {/* Top Profile Card */}
         <section className="profile-identity-card">
           <div className="profile-avatar-wrap">
-            {userProfile.avatar ? (
-              <img src={userProfile.avatar} alt={userProfile.name} className="profile-large-avatar" />
-            ) : (
-              <span className="profile-large-avatar profile-large-avatar--initials" aria-hidden="true">
-                {(userProfile.name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("")}
-              </span>
-            )}
+            <img src={avatarUri(userProfile.id)} alt="" className="profile-large-avatar" />
             <span className="profile-badge-pill">{userProfile.role}</span>
           </div>
 
@@ -151,10 +148,19 @@ export default function ProfilePage() {
                 <span className="field__label">STUDENT ID NUMBER</span>
                 <input
                   className="input"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder={`e.g. ${STUDENT_ID_EXAMPLE}`}
                   value={form.studentId}
-                  onChange={(e) => setForm({ ...form, studentId: e.target.value })}
+                  onChange={(e) => {
+                    setForm({ ...form, studentId: formatStudentId(e.target.value) });
+                    setIdError("");
+                  }}
+                  aria-invalid={idError ? true : undefined}
+                  aria-describedby={idError ? "student-id-error" : undefined}
                   required
                 />
+                {idError && <span className="field__error" id="student-id-error" role="alert">{idError}</span>}
               </label>
             </div>
 
@@ -183,11 +189,21 @@ export default function ProfilePage() {
             <div className="two">
               <label className="field">
                 <span className="field__label">ACADEMIC PROGRAM</span>
-                <input
+                {/* Picking a program fills in its college; an old typed-in program stays until changed. */}
+                <select
                   className="input"
                   value={form.program}
-                  onChange={(e) => setForm({ ...form, program: e.target.value })}
-                />
+                  onChange={(e) => setForm({ ...form, program: e.target.value, department: departmentOf(e.target.value) })}
+                >
+                  {!form.program && <option value="" disabled>Choose your program</option>}
+                  {form.program && !departmentOf(form.program) && <option value={form.program}>{form.program}</option>}
+                  {ACADEMIC_PROGRAMS.map((group) => (
+                    <optgroup key={group.department} label={group.department}>
+                      {group.programs.map((program) => <option key={program}>{program}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
+                {form.department && <span className="field__note">{form.department}</span>}
               </label>
 
               <label className="field">
@@ -197,25 +213,15 @@ export default function ProfilePage() {
                   value={form.yearLevel}
                   onChange={(e) => setForm({ ...form, yearLevel: e.target.value })}
                 >
-                  <option value="1st Year">1st Year</option>
-                  <option value="2nd Year">2nd Year</option>
-                  <option value="3rd Year">3rd Year</option>
-                  <option value="4th Year">4th Year</option>
-                  <option value="Graduate / Alumni">Graduate / Alumni</option>
-                  <option value="Faculty / Staff">Faculty / Staff</option>
+                  {!form.yearLevel && <option value="" disabled>Choose your year</option>}
+                  {form.yearLevel && !YEAR_LEVELS.includes(form.yearLevel) && <option value={form.yearLevel}>{form.yearLevel}</option>}
+                  {YEAR_LEVELS.map((level) => <option key={level}>{level}</option>)}
                 </select>
               </label>
             </div>
 
             <div className="action-row">
-              <button
-                type="button"
-                className="btn-sm"
-                onClick={() => {
-                  setForm({ ...userProfile });
-                  setIsEditing(false);
-                }}
-              >
+              <button type="button" className="btn-sm" onClick={stopEditing}>
                 Cancel
               </button>
               <button type="submit" className="btn-sm btn-sm--yellow" disabled={saving} aria-busy={saving || undefined}>
@@ -226,9 +232,6 @@ export default function ProfilePage() {
         )}
 
       </main>
-
-      {/* Toast */}
-      <Toast message={toastMsg} />
     </div>
   );
 }

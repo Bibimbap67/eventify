@@ -36,6 +36,8 @@ const COMPLETED_EVENT_STATUS = {
   admin: ["COMPLETED", "Completed"],
   manager: ["Completed"],
 };
+// Eventify serves NU MOA students only, so every attendee ticket is a student ticket.
+const ATTENDEE_TYPE = "Student Attendee";
 // Status changes a manager may make on their own event without an admin.
 const MANAGER_STATUS_CHANGES = ["Completed", "Cancelled"];
 
@@ -149,6 +151,10 @@ function events(scope) {
       if (scope !== "manager" || !isManager(user)) deny();
       if (existing && existing.managerId !== managerKey(user)) deny();
       record.managerId = managerKey(user);
+      // Managers pick the venue from the admin's list; an older event may keep its typed-in one.
+      if (record.venue !== existing?.venue && (typeof record.venue !== "string" || !(await Venue.exists({ name: record.venue })))) {
+        throw new HttpError(400, "Choose a venue from the list the admin set up.");
+      }
       if (!existing) {
         record.status = "Pending"; // new events wait for admin approval
       } else if (record.status !== existing.status && !MANAGER_STATUS_CHANGES.includes(record.status)) {
@@ -170,14 +176,35 @@ function events(scope) {
         Feedback.deleteMany(byEvent),
       ]);
     },
-    // Attendees only see their own registrations, so the server supplies the counts.
+    // Attendees only see their own registrations, so the server supplies the counts, and the
+    // average rating of each completed event (feedback is public once an event is done).
     async decorate(items) {
-      const counts = await Registration.aggregate([
-        { $match: { scope, status: "Confirmed", eventId: { $in: items.map((item) => item.id) } } },
-        { $group: { _id: "$eventId", count: { $sum: 1 } } },
+      const done = items.filter((item) => COMPLETED_EVENT_STATUS[scope].includes(item.status)).map((item) => item.id);
+      const [counts, ratings] = await Promise.all([
+        Registration.aggregate([
+          { $match: { scope, status: "Confirmed", eventId: { $in: items.map((item) => item.id) } } },
+          { $group: { _id: "$eventId", count: { $sum: 1 } } },
+        ]),
+        scope === "manager"
+          ? Feedback.aggregate([
+            { $match: { scope, eventId: { $in: done }, rating: { $type: "number" } } },
+            { $group: { _id: "$eventId", count: { $sum: 1 }, average: { $avg: "$rating" } } },
+          ])
+          : Registration.aggregate([
+            { $match: { scope, eventId: { $in: done }, "feedback.overall": { $type: "number" } } },
+            { $group: { _id: "$eventId", count: { $sum: 1 }, average: { $avg: "$feedback.overall" } } },
+          ]),
       ]);
       const byId = new Map(counts.map((row) => [row._id, row.count]));
-      return items.map((item) => ({ ...item, registeredCount: byId.get(item.id) || 0 }));
+      const rated = new Map(ratings.map((row) => [row._id, row]));
+      return items.map((item) => {
+        const rating = rated.get(item.id);
+        return {
+          ...item,
+          registeredCount: byId.get(item.id) || 0,
+          ...(rating && { feedbackCount: rating.count, feedbackAverage: Math.round(rating.average * 10) / 10 }),
+        };
+      });
     },
   };
 }
@@ -220,9 +247,11 @@ function registrations(scope) {
         if (!(existing.status === "Confirmed" && record.status === "Cancelled")) record.status = existing.status;
         record.seat = existing.seat;
         record.seating = existing.seating;
+        record.ticketType = existing.ticketType;
         return;
       }
       record.userId = user.id;
+      record.ticketType = ATTENDEE_TYPE;
       record.attendanceStatus = "Not Checked In";
       record.checkedInAt = null;
       delete record.checkedInBy;
@@ -287,7 +316,19 @@ const RESOURCES = {
   "manager-events": events("manager"),
   "manager-registrations": registrations("manager"),
   "manager-sessions": { model: Session, scope: "manager", ...managerEventChild({ publicRead: true }) },
-  "manager-announcements": { model: Announcement, scope: "manager", ...managerEventChild() },
+  "manager-announcements": {
+    model: Announcement,
+    scope: "manager",
+    ...managerEventChild(),
+    // Published updates show on the public event page; drafts stay with the event's manager.
+    async read(user) {
+      if (isAdmin(user)) return {};
+      const visible = await Event.distinct("_id", { scope: "manager", status: { $in: PUBLIC_EVENT_STATUS.manager } });
+      const published = { status: "Published", eventId: { $in: visible } };
+      if (isManager(user)) return { $or: [{ eventId: { $in: await ownedEventIds(user) } }, published] };
+      return published;
+    },
+  },
   "manager-feedback": {
     model: Feedback,
     scope: "manager",
@@ -391,7 +432,7 @@ async function auditBatch(req, results) {
 }
 
 // Fields the client may not set directly.
-const SERVER_FIELDS = ["_id", "id", "__v", "createdAt", "updatedAt", "registeredCount", "scope"];
+const SERVER_FIELDS = ["_id", "id", "__v", "createdAt", "updatedAt", "registeredCount", "feedbackCount", "feedbackAverage", "scope"];
 
 function clean(raw) {
   const record = { ...raw };
@@ -485,10 +526,28 @@ const batch = async (req, res) => {
   res.json({ ok: true });
 };
 
+// GET /api/events/:id/feedback: the feedback of a completed event, for anyone to read, so
+// attendees can judge an organizer by its past events. Names never leave the server.
+const publicFeedback = async (req, res) => {
+  const event = await Event.findById(String(req.params.id)).lean();
+  if (!event || !COMPLETED_EVENT_STATUS[event.scope]?.includes(event.status)) return res.json({ items: [] });
+  const items = event.scope === "manager"
+    ? (await Feedback.find({ scope: "manager", eventId: event._id }).sort({ createdAt: -1 }).lean()).map((row) => ({
+      rating: row.rating, organizationRating: row.organizationRating, speakerRating: row.speakerRating,
+      venueRating: row.venueRating, comment: row.comment || "", date: row.date || "",
+    }))
+    // Admin-created events keep each response on the attendee's registration.
+    : (await Registration.find({ scope: "admin", eventId: event._id, "feedback.overall": { $type: "number" } }).sort({ updatedAt: -1 }).lean()).map(({ feedback }) => ({
+      rating: feedback.overall, organizationRating: feedback.organization, speakerRating: feedback.speaker,
+      venueRating: feedback.venue, comment: feedback.comment || "", date: String(feedback.submittedAt || "").slice(0, 10),
+    }));
+  res.json({ items });
+};
+
 // Express 5 forwards rejected promises to the error handler; HttpErrors keep their status.
 const wrap = (fn) => (req, res, next) => fn(req, res, next).catch((err) => {
   if (err.expose) return res.status(err.status).json({ message: err.message });
   next(err);
 });
 
-module.exports = { list: wrap(list), batch: wrap(batch) };
+module.exports = { list: wrap(list), batch: wrap(batch), publicFeedback: wrap(publicFeedback) };

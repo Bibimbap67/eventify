@@ -28,7 +28,7 @@ export default function RegistrationsAdmin() {
       label: "Attendee",
       render: (row) => (
         <span className="manager-person">
-          <Avatar name={row.name} />
+          <Avatar name={row.name} seed={row.userId} />
           <span>
             <strong>{row.name || "—"}</strong>
             <small>{row.email || row.studentId || "—"}</small>

@@ -172,7 +172,7 @@ export default function AdminDashboard() {
           onCancel={() => setRejecting(null)}
           onConfirm={() => {
             update("events", rejecting.id, { status: "Rejected" });
-            toast(`${rejecting.title} rejected.`);
+            toast(`${rejecting.title} rejected.`, "warning");
             setRejecting(null);
           }}
         />

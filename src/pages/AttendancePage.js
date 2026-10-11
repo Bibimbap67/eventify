@@ -5,22 +5,17 @@ import Icon from "../components/Icon.js";
 import { useEntering } from "../components/Motion.js";
 import { useEventContext } from "../context/EventContext.js";
 import TicketPassModal from "../components/TicketPassModal.js";
+import { notify } from "../components/Toast.js";
 import { seatOf } from "../data/seating.js";
 
 export default function AttendancePage() {
   const entering = useEntering();
   const { events, registrations, completeAttendance } = useEventContext();
   const [selectedPass, setSelectedPass] = useState(null);
-  const [toastMsg, setToastMsg] = useState("");
-
-  const showToast = (msg) => {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(""), 3000);
-  };
 
   const handleCompleteAttendance = (reg) => {
     completeAttendance(reg.id);
-    showToast(`${reg.eventTitle} is marked as attended. You can now leave feedback from My Events.`);
+    notify(`${reg.eventTitle} is marked as attended. You can now leave feedback from My Events.`, "success", "Attendance complete");
   };
 
   const confirmedRegs = registrations.filter((r) => r.status === "Confirmed");
@@ -149,13 +144,6 @@ export default function AttendancePage() {
           registration={selectedPass}
           onClose={() => setSelectedPass(null)}
         />
-      )}
-
-      {/* Toast */}
-      {toastMsg && (
-        <div className="toast" role="status">
-          {toastMsg}
-        </div>
       )}
     </div>
   );

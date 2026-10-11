@@ -8,6 +8,13 @@ const auditAdmin = (req, entry) => (req.user.role === "admin"
   : Promise.resolve());
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Student IDs read "2024-1051423": the year the student entered NU, then 7 digits.
+// Keep in step with validStudentId in src/data/student.js.
+const STUDENT_ID_RE = /^(\d{4})-\d{7}$/;
+const validStudentId = (id) => {
+  const match = STUDENT_ID_RE.exec(id);
+  return Boolean(match) && Number(match[1]) >= 2000 && Number(match[1]) <= new Date().getFullYear();
+};
 
 function signToken(user) {
   return jwt.sign({ id: user._id.toString() }, process.env.JWT_SECRET, {
@@ -71,6 +78,11 @@ const updateMe = async (req, res) => {
       return res.status(409).json({ message: "An account with this email already exists." });
     }
     user.email = email;
+  }
+  // Only a changed ID is checked, so an older one never blocks saving the rest of the profile.
+  const studentId = String(req.body.studentId ?? "").trim();
+  if (req.body.studentId !== undefined && studentId && studentId !== user.studentId && !validStudentId(studentId)) {
+    return res.status(400).json({ message: "Enter your student ID like 2024-1051423." });
   }
   PROFILE_FIELDS.forEach((key) => {
     if (req.body[key] !== undefined) user[key] = String(req.body[key] ?? "");

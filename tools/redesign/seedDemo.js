@@ -31,6 +31,14 @@ const VENUES = [
   ["Library Learning Commons", "5th Floor, Main Building", 80],
 ];
 const ORGANIZERS = ["School of IT", "Student Council", "Career Services"];
+// A few programs from src/data/student.js (this script can't import the app's modules).
+const CCIT = "College of Computing and Information Technologies";
+const PROGRAMS = [
+  "BS Information Technology - Mobile and Web Applications",
+  "BS Computer Science - Machine Learning",
+  "BS Information Technology - Network and Security",
+];
+const SPEAKER_ROLES = ["AI Automation Engineer", "Product Designer", "Security Analyst", "Data Scientist", "Cloud Architect", "Software Engineer"];
 // [title, category, daysFromToday, status, owner (0 = seeded manager), capacity]
 const EVENTS = [
   ["Build Your First AI Agent Workshop", "Workshop", 9, "Registration Open", 0, 45],
@@ -84,15 +92,15 @@ async function run() {
     students.push(await User.create({
       name: p.name, email: p.email, password: "Demo@12345", role: "user",
       status: i === 29 ? "inactive" : "active",
-      studentId: `2024-${num(100000, 199999)}`,
-      department: "School of Information Technology",
-      program: pick(["BS Information Technology", "BS Computer Science", "BS Information Systems"]),
+      studentId: `${pick([2022, 2023, 2024, 2025])}-${num(1000000, 1999999)}`,
+      department: CCIT,
+      program: pick(PROGRAMS),
       yearLevel: pick(["1st Year", "2nd Year", "3rd Year", "4th Year"]),
       phone: faker.phone.number("09## ### ####"),
     }));
   }
   if (!student.studentId) {
-    Object.assign(student, { studentId: "2024-104271", department: "School of Information Technology", program: "BS Information Technology", yearLevel: "3rd Year", phone: "0917 555 0142" });
+    Object.assign(student, { studentId: "2024-1051423", department: CCIT, program: PROGRAMS[0], yearLevel: "3rd Year", phone: "0917 555 0142" });
     await student.save();
   }
 
@@ -112,6 +120,11 @@ async function run() {
       description: `${title} brings together students, faculty and industry partners. ${faker.company.catchPhrase()}. Bring your student ID for check-in.`,
       requirements: pick(["Bring a laptop with a charger.", "Student ID required at the door.", "Teams of 3 to 5 members.", ""]),
       importantDate: iso(addDays(days - 3)),
+      speakers: [0, 1].map((n) => ({
+        name: faker.name.fullName(),
+        role: `${pick(SPEAKER_ROLES)}, ${faker.company.name()}`,
+        kind: n ? "Guest speaker" : "Speaker",
+      })),
       preparationStatus: status === "Completed" ? "Closed out" : pick(["Needs attention", "On track", "Ready"]),
       completedAt: status === "Completed" ? date : null,
     };
@@ -123,7 +136,7 @@ async function run() {
     return [0, 1].map((n) => ({
       _id: id("session"), scope: "manager", eventId: e._id,
       title: n ? `Hands-on: ${faker.hacker.ingverb()} the ${faker.hacker.noun()}` : `Keynote: The future of ${faker.hacker.noun()}s`,
-      speaker: `${faker.name.fullName()}, ${faker.company.name()}`,
+      speaker: e.speakers[n].name,
       room: e.venue, startTime: `${String(start + n).padStart(2, "0")}:00`, endTime: `${String(start + n + 1).padStart(2, "0")}:00`,
     }));
   });

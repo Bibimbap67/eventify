@@ -7,6 +7,8 @@ import Spinner from "../../components/Spinner.js";
 import { ConfirmModal, Modal } from "../../components/admin/ui.js";
 import { useEntering, usePending } from "../../components/Motion.js";
 import SeatMap, { SeatingField } from "../../components/SeatMap.js";
+import FeedbackSummary, { Stars } from "../../components/FeedbackSummary.js";
+import { summarizeFeedback } from "../../data/feedback.js";
 import { seatOf } from "../../data/seating.js";
 import {
   CapacityBar, DateTile, EmptyState, FilterChips, Metric, PAST_STATUSES, PanelHeader, PersonCell, PrepChip,
@@ -17,7 +19,8 @@ import {
 const CATEGORIES = ["Academic", "Career", "Workshop", "Seminar", "Competition", "Community", "Technology"];
 const PREP_STATUSES = ["Needs attention", "In progress", "On track", "Venue confirmed", "Ready", "Closed out"];
 const EMPTY_SESSION = { title: "", speaker: "", startTime: "", endTime: "", room: "" };
-const EMPTY_EVENT = { title: "", category: "Academic", description: "", date: "", startTime: "", endTime: "", venue: "", capacity: "", seating: "free", organizer: "", requirements: "", importantDate: "" };
+const EMPTY_EVENT = { title: "", category: "Academic", description: "", date: "", startTime: "", endTime: "", venue: "", capacity: "", seating: "free", organizer: "", requirements: "", importantDate: "", speakers: [] };
+const SPEAKER_KINDS = ["Speaker", "Guest speaker"];
 
 const WORKSPACE_TABS = [
   { id: "overview", label: "Overview", icon: "dashboard" },
@@ -53,6 +56,66 @@ function SaveButton({ pending, pendingText = "Saving…", children, onClick }) {
     <button className="manager-button manager-button--primary" type="submit" onClick={onClick} disabled={pending} aria-busy={pending || undefined}>
       {pending ? <><Spinner /> {pendingText}</> : children}
     </button>
+  );
+}
+
+// Trimmed speaker rows. Rows left blank are dropped; a row with only a name or only a role is
+// an error (null), so the event page never shows a speaker without a role.
+function cleanSpeakers(rows = []) {
+  const speakers = rows
+    .map((row) => ({ name: String(row.name || "").trim(), role: String(row.role || "").trim(), kind: SPEAKER_KINDS.includes(row.kind) ? row.kind : "Speaker" }))
+    .filter((row) => row.name || row.role);
+  return speakers.some((row) => !row.name || !row.role) ? null : speakers;
+}
+
+// The event's listed speakers; older events only named speakers on their sessions.
+function speakerNames(event, sessions) {
+  if (event.speakers?.length) return event.speakers.map((speaker) => speaker.name);
+  return [...new Set(sessions.filter((session) => session.eventId === event.id).map((session) => session.speaker).filter(Boolean))];
+}
+
+// Speakers and guest speakers: a name, the role shown under it, and which of the two they are.
+function SpeakersField({ value = [], onChange, error }) {
+  const update = (index, field) => (e) => onChange(value.map((row, i) => (i === index ? { ...row, [field]: e.target.value } : row)));
+  return (
+    <fieldset className="manager-field manager-field--wide manager-speakers">
+      <legend>Speakers & guest speakers</legend>
+      {value.length === 0 && <p className="manager-muted">Add the people presenting: their name, and their role under it.</p>}
+      {value.map((row, index) => (
+        <div className="manager-speaker-row" key={index}>
+          <input aria-label={`Speaker ${index + 1} name`} placeholder="Name, e.g. Mark Reyes" value={row.name || ""} onChange={update(index, "name")} />
+          <input aria-label={`Speaker ${index + 1} role`} placeholder="Role, e.g. Google AI Automation Engineer" value={row.role || ""} onChange={update(index, "role")} />
+          <select aria-label={`Speaker ${index + 1} type`} value={row.kind || "Speaker"} onChange={update(index, "kind")}>
+            {SPEAKER_KINDS.map((kind) => <option key={kind}>{kind}</option>)}
+          </select>
+          <button type="button" className="manager-text-button manager-text-button--danger" onClick={() => onChange(value.filter((_, i) => i !== index))} aria-label={`Remove speaker ${index + 1}`}>
+            <Icon name="trash" size={16} />
+          </button>
+        </div>
+      ))}
+      {error && <small>{error}</small>}
+      <button type="button" className="manager-button manager-button--small" onClick={() => onChange([...value, { name: "", role: "", kind: "Speaker" }])}>
+        <Icon name="plus" size={16} /> Add speaker
+      </button>
+    </fieldset>
+  );
+}
+
+// A venue from the admin's list. An older event's typed-in venue stays listed until changed.
+function VenueField({ value, onChange, error }) {
+  const { venues, loadVenues } = useManager();
+  useEffect(() => {
+    loadVenues();
+  }, [loadVenues]);
+  return (
+    <label className="manager-field">Venue
+      <select value={value} onChange={onChange}>
+        <option value="">Choose venue</option>
+        {value && !venues.includes(value) && <option value={value}>{value}</option>}
+        {venues.map((item) => <option key={item}>{item}</option>)}
+      </select>
+      {error ? <small>{error}</small> : !venues.length && <small>No venues yet. Ask an admin to add one under Venues.</small>}
+    </label>
   );
 }
 
@@ -273,12 +336,17 @@ function ManagerEvents() {
 
   function submitEvent(e) {
     e.preventDefault();
-    if (!form.title.trim() || !form.description.trim() || !form.date || !form.startTime || !form.endTime || form.startTime >= form.endTime || !form.venue.trim() || !(Number(form.capacity) > 0)) {
-      setFormError("Complete the required fields and enter a valid time range and capacity.");
+    const speakers = cleanSpeakers(form.speakers);
+    if (!form.title.trim() || !form.description.trim() || !form.date || !form.startTime || !form.endTime || form.startTime >= form.endTime || !form.venue.trim() || !(Number(form.capacity) > 0) || !form.organizer.trim()) {
+      setFormError("Complete the required fields, including the organizer, and enter a valid time range and capacity.");
+      return;
+    }
+    if (!speakers) {
+      setFormError("Give every speaker a name and a role, or remove the empty row.");
       return;
     }
     setFormError("");
-    const draft = { ...form, title: form.title.trim(), description: form.description.trim(), venue: form.venue.trim(), capacity: Number(form.capacity), organizer: form.organizer.trim() || "Event Manager" };
+    const draft = { ...form, title: form.title.trim(), description: form.description.trim(), venue: form.venue.trim(), capacity: Number(form.capacity), organizer: form.organizer.trim(), speakers };
     runSubmit(() => {
       createEvent(draft);
       setForm(EMPTY_EVENT);
@@ -294,7 +362,7 @@ function ManagerEvents() {
           key={event.id}
           event={event}
           count={countRegistrations(event.id, registrations)}
-          speakers={[...new Set(sessions.filter((session) => session.eventId === event.id).map((session) => session.speaker).filter(Boolean))]}
+          speakers={speakerNames(event, sessions)}
         />
       ))}
     </div>
@@ -323,11 +391,12 @@ function ManagerEvents() {
             <label className="manager-field">Category<select value={form.category} onChange={patch("category")}>{CATEGORIES.map((item) => <option key={item}>{item}</option>)}</select></label>
             <label className="manager-field">Start time<input type="time" value={form.startTime} onChange={patch("startTime")} /></label>
             <label className="manager-field">End time<input type="time" value={form.endTime} onChange={patch("endTime")} /></label>
-            <label className="manager-field">Venue<input value={form.venue} onChange={patch("venue")} /></label>
+            <VenueField value={form.venue} onChange={patch("venue")} />
             <label className="manager-field">Capacity<input type="number" min="1" value={form.capacity} onChange={patch("capacity")} /></label>
-            <label className="manager-field">Organizer<input value={form.organizer} onChange={patch("organizer")} placeholder="Event Manager" /></label>
+            <label className="manager-field">Organizer<input value={form.organizer} onChange={patch("organizer")} placeholder="e.g. CCIT Student Council" /></label>
             <label className="manager-field">Requirements<textarea rows="2" value={form.requirements} onChange={patch("requirements")} /></label>
             <SeatingField value={form.seating} onChange={(seating) => setForm((current) => ({ ...current, seating }))} capacity={form.capacity} />
+            <SpeakersField value={form.speakers} onChange={(speakers) => setForm((current) => ({ ...current, speakers }))} />
             {formError && <p className="manager-form-error" role="alert">{formError}</p>}
             <div className="manager-form-actions">
               <SaveButton pending={submitting} pendingText="Submitting…"><Icon name="send" size={16} /> Submit for approval</SaveButton>
@@ -362,7 +431,7 @@ function EventCard({ event, count, speakers }) {
   const isPast = PAST_STATUSES.includes(event.status);
   const base = `/manager/events/${event.id}`;
   return (
-    <article className={`manager-event-card${isPast ? " is-past" : ""}`}>
+    <article className={`manager-event-card${isPast ? " is-past" : ""}${event.status === "Completed" ? " is-completed" : ""}`}>
       <div className="manager-event-card__top">
         <DateTile date={event.date} />
         <div className="manager-event-card__heading">
@@ -423,7 +492,7 @@ function useCheckIn(onToggle) {
   function toggle(item) {
     const checked = isCheckedIn(item);
     updateRegistration(item.id, { attendanceStatus: checked ? "Not checked in" : "Checked in", checkedInAt: checked ? "" : timeNow() });
-    toast(checked ? "Check-in undone." : `${item.name} checked in.`);
+    toast(checked ? "Check-in undone." : `${item.name} checked in.`, checked ? "warning" : "success");
     onToggle?.(item.id);
     if (!checked) {
       setFlashId(item.id);
@@ -484,7 +553,7 @@ function RegistrationDesk({ rows, showEvent, initialStatus = "All", withCheckIn 
   const setRegistration = (item, patch) => {
     updateRegistration(item.id, patch);
     keep(item.id);
-    toast(patch.status === "Cancelled" ? "Registration cancelled." : "Registration confirmed.");
+    toast(patch.status === "Cancelled" ? "Registration cancelled." : "Registration confirmed.", patch.status === "Cancelled" ? "warning" : "success");
   };
 
   const cancelButton = (row) => (
@@ -503,7 +572,7 @@ function RegistrationDesk({ rows, showEvent, initialStatus = "All", withCheckIn 
   );
 
   const columns = [
-    { label: "Participant", render: (row) => <PersonCell name={row.name} detail={row.email} /> },
+    { label: "Participant", render: (row) => <PersonCell name={row.name} detail={row.email} seed={row.userId} /> },
     ...(showEvent ? [{ label: "Event", render: (row) => eventMap.get(row.eventId)?.title || "Assigned event" }] : []),
     ...(rows.some(seatOf) ? [{ label: "Seat", render: (row) => <span className="manager-mono">{seatOf(row) || "—"}</span> }] : []),
     { label: "Registered", render: (row) => <span className="manager-mono">{row.registrationDate || "—"}</span> },
@@ -573,7 +642,7 @@ function AttendanceDesk({ rows, showEvent }) {
         <ul className="manager-checkin-list">
           {visible.map((item) => (
             <li key={item.id} className={`manager-checkin${flashId === item.id ? " is-flash" : ""}`} data-state={attendanceKey(item.attendanceStatus)}>
-              <PersonCell name={item.name} detail={showEvent ? `${eventMap.get(item.eventId)?.title || "Assigned event"} · ${item.email}` : item.email} />
+              <PersonCell name={item.name} detail={showEvent ? `${eventMap.get(item.eventId)?.title || "Assigned event"} · ${item.email}` : item.email} seed={item.userId} />
               <StatusBadge value={item.attendanceStatus} />
               <span className="manager-checkin__time">{item.checkedInAt ? <><Icon name="clock" size={16} /> {item.checkedInAt}</> : "—"}</span>
               <CheckInControl item={item} onToggle={toggle} />
@@ -613,20 +682,21 @@ function SessionTimeline({ sessions, eventTitle, onEdit, onRemove }) {
 
 // Add / edit a session in the shared dialog (Escape closes, focus returns to the trigger).
 function SessionDialog({ session, events, onClose }) {
-  const { sessions, saveSession, toast } = useManager();
+  const { sessions, saveSession, toast, events: managerEvents } = useManager();
   const [draft, setDraft] = useState(session);
+  const listedSpeakers = managerEvents.find((event) => event.id === draft.eventId)?.speakers || [];
   const [saving, runSave] = usePending();
   const patch = (field) => (e) => setDraft((current) => ({ ...current, [field]: e.target.value }));
 
   function save(e, close) {
     e.preventDefault();
     if (!draft.title.trim() || !draft.speaker.trim() || !draft.room.trim() || !draft.startTime || !draft.endTime || draft.startTime >= draft.endTime) {
-      toast("Add a title, speaker, room, and valid time range.");
+      toast("Add a title, speaker, room, and valid time range.", "error");
       return;
     }
     const conflict = sessions.find((item) => item.id !== draft.id && item.eventId === draft.eventId && item.room === draft.room.trim() && draft.startTime < item.endTime && item.startTime < draft.endTime);
     if (conflict) {
-      toast(`Room conflict with ${conflict.title}.`);
+      toast(`Room conflict with ${conflict.title}.`, "error");
       return;
     }
     runSave(() => {
@@ -646,7 +716,8 @@ function SessionDialog({ session, events, onClose }) {
             </label>
           )}
           <label className="manager-field manager-field--wide">Session title<input value={draft.title} onChange={patch("title")} /></label>
-          <label className="manager-field">Speaker<input value={draft.speaker} onChange={patch("speaker")} /></label>
+          <label className="manager-field">Speaker<input list="session-speakers" value={draft.speaker} onChange={patch("speaker")} /></label>
+          <datalist id="session-speakers">{listedSpeakers.map((speaker, index) => <option key={index} value={speaker.name} />)}</datalist>
           <label className="manager-field">Room<input value={draft.room} onChange={patch("room")} /></label>
           <label className="manager-field">Start<input type="time" value={draft.startTime} onChange={patch("startTime")} /></label>
           <label className="manager-field">End<input type="time" value={draft.endTime} onChange={patch("endTime")} /></label>
@@ -671,7 +742,7 @@ function AnnouncementComposer({ eventId, events }) {
   function submit(e) {
     e.preventDefault();
     if (!form.eventId || !form.title.trim() || !form.message.trim()) {
-      toast(events ? "Choose an event and enter an announcement title and message." : "Announcement title and message are required.");
+      toast(events ? "Choose an event and enter an announcement title and message." : "Announcement title and message are required.", "error");
       return;
     }
     const status = intent.current;
@@ -732,44 +803,24 @@ function AnnouncementList({ items, showEvent }) {
   );
 }
 
-function Stars({ value }) {
-  return (
-    <span className="manager-stars" role="img" aria-label={`${value.toFixed(1)} out of 5`}>
-      {[1, 2, 3, 4, 5].map((star) => <span key={star} className={star <= Math.round(value) ? "is-on" : ""}><Icon name="star" size={16} /></span>)}
-    </span>
-  );
-}
-
 function FeedbackPanel({ feedback, eyebrow = "Participant feedback", title = "What participants said" }) {
-  const count = feedback.length;
-  const average = count ? feedback.reduce((sum, item) => sum + item.rating, 0) / count : 0;
-  const distribution = [5, 4, 3, 2, 1].map((rating) => ({ rating, count: feedback.filter((item) => item.rating === rating).length }));
+  const summary = summarizeFeedback(feedback);
+  // Low ratings first: they are what to fix before the next event.
+  const ordered = [...summary.concerns, ...feedback.filter((item) => !summary.concerns.includes(item))];
   return (
     <section className="manager-panel">
       <SectionHeading eyebrow={eyebrow} title={title} detail="Use these responses to improve event execution and future programming." />
-      <div className="manager-feedback-summary">
-        <div className="manager-feedback-score">
-          <strong>{count ? average.toFixed(1) : "—"}<small> / 5</small></strong>
-          {count > 0 && <Stars value={average} />}
-          <span>{plural(count, "response")}</span>
-        </div>
-        <div className="manager-rating-list">
-          {distribution.map((item) => (
-            <div key={item.rating}>
-              <span>{item.rating} <Icon name="star" size={16} /></span>
-              <div><span style={{ "--fill": `${count ? item.count / count * 100 : 0}%` }} /></div>
-              <strong>{item.count}</strong>
-            </div>
-          ))}
-        </div>
-      </div>
-      {count ? (
+      <FeedbackSummary summary={summary} />
+      {feedback.length ? (
         <div className="manager-feedback-list">
-          {feedback.map((item) => (
-            <article key={item.id}>
+          {ordered.map((item) => (
+            <article key={item.id} className={summary.concerns.includes(item) ? "is-concern" : undefined}>
               <div>
                 <PersonCell name={item.participant} detail={item.date} />
-                <Stars value={item.rating} />
+                <span className="manager-feedback-rating">
+                  {summary.concerns.includes(item) && <span className="fb-flag">Concern</span>}
+                  <Stars value={Number(item.rating) || 0} />
+                </span>
               </div>
               <p>{item.comment}</p>
               <small>
@@ -836,7 +887,7 @@ function ReportPanel({ event, registrations, feedback, sessions, eyebrow = "Even
 /* ------------------------------------------------------------------ Event workspace */
 
 function EventWorkspace({ event, tab }) {
-  const { registrations, sessions, announcements, feedback, venues, toast, updateEvent, deleteSession, completeEvent } = useManager();
+  const { registrations, sessions, announcements, feedback, toast, updateEvent, deleteSession, completeEvent } = useManager();
   const [form, setForm] = useState(event);
   const [errors, setErrors] = useState({});
   const [sessionEditor, setSessionEditor] = useState(null);
@@ -867,9 +918,12 @@ function EventWorkspace({ event, tab }) {
     if (!form.venue) nextErrors.venue = "Choose a venue.";
     if (!(Number(form.capacity) > 0)) nextErrors.capacity = "Capacity must be greater than zero.";
     if (!form.startTime || !form.endTime || form.startTime >= form.endTime) nextErrors.endTime = "End time must be after start time.";
+    if (!form.organizer?.trim()) nextErrors.organizer = "Enter the organization running this event.";
+    const speakers = cleanSpeakers(form.speakers);
+    if (!speakers) nextErrors.speakers = "Give every speaker a name and a role, or remove the empty row.";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
-    const saved = { ...form, title: form.title.trim(), description: form.description.trim(), capacity: Number(form.capacity) };
+    const saved = { ...form, title: form.title.trim(), description: form.description.trim(), capacity: Number(form.capacity), organizer: form.organizer.trim(), speakers };
     runSaveDetails(() => {
       updateEvent(event.id, saved);
       setForm(saved);
@@ -883,7 +937,7 @@ function EventWorkspace({ event, tab }) {
     confirmText: "Remove session",
     onConfirm: () => {
       deleteSession(session.id);
-      toast("Session removed.");
+      toast("Session removed.", "warning");
     },
   });
 
@@ -1000,11 +1054,13 @@ function EventWorkspace({ event, tab }) {
             <label className="manager-field">Category<select value={form.category} onChange={(e) => patchForm("category", e.target.value)}>{CATEGORIES.map((item) => <option key={item}>{item}</option>)}</select></label>
             <label className="manager-field">Start time<input type="time" value={form.startTime} onChange={(e) => patchForm("startTime", e.target.value)} /></label>
             <label className="manager-field">End time<input type="time" value={form.endTime} onChange={(e) => patchForm("endTime", e.target.value)} />{errors.endTime && <small>{errors.endTime}</small>}</label>
-            <label className="manager-field">Venue<select value={form.venue} onChange={(e) => patchForm("venue", e.target.value)}><option value="">Choose venue</option>{venues.map((item) => <option key={item}>{item}</option>)}</select>{errors.venue && <small>{errors.venue}</small>}</label>
+            <VenueField value={form.venue} onChange={(e) => patchForm("venue", e.target.value)} error={errors.venue} />
             <label className="manager-field">Capacity<input type="number" min="1" value={form.capacity} onChange={(e) => patchForm("capacity", e.target.value)} />{errors.capacity && <small>{errors.capacity}</small>}</label>
+            <label className="manager-field">Organizer<input value={form.organizer || ""} onChange={(e) => patchForm("organizer", e.target.value)} placeholder="e.g. CCIT Student Council" />{errors.organizer && <small>{errors.organizer}</small>}</label>
             <label className="manager-field">Requirements<textarea rows="2" value={form.requirements} onChange={(e) => patchForm("requirements", e.target.value)} /></label>
             <label className="manager-field">Preparation status<select value={form.preparationStatus} onChange={(e) => patchForm("preparationStatus", e.target.value)}>{PREP_STATUSES.map((item) => <option key={item}>{item}</option>)}</select></label>
             <SeatingField value={form.seating} onChange={(seating) => patchForm("seating", seating)} capacity={form.capacity} locked={registrationCount > 0} />
+            <SpeakersField value={form.speakers} onChange={(speakers) => patchForm("speakers", speakers)} error={errors.speakers} />
             <div className="manager-form-actions">
               <SaveButton pending={savingDetails}>Save event details</SaveButton>
               <button className="manager-button" type="button" onClick={() => setForm(event)} disabled={savingDetails}>Discard changes</button>
@@ -1111,7 +1167,7 @@ function ManagerSchedule({ events, sessions, deleteSession, toast }) {
     confirmText: "Remove session",
     onConfirm: () => {
       deleteSession(session.id);
-      toast("Session removed.");
+      toast("Session removed.", "warning");
     },
   });
 
@@ -1164,7 +1220,7 @@ function ManagerParticipants({ events, registrations }) {
         emptyIcon="users"
         rows={rows}
         columns={[
-          { label: "Name", render: (row) => <PersonCell name={row.name} detail={row.email} /> },
+          { label: "Name", render: (row) => <PersonCell name={row.name} detail={row.email} seed={row.userId} /> },
           { label: "Event", render: (row) => events.find((event) => event.id === row.eventId)?.title },
           { label: "Phone", render: (row) => row.phone || <span className="manager-muted">Not provided</span> },
           { label: "Registration", render: (row) => <StatusBadge value={row.status} /> },

@@ -45,7 +45,7 @@ export default function EventsAdmin() {
 
   function changeStatus(event, label, to) {
     update("events", event.id, { status: to });
-    toast(`${event.title}: ${to.toLowerCase()}.`);
+    toast(`${event.title}: ${to.toLowerCase()}.`, CLOSED.includes(to) ? "warning" : "success");
   }
 
   const columns = [
@@ -175,7 +175,7 @@ export default function EventsAdmin() {
           onCancel={() => setConfirming(null)}
           onConfirm={() => {
             remove("events", confirming.event.id);
-            toast(`${confirming.event.title} deleted.`);
+            toast(`${confirming.event.title} deleted.`, "warning");
             setConfirming(null);
           }}
         />
@@ -218,6 +218,18 @@ function EventDetails({ event, onClose, onEdit }) {
             {facts.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
           </dl>
 
+          <h3><Icon name="speaker" size={16} /> Speakers</h3>
+          {event.speakers?.length ? (
+            <ul className="admin-plain-list">
+              {event.speakers.map((speaker, index) => (
+                <li key={index}>
+                  <b>{speaker.name}</b>
+                  <small>{[speaker.kind, speaker.role].filter(Boolean).join(" · ")}</small>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="manager-muted">No speakers listed.</p>}
+
           {error && <LoadError message={error} onRetry={reload} />}
           {data && (
             <>
@@ -228,7 +240,7 @@ function EventDetails({ event, onClose, onEdit }) {
                 <li><b>{data.feedback.rating ?? "—"}</b> rating ({data.feedback.responses})</li>
               </ul>
 
-              <h3><Icon name="speaker" size={16} /> Sessions & speakers</h3>
+              <h3><Icon name="schedule" size={16} /> Sessions</h3>
               {data.sessions.length ? (
                 <ul className="admin-plain-list">
                   {data.sessions.map((session) => (

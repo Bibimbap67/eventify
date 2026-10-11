@@ -5,6 +5,7 @@ import { api } from "../api.js";
 import { useEventContext } from "../context/EventContext.js";
 import { eventBanner } from "../data/options.js";
 import { seatOf } from "../data/seating.js";
+import { ATTENDEE_TYPE } from "../data/student.js";
 import { DocPreview, fileSafe, printNode, savePng, useQrCode } from "./DocExport.js";
 
 const TICKET_WIDTH = 440;
@@ -83,7 +84,7 @@ export default function TicketPassModal({ registration, onClose }) {
                   </div>
                   <div>
                     <dt>TICKET TYPE</dt>
-                    <dd>{registration.ticketType || "General Admission"}</dd>
+                    <dd>{ATTENDEE_TYPE}</dd>
                   </div>
                   <div>
                     <dt>DATE & TIME</dt>

@@ -8,7 +8,6 @@
 
 /* Sidebar: a red "Admin" sticker instead of the managers' yellow one */
 .admin .manager-brand > span { color: var(--on-red); background: var(--red); }
-.admin-org > div { min-width: 0; }
 
 .admin-sidebar__foot { display: grid; gap: 10px; }
 .admin .admin-collapse:hover { color: var(--color-cream); background: rgb(255 253 245 / 0.1); }

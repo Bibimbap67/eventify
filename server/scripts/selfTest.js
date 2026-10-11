@@ -1,4 +1,4 @@
-// Self-test for ticket QR check-in and event seating. Run from /server with the API running:
+// Self-test for ticket QR check-in, event seating and public feedback. Run from /server with the API running:
 //   npm run selftest
 // Creates throwaway users, events and registrations, checks every rule, then deletes them.
 require("dotenv").config({ quiet: true });
@@ -7,7 +7,7 @@ const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const connectDB = require("../config/db");
 const User = require("../models/User");
-const { Event, Registration, Notification, AuditLog } = require("../models/records");
+const { Event, Registration, Notification, AuditLog, Feedback, Announcement, Venue } = require("../models/records");
 
 const BASE = `http://localhost:${process.env.PORT || 5000}/api`;
 const tag = `selftest-${Date.now().toString(36)}`;
@@ -146,6 +146,84 @@ async function seating(student, other, admin) {
   console.log("  seating: ok");
 }
 
+async function transparency(student) {
+  const done = `${tag}-done`;
+  const open = `${tag}-open`;
+  const adminDone = `${tag}-admin-done`;
+  await Event.create({ _id: done, scope: "manager", managerId: `${tag}-mgr`, title: "Done Test", status: "Completed", capacity: 10 });
+  await Event.create({ _id: open, scope: "manager", managerId: `${tag}-mgr`, title: "Open Test", status: "Registration Open", capacity: 10 });
+  await Event.create({ _id: adminDone, scope: "admin", title: "Admin Done Test", status: "COMPLETED", capacity: 10 });
+  await Feedback.create([
+    { _id: `${tag}-fb1`, scope: "manager", eventId: done, participant: "Secret Person", rating: 5, organizationRating: 4, speakerRating: 5, venueRating: 3, comment: "Great", date: "2026-10-01" },
+    { _id: `${tag}-fb2`, scope: "manager", eventId: done, participant: "Hidden Person", rating: 2, comment: "Too hot", date: "2026-10-02" },
+    { _id: `${tag}-fb3`, scope: "manager", eventId: open, participant: "Early Person", rating: 1, comment: "Not yet", date: "2026-10-03" },
+  ]);
+  await Registration.create({
+    _id: `${tag}-fbreg`, scope: "admin", eventId: adminDone, userId: student.id, status: "Confirmed", attendanceStatus: "Attended",
+    feedback: { overall: 4, organization: 4, speaker: 3, venue: 5, comment: "Nice", submittedAt: "2026-10-04 10:00" },
+  });
+
+  // Anyone can read a completed event's feedback, without names; an event still running shows none.
+  let res = await call(`/events/${done}/feedback`);
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.data.items.map((item) => item.comment).sort(), ["Great", "Too hot"]);
+  assert.ok(!JSON.stringify(res.data).includes("Person"), "participant names stay on the server");
+  assert.deepEqual((await call(`/events/${open}/feedback`)).data.items, []);
+  assert.deepEqual((await call(`/events/${adminDone}/feedback`)).data.items, [
+    { rating: 4, organizationRating: 4, speakerRating: 3, venueRating: 5, comment: "Nice", date: "2026-10-04" },
+  ]);
+
+  // Event lists carry the average rating of completed events only.
+  const listed = (await call("/data/manager-events")).data.items;
+  assert.deepEqual([listed.find((e) => e.id === done).feedbackAverage, listed.find((e) => e.id === done).feedbackCount], [3.5, 2]);
+  assert.equal(listed.find((e) => e.id === open).feedbackCount, undefined);
+  assert.equal((await call("/data/events")).data.items.find((e) => e.id === adminDone).feedbackAverage, 4);
+
+  // Published announcements are public; drafts stay with the event's manager.
+  await Announcement.create([
+    { _id: `${tag}-ann1`, scope: "manager", eventId: open, title: "Doors open at 9", status: "Published" },
+    { _id: `${tag}-ann2`, scope: "manager", eventId: open, title: "Draft plan", status: "Draft" },
+  ]);
+  const notes = (await call("/data/manager-announcements", student)).data.items.filter((item) => item.eventId === open);
+  assert.deepEqual(notes.map((item) => item.title), ["Doors open at 9"]);
+
+  // Every attendee ticket is a student ticket, whatever the client sends.
+  res = await save("manager-registrations", student, [{ id: `${tag}-tt`, eventId: open, status: "Confirmed", name: student.name, ticketType: "Guest / Alumni" }]);
+  assert.equal(res.status, 200, JSON.stringify(res.data));
+  assert.equal((await Registration.findById(`${tag}-tt`)).ticketType, "Student Attendee");
+
+  // Student IDs are the entry year, a dash, and 7 digits.
+  const profile = (body) => call("/auth/me", student, { method: "PATCH", body });
+  assert.equal((await profile({ studentId: "2024-105142" })).status, 400);
+  assert.equal((await profile({ studentId: "2024-1051423" })).status, 200);
+  assert.equal((await User.findById(student.id)).studentId, "2024-1051423");
+  console.log("  public feedback: ok");
+}
+
+async function managerVenues(manager) {
+  const venue = `${tag} Hall`;
+  await Venue.create({ _id: `${tag}-venue`, name: venue, capacity: 50 });
+  const create = (fields) => save("manager-events", manager, [
+    { id: `${tag}-mev`, title: "Venue Test", date: "2026-12-01", startTime: "09:00", endTime: "10:00", capacity: 10, ...fields },
+  ]);
+
+  // A manager picks a venue from the admin's list; a typed-in one (or a query object) is refused.
+  let res = await create({ venue: "Somewhere Else" });
+  assert.equal(res.status, 400);
+  assert.match(res.data.message, /venue/i);
+  assert.equal((await create({ venue: { $ne: null } })).status, 400);
+  res = await create({ venue });
+  assert.equal(res.status, 200, JSON.stringify(res.data));
+  assert.equal((await Event.findById(`${tag}-mev`)).status, "Pending");
+
+  // An older event keeps its typed-in venue when its other details change.
+  await Event.updateOne({ _id: `${tag}-mev` }, { venue: "Old Typed Hall" });
+  const saved = (await Event.findById(`${tag}-mev`)).toJSON();
+  res = await save("manager-events", manager, [{ ...saved, description: "Edited" }]);
+  assert.equal(res.status, 200, JSON.stringify(res.data));
+  console.log("  manager venues: ok");
+}
+
 async function run() {
   await connectDB();
   try {
@@ -153,8 +231,11 @@ async function run() {
     const other = await makeUser("Other Student", "user");
     const staff = await makeUser("Self Test Staff", "staff");
     const admin = await makeUser("Self Test Admin", "admin");
+    const manager = await makeUser("Self Test Manager", "manager");
     await checkIn(student, staff);
     await seating(student, other, admin);
+    await transparency(student);
+    await managerVenues(manager);
     console.log("Self-test passed.");
   } finally {
     const mine = { $regex: `^${tag}` };
@@ -164,6 +245,9 @@ async function run() {
       Event.deleteMany({ _id: mine }),
       Registration.deleteMany({ eventId: mine }),
       Notification.deleteMany({ eventId: mine }),
+      Feedback.deleteMany({ eventId: mine }),
+      Announcement.deleteMany({ eventId: mine }),
+      Venue.deleteMany({ _id: mine }),
     ]);
     await mongoose.disconnect();
   }

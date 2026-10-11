@@ -7,7 +7,9 @@ import { useEventContext } from "../context/EventContext.js";
 import TicketPassModal from "../components/TicketPassModal.js";
 import FeedbackModal from "../components/FeedbackModal.js";
 import CancelModal from "../components/CancelModal.js";
+import { notify } from "../components/Toast.js";
 import { seatOf } from "../data/seating.js";
+import { ATTENDEE_TYPE } from "../data/student.js";
 
 export default function MyEventsPage() {
   const entering = useEntering();
@@ -18,12 +20,6 @@ export default function MyEventsPage() {
   const [ticketModalTarget, setTicketModalTarget] = useState(null);
   const [feedbackModalTarget, setFeedbackModalTarget] = useState(null);
   const [cancelModalTarget, setCancelModalTarget] = useState(null);
-  const [toastMessage, setToastMessage] = useState("");
-
-  const showToast = (msg) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(""), 3000);
-  };
 
   // Filter registrations
   const upcomingRegs = registrations.filter(
@@ -37,20 +33,20 @@ export default function MyEventsPage() {
   // Handlers
   const handleCompleteAttendance = (reg) => {
     completeAttendance(reg.id);
-    showToast(`${reg.eventTitle} is marked as attended. Feedback is now available in Past & Attended.`);
+    notify(`${reg.eventTitle} is marked as attended. Feedback is now open in Past & Attended.`, "success", "Attendance complete");
   };
 
   const handleCancelConfirm = (regId) => {
     cancelRegistration(regId);
     setCancelModalTarget(null);
-    showToast("Registration cancelled. Your spot has been released.");
+    notify("Your spot has been released for someone else.", "warning", "Registration cancelled");
   };
 
   const handleFeedbackSubmit = (feedbackData) => {
     if (feedbackModalTarget) {
       submitFeedback(feedbackModalTarget.id, feedbackData);
       setFeedbackModalTarget(null);
-      showToast("Thank you! Your feedback has been recorded.");
+      notify("Thank you! Your feedback has been recorded.", "success", "Feedback sent");
     }
   };
 
@@ -142,7 +138,7 @@ export default function MyEventsPage() {
                       </div>
                       <div>
                         <small>REGISTRATION TYPE</small>
-                        <strong>{reg.ticketType || "Student Attendee"}</strong>
+                        <strong>{ATTENDEE_TYPE}</strong>
                       </div>
                     </div>
 
@@ -325,13 +321,6 @@ export default function MyEventsPage() {
           onConfirm={handleCancelConfirm}
           onClose={() => setCancelModalTarget(null)}
         />
-      )}
-
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="toast" role="status">
-          {toastMessage}
-        </div>
       )}
     </div>
   );

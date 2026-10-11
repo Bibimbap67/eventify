@@ -4,7 +4,6 @@ import { useAuth } from "../../context/AuthContext.js";
 import { useAdmin } from "../../context/AdminContext.js";
 import Logo from "../Logo.js";
 import Icon from "../Icon.js";
-import Toast from "../Toast.js";
 import SoundToggle from "../SoundToggle.js";
 import { PageTransition } from "../Motion.js";
 import { Avatar } from "../manager/parts.js";
@@ -51,7 +50,7 @@ const readCollapsed = () => {
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
-  const { db, settings, toastMsg } = useAdmin();
+  const { db, settings } = useAdmin();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const navigate = useNavigate();
@@ -95,11 +94,8 @@ export default function AdminLayout() {
         </div>
 
         <div className="manager-assignment admin-org">
-          <span className="manager-icon-chip manager-icon-chip--yellow" aria-hidden="true"><Icon name="graduation" size={16} /></span>
-          <div>
-            <strong title={settings.orgName}>{settings.orgName}</strong>
-            <small>{settings.academicTerm || "Platform administration"}</small>
-          </div>
+          <small>{settings.academicTerm || "Platform administration"}</small>
+          <strong>{settings.orgName}</strong>
         </div>
 
         <nav className="manager-nav" aria-label="Admin navigation">
@@ -168,7 +164,6 @@ export default function AdminLayout() {
         </header>
         <main className="manager-content"><PageTransition><Outlet /></PageTransition></main>
       </div>
-      <Toast message={toastMsg} className="manager-toast" />
     </div>
   );
 }
@@ -225,7 +220,7 @@ function ProfileMenu({ user, onSignOut }) {
   return (
     <div className="admin-menu" ref={ref}>
       <button type="button" className="admin-profile-button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-haspopup="true">
-        <Avatar name={name} />
+        <Avatar name={name} seed={user?.id} />
         <span className="admin-profile-button__name">{name}</span>
         <Icon name="caret" size={16} />
       </button>

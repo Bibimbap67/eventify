@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar.js";
 import Icon from "../components/Icon.js";
 import { useEntering } from "../components/Motion.js";
 import { useEventContext } from "../context/EventContext.js";
+import { notificationKind } from "../data/options.js";
 
 export default function NotificationsPage() {
   const entering = useEntering();
@@ -78,14 +79,11 @@ export default function NotificationsPage() {
               <div
                 key={notif.id}
                 className={`notif-card ${!notif.read ? "notif-card--unread" : ""}`}
+                data-tone={notificationKind(notif.type).tone}
                 onClick={() => markNotificationRead(notif.id)}
               >
-                <div className="notif-card__icon">
-                  {notif.type === "registration" && <Icon name="ticket" size={20} />}
-                  {notif.type === "certificate" && <Icon name="certificate" size={20} />}
-                  {notif.type === "attendance" && <Icon name="pin" size={20} />}
-                  {notif.type === "reminder" && <Icon name="clock" size={20} />}
-                  {notif.type === "feedback" && <Icon name="message" size={20} />}
+                <div className="notif-card__icon" aria-hidden="true">
+                  <Icon name={notificationKind(notif.type).icon} size={22} />
                 </div>
 
                 <div className="notif-card__main">

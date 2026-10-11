@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
-
-export const SYNC_ERROR_EVENT = "eventify:sync-error";
+import { notify } from "../components/Toast.js";
 
 function snapshot(data, keys) {
   return Object.fromEntries(keys.map((key) => [
@@ -57,7 +56,7 @@ export function useServerStore(resources, sessionKey) {
       setLoaded(next);
       setReady(true);
     })().catch((err) => {
-      if (!cancelled) window.dispatchEvent(new CustomEvent(SYNC_ERROR_EVENT, { detail: err.message }));
+      if (!cancelled) notify(err.message, "error", "Couldn't load");
     });
 
     return () => {
@@ -92,7 +91,7 @@ export function useServerStore(resources, sessionKey) {
         api(`/data/${resource}/batch`, { method: "POST", body: { save, remove } })
       )))
       .catch((err) => {
-        window.dispatchEvent(new CustomEvent(SYNC_ERROR_EVENT, { detail: err.message }));
+        notify(err.message || "Could not save your changes. Try again.", "error", "Not saved");
         reload();
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps

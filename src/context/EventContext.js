@@ -4,6 +4,7 @@ import { useManager } from "./ManagerContext.js";
 import { newId } from "../api.js";
 import { useServerStore, liveRegisteredCount } from "./useServerStore.js";
 import { isReserved, seatOf } from "../data/seating.js";
+import { ATTENDEE_TYPE } from "../data/student.js";
 
 const EventContext = createContext(null);
 
@@ -22,7 +23,7 @@ function blankProfile(user) {
     name: user?.name || "Guest User",
     email: user?.email || "",
     studentId: user?.studentId || "",
-    role: { admin: "Administrator", manager: "Event Manager", staff: "Event Staff" }[user?.role] || "Student Attendee",
+    role: { admin: "Administrator", manager: "Event Manager", staff: "Event Staff" }[user?.role] || ATTENDEE_TYPE,
     department: user?.department || "",
     program: user?.program || "",
     phone: user?.phone || "",
@@ -80,15 +81,14 @@ export function EventProvider({ children }) {
       .filter((event) => publicStatus[event.status])
       .map((event) => {
         const sessions = managerSessions.filter((session) => session.eventId === event.id);
-        const speakers = [...new Map(sessions.filter((session) => session.speaker).map((session) => [session.speaker, {
-          id: session.id,
-          name: session.speaker,
-          role: "Guest speaker",
-          company: event.organizer,
-          topic: session.title,
-          time: session.startTime,
-          room: session.room,
-        }])).values()];
+        // The speakers listed on the event, each with their session if one names them.
+        // Older events only named speakers on their sessions.
+        const listed = (event.speakers || []).filter((speaker) => speaker.name);
+        const named = listed.length ? listed : [...new Set(sessions.map((session) => session.speaker).filter(Boolean))].map((name) => ({ name, kind: "Guest speaker" }));
+        const speakers = named.map((speaker, index) => {
+          const session = sessions.find((item) => item.speaker?.trim().toLowerCase() === speaker.name.trim().toLowerCase());
+          return { id: `${event.id}-speaker-${index}`, ...speaker, topic: session?.title, time: session?.startTime, room: session?.room };
+        });
         const date = new Date(`${event.date}T12:00:00`);
         return {
           ...event,
@@ -241,7 +241,7 @@ export function EventProvider({ children }) {
         ticketCode: randomCode,
         seating: reserved ? "reserved" : "free",
         seat: reserved ? formData.seat : null,
-        ticketType: formData.ticketType || "Student Attendee",
+        ticketType: ATTENDEE_TYPE,
         name: formData.name || userProfile.name,
         email: formData.email || userProfile.email,
         studentId: formData.studentId || userProfile.studentId,
@@ -291,7 +291,7 @@ export function EventProvider({ children }) {
           id: newId("notif"),
           userId: user?.id,
           eventId: reg.eventId,
-          type: "reminder",
+          type: "cancellation",
           title: `Registration Cancelled: ${reg.eventTitle}`,
           message: seatOf(reg) ? `Your registration is cancelled and seat ${seatOf(reg)} is free for someone else.` : "Your registration is cancelled and your spot is free for someone else.",
           time: "Just now",

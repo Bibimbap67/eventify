@@ -27,6 +27,19 @@ export const CATEGORY_COLORS = {
 
 export const categoryColor = (category) => CATEGORY_COLORS[category] || { bg: "#ffffff", ink: "#0a0a0a" };
 
+// Inbox notifications: icon and tone (the toast colors) by type. Unknown types read as updates.
+const NOTIFICATION_KINDS = {
+  registration: { icon: "ticket", tone: "success" },
+  certificate: { icon: "certificate", tone: "success" },
+  attendance: { icon: "user-check", tone: "success" },
+  feedback: { icon: "message", tone: "success" },
+  reminder: { icon: "clock", tone: "warning" },
+  cancellation: { icon: "ban", tone: "warning" },
+  announcement: { icon: "megaphone", tone: "info" },
+};
+
+export const notificationKind = (type) => NOTIFICATION_KINDS[type] || { icon: "bell", tone: "info" };
+
 const BANNERS = ["#5294ff", "#ffd93d", "#c4b5fd", "#86efac", "#ffa94d", "#5eead4", "#f9a8d4"];
 
 // An event's banner color: the same on its card and in the schedule, and never the

@@ -226,7 +226,7 @@ export default function CalendarPage() {
                     <p className="cal-event__meta"><Icon name="pin" size={14} /> {event.fullLocation || event.location}</p>
                     <div className="cal-event__tags">
                       <span className="cal-tag" style={{ background: color.bg, color: color.ink }}>{event.category || "Event"}</span>
-                      {STATUS_LABELS[event.status] && <span className="cal-tag cal-tag--plain">{STATUS_LABELS[event.status]}</span>}
+                      {STATUS_LABELS[event.status] && <span className={`cal-tag ${event.status === "COMPLETED" ? "cal-tag--completed" : "cal-tag--plain"}`}>{STATUS_LABELS[event.status]}</span>}
                       {isEventRegistered(event.id) && <span className="cal-tag cal-tag--mine"><Icon name="ticket" size={14} /> Registered</span>}
                     </div>
                     <div className="cal-event__actions">

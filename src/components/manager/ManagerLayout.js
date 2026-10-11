@@ -4,10 +4,9 @@ import { useAuth } from "../../context/AuthContext.js";
 import { useManager } from "../../context/ManagerContext.js";
 import Logo from "../Logo.js";
 import Icon from "../Icon.js";
-import Toast from "../Toast.js";
 import SoundToggle from "../SoundToggle.js";
 import { PageTransition } from "../Motion.js";
-import { Avatar, PAST_STATUSES, plural } from "./parts.js";
+import { PAST_STATUSES, plural } from "./parts.js";
 
 // Grouped by when a manager needs them: planning, the event day itself, and the follow-up.
 // `badge` names a live count shown next to the link.
@@ -41,7 +40,7 @@ const PAGES = NAVIGATION.flatMap((group) => group.items);
 
 export default function ManagerLayout() {
   const { user, logout } = useAuth();
-  const { events, registrations, announcements, toastMessage } = useManager();
+  const { events, registrations, announcements } = useManager();
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -78,11 +77,8 @@ export default function ManagerLayout() {
         </div>
 
         <div className="manager-assignment">
-          <Avatar name={user?.name || "Event Manager"} />
-          <div>
-            <strong>{user?.name || "Event Manager"}</strong>
-            <small>{plural(events.length, "assigned event")} · {liveCount} live</small>
-          </div>
+          <small>{plural(events.length, "assigned event")} · {liveCount} live</small>
+          <strong>{user?.name || "Event Manager"}</strong>
         </div>
 
         <nav className="manager-nav" aria-label="Event Manager navigation">
@@ -149,7 +145,6 @@ export default function ManagerLayout() {
         </header>
         <main className="manager-content"><PageTransition><Outlet /></PageTransition></main>
       </div>
-      <Toast message={toastMessage} className="manager-toast" />
     </div>
   );
 }

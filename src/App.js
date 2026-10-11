@@ -27,7 +27,7 @@ import ManagerLayout from "./components/manager/ManagerLayout.js";
 import ManagerScreen from "./pages/manager/ManagerScreen.js";
 import { AdminProvider } from "./context/AdminContext.js";
 import ProtectedRoute from "./components/ProtectedRoute.js";
-import SyncErrorToast from "./components/SyncErrorToast.js";
+import ToastHost from "./components/Toast.js";
 import { PageTransition } from "./components/Motion.js";
 import { ShellSkeleton } from "./components/Skeleton.js";
 
@@ -40,7 +40,6 @@ const PAGE_TARGETS = ":scope > :not(.admin, .manager-shell) > :not(.navbar)";
 export default function App() {
   return (
     <>
-      <SyncErrorToast />
       <PageTransition targets={PAGE_TARGETS}>
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -107,6 +106,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </PageTransition>
+      <ToastHost />
     </>
   );
 }

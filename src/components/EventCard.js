@@ -16,6 +16,8 @@ export default function EventCard({ event }) {
   const registered = event.registered || 0;
   const pct = Math.min(100, Math.round((registered / capacity) * 100));
   const isRegistered = Boolean(isEventRegistered(event.id));
+  // Past events show how attendees rated them (the server adds this to completed events only).
+  const rated = event.status === "COMPLETED" && event.feedbackCount > 0;
 
   // Green while there is room, yellow when filling fast, red when (almost) full.
   let capacityColor = "var(--capacity-low)";
@@ -47,7 +49,7 @@ export default function EventCard({ event }) {
       className="event-card"
       style={{ "--accent": eventBanner(event) }}
       onClick={handleCardClick}
-      aria-label={`View event details for ${event.title}`}
+      aria-label={`View event details for ${event.title}${rated ? `, rated ${event.feedbackAverage.toFixed(1)} out of 5 from ${event.feedbackCount} ${event.feedbackCount === 1 ? "review" : "reviews"}` : ""}`}
       role="button"
       tabIndex={0}
       onKeyDown={handleKeyDown}
@@ -57,7 +59,14 @@ export default function EventCard({ event }) {
         <div className="event-card__top">
           <div className="event-card__badges-group">
             <span className="event-card__badge" style={{ background: category.bg, color: category.ink }}>{event.category || "Event"}</span>
-            {STATUS_LABELS[event.status] && <span className="event-card__status">{STATUS_LABELS[event.status]}</span>}
+            {STATUS_LABELS[event.status] && (
+              <span className={`event-card__status${event.status === "COMPLETED" ? " event-card__status--completed" : ""}`}>{STATUS_LABELS[event.status]}</span>
+            )}
+            {rated && (
+              <span className="event-card__rating">
+                <Icon name="star" size={14} /> {event.feedbackAverage.toFixed(1)} <small>({event.feedbackCount})</small>
+              </span>
+            )}
             {isRegistered && <span className="event-card__reg-tag"><Icon name="check" size={16} /> REGISTERED</span>}
           </div>
           <span className="event-card__arrow" aria-hidden="true"><Icon name="arrow" size={18} /></span>

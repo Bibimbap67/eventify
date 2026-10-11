@@ -4,6 +4,7 @@ import { useEventContext } from "./EventContext.js";
 import { useManager } from "./ManagerContext.js";
 import { api, newId } from "../api.js";
 import { useServerStore } from "./useServerStore.js";
+import { notify } from "../components/Toast.js";
 
 const Ctx = createContext(null);
 
@@ -154,7 +155,6 @@ export function AdminProvider({ children }) {
   const { allEvents, allRegistrations, allCertificates, updateEvent, addEvent, deleteEvent } = useEventContext();
   const { data: collections, setData: setCollections, ready: venuesReady } = useServerStore(ADMIN_RESOURCES, user?.id || "guest");
   const [settings, setSettings] = useState(initialSettings);
-  const [toastMsg, setToastMsg] = useState("");
 
   // Settings live in one MongoDB document; the defaults apply until an admin saves once.
   useEffect(() => {
@@ -169,12 +169,6 @@ export function AdminProvider({ children }) {
     registrations: [...allRegistrations, ...manager.allManagerRegistrations],
     certificates: allCertificates,
   };
-
-  const toast = useCallback((m) => {
-    setToastMsg(m);
-    window.clearTimeout(toast.timer);
-    toast.timer = window.setTimeout(() => setToastMsg(""), 2600);
-  }, []);
 
   const update = useCallback((coll, id, patch) => {
     if (coll === "events") {
@@ -238,8 +232,7 @@ export function AdminProvider({ children }) {
         update,
         add,
         remove,
-        toast,
-        toastMsg,
+        toast: notify,
         venueName,
         eventTitle,
         registered,

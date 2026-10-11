@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import Icon from "../Icon.js";
 import { CountUp, useEntering } from "../Motion.js";
+import { avatarUri } from "../avatar.js";
 
 // Shared pieces of the Event Manager workspace (pages live in pages/manager/ManagerScreen.js).
 
@@ -167,14 +168,10 @@ export function SearchField({ label, placeholder, value, onChange }) {
   );
 }
 
-const AVATAR_TONES = ["blue", "yellow", "coral", "mint", "violet"];
-
-// Initials on a color picked from the name, so the same person keeps the same color.
-export function Avatar({ name }) {
-  const text = String(name || "?");
-  const initials = text.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
-  const tone = AVATAR_TONES[[...text].reduce((sum, char) => sum + char.charCodeAt(0), 0) % AVATAR_TONES.length];
-  return <span className={`manager-avatar manager-icon-chip--${tone}`} aria-hidden="true">{initials || "?"}</span>;
+// The person's DiceBear face. Pass their account id as `seed` so it matches the face they see
+// in their own navbar; without one (e.g. a feedback name) the name picks the face.
+export function Avatar({ name, seed }) {
+  return <img className="manager-avatar" src={avatarUri(seed || name)} alt="" />;
 }
 
 export function EmptyState({ icon = "inbox", title, children }) {
@@ -218,10 +215,10 @@ export function Table({ columns, rows, empty = "No records to show.", emptyIcon,
 }
 
 // Name + email cell used by every participant table.
-export function PersonCell({ name, detail }) {
+export function PersonCell({ name, detail, seed }) {
   return (
     <span className="manager-person">
-      <Avatar name={name} />
+      <Avatar name={name} seed={seed} />
       <span>
         <strong>{name}</strong>
         <small>{detail}</small>

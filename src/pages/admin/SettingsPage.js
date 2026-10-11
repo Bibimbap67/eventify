@@ -265,7 +265,7 @@ function DataExport({ toast }) {
       URL.revokeObjectURL(url);
       toast("Export downloaded and recorded in the audit log.");
     } catch (err) {
-      toast(`Export failed: ${err.message}`);
+      toast(`Export failed: ${err.message}`, "error");
     } finally {
       setBusy(false);
     }

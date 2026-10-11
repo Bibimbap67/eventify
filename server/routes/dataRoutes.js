@@ -1,5 +1,5 @@
 const express = require("express");
-const { list, batch } = require("../controllers/dataController");
+const { list, batch, publicFeedback } = require("../controllers/dataController");
 const { getSettings, updateSettings } = require("../controllers/settingsController");
 const { protect, optionalAuth } = require("../middleware/auth");
 const { requireAdmin } = require("../utils/audit");
@@ -12,5 +12,6 @@ router.put("/settings", protect, requireAdmin, updateSettings);
 // Public pages (event list, event detail) read without signing in.
 router.get("/data/:resource", optionalAuth, list);
 router.post("/data/:resource/batch", protect, batch);
+router.get("/events/:id/feedback", publicFeedback);
 
 module.exports = router;

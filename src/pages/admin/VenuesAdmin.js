@@ -94,10 +94,10 @@ export default function VenuesAdmin() {
           onCancel={() => setDeleting(null)}
           onConfirm={() => {
             // Checked again in case an event was booked here while the dialog was open.
-            if (upcomingAt(deleting).length) toast(`${deleting.name} is booked for an upcoming event and can't be deleted.`);
+            if (upcomingAt(deleting).length) toast(`${deleting.name} is booked for an upcoming event and can't be deleted.`, "error");
             else {
               remove("venues", deleting.id);
-              toast(`${deleting.name} deleted.`);
+              toast(`${deleting.name} deleted.`, "warning");
             }
             setDeleting(null);
           }}

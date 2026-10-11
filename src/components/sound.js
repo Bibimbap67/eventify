@@ -4,7 +4,7 @@ import { prefersReducedMotion } from "./Motion.js";
 
 const STORAGE_KEY = "eventify_sound";
 const CHANGE_EVENT = "eventify:sound";
-const VOLUME = 0.05; // low by default
+const VOLUME = 0.1; // low by default
 
 let context = null;
 let noiseBuffer = null;
@@ -126,12 +126,24 @@ const SOUNDS = {
   },
   // Back to top: an airy rising whoosh.
   whoosh: (ac) => noise(ac, 0, 0.24, { filter: "bandpass", frequency: 380, sweepTo: 2600, q: 1.4, level: 1.6 }),
-  // Toasts.
+  // Toasts: one voice per tone, so you can tell them apart without looking.
+  // Success: a bright rising chime.
   success: (ac) => {
     tone(ac, 660, 0, 0.12);
     tone(ac, 880, 0.09, 0.16);
   },
-  error: (ac) => tone(ac, 196, 0, 0.22, { type: "triangle", level: 1.2 }),
+  // Info: a single soft ping.
+  info: (ac) => tone(ac, 1046, 0, 0.2, { level: 0.8 }),
+  // Warning: two quick beeps on one note.
+  warning: (ac) => {
+    tone(ac, 740, 0, 0.09, { type: "triangle", level: 1.1 });
+    tone(ac, 740, 0.14, 0.09, { type: "triangle", level: 1.1 });
+  },
+  // Error: a low buzz that falls.
+  error: (ac) => {
+    tone(ac, 233, 0, 0.14, { type: "square", level: 0.55 });
+    tone(ac, 175, 0.13, 0.24, { type: "square", level: 0.55, glideTo: 150 });
+  },
 };
 
 export function playSound(kind) {

@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { api } from "../api.js";
 import { useAuth } from "../context/AuthContext.js";
 import Navbar from "../components/Navbar.js";
 import Icon from "../components/Icon.js";
@@ -11,32 +12,71 @@ import { useManager } from "../context/ManagerContext.js";
 import { categoryColor, eventBanner } from "../data/options.js";
 import { isReserved, seatOf } from "../data/seating.js";
 import { SeatPickerModal } from "../components/SeatMap.js";
+import { notify } from "../components/Toast.js";
+import { avatarUri } from "../components/avatar.js";
+import FeedbackSummary, { Stars } from "../components/FeedbackSummary.js";
+import { summarizeFeedback } from "../data/feedback.js";
+import { ATTENDEE_TYPE, STUDENT_ID_EXAMPLE, formatStudentId, validStudentId } from "../data/student.js";
 
-// Helper for speaker profile avatars with graceful SVG fallback
-function SpeakerAvatar({ name, src }) {
-  const [error, setError] = useState(false);
-  const initials = name
-    .split(" ")
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("");
+const organizerKey = (name) => String(name || "").trim().toLowerCase().replace(/\s+/g, " ");
 
-  if (error || !src) {
-    return (
-      <div className="speaker-avatar speaker-avatar--fallback" aria-label={name}>
-        {initials}
-      </div>
-    );
-  }
+// How the organizer's other completed events were rated, so attendees can judge who runs this one.
+// "Event Manager" is the old default for a blank organizer, not a real org, so it has no record.
+function organizerRecord(event, events) {
+  const name = organizerKey(event.organizer);
+  if (!name || name === "event manager") return null;
+  const past = events.filter((item) => item.id !== event.id && item.status === "COMPLETED" && item.feedbackCount > 0 && organizerKey(item.organizer) === name);
+  const reviews = past.reduce((sum, item) => sum + item.feedbackCount, 0);
+  if (!reviews) return null;
+  return { average: past.reduce((sum, item) => sum + item.feedbackAverage * item.feedbackCount, 0) / reviews, reviews, events: past.length };
+}
 
+const shortDate = (date) => {
+  const day = new Date(`${date}T12:00:00`);
+  return Number.isNaN(day.getTime()) ? date : day.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
+
+// A completed event's feedback, public and without names (the server leaves them out).
+function PublicFeedback({ eventId }) {
+  const [items, setItems] = useState(null);
+
+  useEffect(() => {
+    let live = true;
+    api(`/events/${encodeURIComponent(eventId)}/feedback`)
+      .then((res) => live && setItems(res.items))
+      .catch(() => live && setItems([]));
+    return () => {
+      live = false;
+    };
+  }, [eventId]);
+
+  if (!items) return null;
+  const comments = items.filter((item) => item.comment);
   return (
-    <img
-      src={src}
-      alt={name}
-      className="speaker-avatar"
-      loading="lazy"
-      onError={() => setError(true)}
-    />
+    <section className="event-feedback" aria-labelledby="event-feedback-title">
+      <div className="section-header-block">
+        <h2 className="section-title" id="event-feedback-title">WHAT ATTENDEES SAID</h2>
+        <p className="section-subtitle">Ratings and comments from people who attended. Names are hidden.</p>
+      </div>
+      <FeedbackSummary summary={summarizeFeedback(items)} />
+      {comments.length > 0 && (
+        <ul className="event-feedback__list">
+          {comments.map((item, index) => {
+            const concern = Number(item.rating) <= 2;
+            return (
+              <li key={index} className={concern ? "is-concern" : undefined}>
+                <div className="event-feedback__meta">
+                  <Stars value={Number(item.rating) || 0} size={14} />
+                  {concern && <span className="fb-flag">Concern</span>}
+                  <span>Attendee{item.date ? ` · ${shortDate(item.date)}` : ""}</span>
+                </div>
+                <p>{item.comment}</p>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -44,17 +84,16 @@ export default function EventDetail() {
   const { id } = useParams();
   const { user } = useAuth();
   const { events, registerForEvent, isEventRegistered, userProfile } = useEventContext();
-  const { announcements } = useManager();
+  const { allAnnouncements } = useManager();
 
   const event = events.find((e) => e.id === id);
-  const publishedAnnouncements = announcements.filter((item) => item.eventId === id && item.status === "Published");
+  const publishedAnnouncements = allAnnouncements.filter((item) => item.eventId === id && item.status === "Published");
   const existingReg = event ? isEventRegistered(event.id) : null;
 
   const [isRegistering, setIsRegistering] = useState(false);
   const [formName, setFormName] = useState(userProfile?.name || "");
   const [formEmail, setFormEmail] = useState(userProfile?.email || "");
   const [formStudentId, setFormStudentId] = useState(userProfile?.studentId || "");
-  const [ticketType, setTicketType] = useState("Student Attendee");
   const [formSeat, setFormSeat] = useState("");
   const [pickingSeat, setPickingSeat] = useState(false);
   const [regError, setRegError] = useState("");
@@ -91,6 +130,7 @@ export default function EventDetail() {
   const currentCount = Math.min(event.registered, capacity);
   const percentFilled = Math.min(100, Math.round((currentCount / capacity) * 100));
   const spotsRemaining = Math.max(0, capacity - currentCount);
+  const record = organizerRecord(event, events);
   const registrationOpen = event.status === "REGISTRATION OPEN";
   const registrationUnavailableLabel =
     event.status === "COMPLETED"
@@ -139,6 +179,11 @@ export default function EventDetail() {
       setRegError("Please fill in your name and email.");
       return;
     }
+    // Like the server's profile check, only an ID the student typed here is checked.
+    if (formStudentId && formStudentId !== userProfile.studentId && !validStudentId(formStudentId)) {
+      setRegError(`Enter your student ID like ${STUDENT_ID_EXAMPLE}.`);
+      return;
+    }
     if (reserved && !formSeat) {
       setRegError("Pick your seat on the map first.");
       return;
@@ -150,7 +195,6 @@ export default function EventDetail() {
           name: formName.trim(),
           email: formEmail.trim(),
           studentId: formStudentId.trim(),
-          ticketType,
           seat: formSeat,
         });
 
@@ -158,6 +202,7 @@ export default function EventDetail() {
           setRegError(res.message);
         } else {
           setIsRegistering(false);
+          notify(`Ticket #${res.registration.ticketCode} is ready in My Events.`, "success", "Registration confirmed");
         }
       } catch (error) {
         setRegError(error.message);
@@ -186,6 +231,12 @@ export default function EventDetail() {
 
           <h1 className="event-hero__title">{event.title}</h1>
           <p className="event-hero__subtitle">Presented by {event.organizer || "National University"}</p>
+          {record && (
+            <p className="event-hero__record">
+              <Icon name="star" size={16} />
+              <span><b>{record.average.toFixed(1)}</b> / 5 from {record.reviews} {record.reviews === 1 ? "review" : "reviews"} of {record.events} past {record.events === 1 ? "event" : "events"} by {event.organizer}</span>
+            </p>
+          )}
         </div>
       </header>
 
@@ -284,33 +335,36 @@ export default function EventDetail() {
                 </div>
               </section>
 
-              {/* FEATURED SPEAKERS & PRESENTERS */}
+              {/* SPEAKERS & GUEST SPEAKERS */}
               {event.speakers && event.speakers.length > 0 && (
                 <section className="speakers-section">
                   <div className="section-header-block">
-                    <h2 className="section-title">KEYNOTE & GUEST SPEAKERS</h2>
-                    <p className="section-subtitle">Learn directly from technology pioneers and industry engineering leads.</p>
+                    <h2 className="section-title">SPEAKERS & GUEST SPEAKERS</h2>
+                    <p className="section-subtitle">The people presenting at this event.</p>
                   </div>
 
                   <div className="speakers-grid">
                     {event.speakers.map((sp) => (
                       <article key={sp.id} className="speaker-card">
                         <div className="speaker-card__header">
-                          <SpeakerAvatar name={sp.name} src={sp.avatar} />
+                          <img className="speaker-avatar" src={avatarUri(sp.name)} alt="" />
                           <div className="speaker-card__meta">
+                            <span className={`speaker-kind${sp.kind === "Guest speaker" ? " speaker-kind--guest" : ""}`}>{sp.kind || "Speaker"}</span>
                             <h4 className="speaker-name">{sp.name}</h4>
-                            <p className="speaker-role">
-                              {sp.role} <span className="speaker-company">· {sp.company}</span>
-                            </p>
-                            <span className="speaker-time-badge">
-                              <Icon name="clock" size={14} /> {sp.time} · {sp.room}
-                            </span>
+                            {sp.role && <p className="speaker-role">{sp.role}</p>}
+                            {sp.time && (
+                              <span className="speaker-time-badge">
+                                <Icon name="clock" size={14} /> {sp.time}{sp.room ? ` · ${sp.room}` : ""}
+                              </span>
+                            )}
                           </div>
                         </div>
-                        <div className="speaker-topic">
-                          <span className="topic-tag">TOPIC</span>
-                          <p className="topic-title">{sp.topic}</p>
-                        </div>
+                        {sp.topic && (
+                          <div className="speaker-topic">
+                            <span className="topic-tag">TOPIC</span>
+                            <p className="topic-title">{sp.topic}</p>
+                          </div>
+                        )}
                       </article>
                     ))}
                   </div>
@@ -356,6 +410,8 @@ export default function EventDetail() {
                   ))}
                 </section>
               )}
+
+              {event.status === "COMPLETED" && <PublicFeedback eventId={event.id} />}
             </div>
 
             {/* RIGHT COLUMN: Neo-brutalist "CLAIM YOUR TICKET" Card */}
@@ -433,13 +489,16 @@ export default function EventDetail() {
                       </div>
 
                       <div className="ticket-form__field">
-                        <label>STUDENT / ORG ID</label>
+                        <label htmlFor="register-student-id">STUDENT ID</label>
                         <input
+                          id="register-student-id"
                           type="text"
+                          inputMode="numeric"
+                          autoComplete="off"
                           className="input"
-                          placeholder="e.g. 2024-108429"
+                          placeholder={`e.g. ${STUDENT_ID_EXAMPLE}`}
                           value={formStudentId}
-                          onChange={(e) => setFormStudentId(e.target.value)}
+                          onChange={(e) => setFormStudentId(formatStudentId(e.target.value))}
                         />
                       </div>
 
@@ -454,19 +513,6 @@ export default function EventDetail() {
                           </div>
                         </div>
                       )}
-
-                      <div className="ticket-form__field">
-                        <label>ATTENDEE TYPE</label>
-                        <select
-                          className="input"
-                          value={ticketType}
-                          onChange={(e) => setTicketType(e.target.value)}
-                        >
-                          <option value="Student Attendee">Student Attendee</option>
-                          <option value="Faculty / Staff">Faculty / Staff</option>
-                          <option value="Guest / Alumni">Guest / Alumni</option>
-                        </select>
-                      </div>
 
                       {regError && (
                         <p className="form-error" role="alert">
@@ -498,7 +544,7 @@ export default function EventDetail() {
                     </div>
                     <div className="ticket-pass__body">
                       <h4>{existingReg.name}</h4>
-                      <p>{existingReg.ticketType} · {existingReg.studentId || "Student"}</p>
+                      <p>{ATTENDEE_TYPE}{existingReg.studentId ? ` · ${existingReg.studentId}` : ""}</p>
                       <div className="ticket-pass__seat">
                         {seatOf(existingReg)
                           ? <><span>Your Seat:</span> <b>{seatOf(existingReg)}</b></>

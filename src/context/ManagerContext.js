@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { useAuth } from "./AuthContext.js";
 import { api, newId } from "../api.js";
 import { useServerStore } from "./useServerStore.js";
+import { notify } from "../components/Toast.js";
 
 const ManagerContext = createContext(null);
 // State key -> MongoDB-backed API resource (see server/controllers/dataController.js).
@@ -18,18 +19,22 @@ export function ManagerProvider({ children }) {
   const { user } = useAuth();
   const { data, setData, loaded, reload } = useServerStore(MANAGER_RESOURCES, user?.id || "guest");
   const [venues, setVenues] = useState([]);
-  const [toastMessage, setToastMessage] = useState("");
 
-  // Managers pick from the venues the admin set up.
-  useEffect(() => {
+  // Managers pick from the venues the admin set up. Venue pickers re-read the list when they
+  // open, so a venue the admin just added shows up without reloading the page.
+  const loadVenues = useCallback(() => {
     if (!user || user.role === "user") {
       setVenues([]);
       return;
     }
     api("/data/venues")
       .then((res) => setVenues(res.items.map((venue) => venue.name)))
-      .catch(() => setVenues([]));
+      .catch(() => {}); // keep the list we already have
   }, [user]);
+
+  useEffect(() => {
+    loadVenues();
+  }, [loadVenues]);
 
   const managerId = user?.managerId || user?.id;
   const events = useMemo(() => data.events.filter((event) => event.managerId === managerId), [data.events, managerId]);
@@ -44,12 +49,6 @@ export function ManagerProvider({ children }) {
     feedback: data.feedback.filter((item) => eventIds.has(item.eventId)),
     notifications: data.notifications.filter((item) => eventIds.has(item.eventId)),
   }), [data, eventIds, events, venues]);
-
-  const toast = useCallback((message) => {
-    setToastMessage(message);
-    window.clearTimeout(toast.timeoutId);
-    toast.timeoutId = window.setTimeout(() => setToastMessage(""), 2400);
-  }, []);
 
   const updateEvent = useCallback((eventId, patch) => {
     setData((current) => ({ ...current, events: current.events.map((event) => event.id === eventId ? { ...event, ...patch } : event) }));
@@ -157,10 +156,10 @@ export function ManagerProvider({ children }) {
         ? { ...registration, attendanceStatus: "Attended" }
         : registration),
     }));
-    toast("Event marked completed.");
-  }, [managerId, toast, setData]);
+    notify("Event marked completed.", "success");
+  }, [managerId, setData]);
 
-  const value = { ...scoped, allManagerEvents: data.events, allManagerRegistrations: data.registrations, loadedManagerRegistrations: loaded.registrations, reloadManagerData: reload, toastMessage, toast, createEvent, deleteEvent, updateEvent, updateRegistration, addAttendeeRegistration, submitAttendeeFeedback, saveSession, deleteSession, addAnnouncement, updateAnnouncement, completeEvent };
+  const value = { ...scoped, allManagerEvents: data.events, allManagerRegistrations: data.registrations, loadedManagerRegistrations: loaded.registrations, allAnnouncements: data.announcements, reloadManagerData: reload, loadVenues, toast: notify, createEvent, deleteEvent, updateEvent, updateRegistration, addAttendeeRegistration, submitAttendeeFeedback, saveSession, deleteSession, addAnnouncement, updateAnnouncement, completeEvent };
   return <ManagerContext.Provider value={value}>{children}</ManagerContext.Provider>;
 }
 
