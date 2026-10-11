@@ -1,12 +1,12 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import Navbar from "../components/Navbar.js";
-import EventCard from "../components/EventCard.js";
-import Icon from "../components/Icon.js";
-import { useEntering } from "../components/Motion.js";
-import { EventCardSkeleton, useSkeleton } from "../components/Skeleton.js";
-import { useEventContext } from "../context/EventContext.js";
-import { EVENT_CATEGORIES } from "../data/options.js";
+import Navbar from "../../components/Navbar.js";
+import EventCard from "../../components/attendee/EventCard.js";
+import Icon from "../../components/Icon.js";
+import { useEntering } from "../../components/Motion.js";
+import { EventCardSkeleton, useSkeleton } from "../../components/Skeleton.js";
+import { useEventContext } from "../../context/EventContext.js";
+import { EVENT_CATEGORIES } from "../../data/options.js";
 
 export default function EventsPage() {
   const entering = useEntering();

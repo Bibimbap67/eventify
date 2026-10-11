@@ -1,8 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useEventContext } from "../context/EventContext.js";
-import { categoryColor, eventBanner } from "../data/options.js";
-import Icon from "./Icon.js";
+import { useEventContext } from "../../context/EventContext.js";
+import { categoryColor, eventBanner } from "../../data/options.js";
+import Icon from "../Icon.js";
 
 const STATUS_LABELS = { "OPENS SOON": "Opens soon", COMPLETED: "Completed" };
 

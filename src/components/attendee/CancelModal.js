@@ -1,9 +1,9 @@
 import React from "react";
-import Icon from "./Icon.js";
-import Spinner from "./Spinner.js";
-import { usePending } from "./Motion.js";
-import { Modal } from "./admin/ui.js";
-import { seatOf } from "../data/seating.js";
+import Icon from "../Icon.js";
+import Spinner from "../Spinner.js";
+import { usePending } from "../Motion.js";
+import { Modal } from "../admin/ui.js";
+import { seatOf } from "../../data/seating.js";
 
 export default function CancelModal({ registration, onConfirm, onClose }) {
   const [cancelling, runCancel] = usePending();

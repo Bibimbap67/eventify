@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
-import Icon from "./Icon.js";
+import Icon from "../Icon.js";
 
 const SAME_CODE_MS = 4000; // a ticket held up to the camera is read once, not on every frame
 const SCAN_EVERY_MS = 150;

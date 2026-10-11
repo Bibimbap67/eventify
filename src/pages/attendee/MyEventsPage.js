@@ -1,15 +1,15 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import Navbar from "../components/Navbar.js";
-import Icon from "../components/Icon.js";
-import { useEntering } from "../components/Motion.js";
-import { useEventContext } from "../context/EventContext.js";
-import TicketPassModal from "../components/TicketPassModal.js";
-import FeedbackModal from "../components/FeedbackModal.js";
-import CancelModal from "../components/CancelModal.js";
-import { notify } from "../components/Toast.js";
-import { seatOf } from "../data/seating.js";
-import { ATTENDEE_TYPE } from "../data/student.js";
+import Navbar from "../../components/Navbar.js";
+import Icon from "../../components/Icon.js";
+import { useEntering } from "../../components/Motion.js";
+import { useEventContext } from "../../context/EventContext.js";
+import TicketPassModal from "../../components/attendee/TicketPassModal.js";
+import FeedbackModal from "../../components/attendee/FeedbackModal.js";
+import CancelModal from "../../components/attendee/CancelModal.js";
+import { notify } from "../../components/Toast.js";
+import { seatOf } from "../../data/seating.js";
+import { ATTENDEE_TYPE } from "../../data/student.js";
 
 export default function MyEventsPage() {
   const entering = useEntering();

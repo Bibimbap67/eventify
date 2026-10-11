@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import Navbar from "../components/Navbar.js";
-import Icon from "../components/Icon.js";
-import { useEntering } from "../components/Motion.js";
-import { useEventContext } from "../context/EventContext.js";
-import CertificateModal from "../components/CertificateModal.js";
+import Navbar from "../../components/Navbar.js";
+import Icon from "../../components/Icon.js";
+import { useEntering } from "../../components/Motion.js";
+import { useEventContext } from "../../context/EventContext.js";
+import CertificateModal from "../../components/attendee/CertificateModal.js";
 
 export default function CertificatesPage() {
   const entering = useEntering();

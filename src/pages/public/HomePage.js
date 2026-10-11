@@ -1,15 +1,15 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar.js";
-import Icon from "../components/Icon.js";
-import { useSkeleton } from "../components/Skeleton.js";
-import ScrollProgress from "../components/landing/ScrollProgress.js";
-import CategoryStrip from "../components/landing/CategoryStrip.js";
-import HowItWorks from "../components/landing/HowItWorks.js";
-import { ComingUp, PosterWall } from "../components/landing/Board.js";
-import { useAuth } from "../context/AuthContext.js";
-import { useEventContext } from "../context/EventContext.js";
-import { EVENT_CATEGORIES } from "../data/options.js";
+import Navbar from "../../components/Navbar.js";
+import Icon from "../../components/Icon.js";
+import { useSkeleton } from "../../components/Skeleton.js";
+import ScrollProgress from "../../components/landing/ScrollProgress.js";
+import CategoryStrip from "../../components/landing/CategoryStrip.js";
+import HowItWorks from "../../components/landing/HowItWorks.js";
+import { ComingUp, PosterWall } from "../../components/landing/Board.js";
+import { useAuth } from "../../context/AuthContext.js";
+import { useEventContext } from "../../context/EventContext.js";
+import { EVENT_CATEGORIES } from "../../data/options.js";
 
 // Featured first, then soonest first; events without an ISO date go last ("9" > any year).
 const bySoonest = (a, b) =>

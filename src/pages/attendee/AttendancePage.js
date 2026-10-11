@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import Navbar from "../components/Navbar.js";
-import Icon from "../components/Icon.js";
-import { useEntering } from "../components/Motion.js";
-import { useEventContext } from "../context/EventContext.js";
-import TicketPassModal from "../components/TicketPassModal.js";
-import { notify } from "../components/Toast.js";
-import { seatOf } from "../data/seating.js";
+import Navbar from "../../components/Navbar.js";
+import Icon from "../../components/Icon.js";
+import { useEntering } from "../../components/Motion.js";
+import { useEventContext } from "../../context/EventContext.js";
+import TicketPassModal from "../../components/attendee/TicketPassModal.js";
+import { notify } from "../../components/Toast.js";
+import { seatOf } from "../../data/seating.js";
 
 export default function AttendancePage() {
   const entering = useEntering();

@@ -1,18 +1,18 @@
 import React, { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import LoginPage from "./pages/LoginPage.js";
-import HomePage from "./pages/HomePage.js";
-import EventsPage from "./pages/EventsPage.js";
-import EventDetail from "./pages/EventDetail.js";
-import MyEventsPage from "./pages/MyEventsPage.js";
-import SchedulePage from "./pages/SchedulePage.js";
-import AttendancePage from "./pages/AttendancePage.js";
-import CertificatesPage from "./pages/CertificatesPage.js";
-import NotificationsPage from "./pages/NotificationsPage.js";
+import LoginPage from "./pages/public/LoginPage.js";
+import HomePage from "./pages/public/HomePage.js";
+import EventsPage from "./pages/public/EventsPage.js";
+import EventDetail from "./pages/public/EventDetail.js";
+import MyEventsPage from "./pages/attendee/MyEventsPage.js";
+import SchedulePage from "./pages/attendee/SchedulePage.js";
+import AttendancePage from "./pages/attendee/AttendancePage.js";
+import CertificatesPage from "./pages/attendee/CertificatesPage.js";
+import NotificationsPage from "./pages/attendee/NotificationsPage.js";
 import ProfilePage from "./pages/ProfilePage.js";
-import Dashboard from "./pages/Dashboard.js";
-import VerifyPage from "./pages/VerifyPage.js";
-import CalendarPage from "./pages/CalendarPage.js";
+import Dashboard from "./pages/attendee/Dashboard.js";
+import VerifyPage from "./pages/public/VerifyPage.js";
+import CalendarPage from "./pages/public/CalendarPage.js";
 import AdminLayout from "./components/admin/AdminLayout.js";
 import AdminDashboard from "./pages/admin/AdminDashboard.js";
 import UsersAdmin from "./pages/admin/UsersAdmin.js";
@@ -32,7 +32,7 @@ import { PageTransition } from "./components/Motion.js";
 import { ShellSkeleton } from "./components/Skeleton.js";
 
 // Only staff need the QR reader, so its code loads when the desk is opened.
-const StaffPage = lazy(() => import("./pages/StaffPage.js"));
+const StaffPage = lazy(() => import("./pages/staff/StaffPage.js"));
 
 // Attendee pages carry their own navbar; admin and manager layouts animate their own outlet.
 const PAGE_TARGETS = ":scope > :not(.admin, .manager-shell) > :not(.navbar)";

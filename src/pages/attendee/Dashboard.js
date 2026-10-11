@@ -1,6 +1,6 @@
 import React from "react";
-import { useAuth } from "../context/AuthContext.js";
-import Navbar from "../components/Navbar.js";
+import { useAuth } from "../../context/AuthContext.js";
+import Navbar from "../../components/Navbar.js";
 
 export default function Dashboard() {
   const { user } = useAuth();

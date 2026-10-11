@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.js";
-import { api } from "../api.js";
-import Logo from "../components/Logo.js";
-import AuthTabs from "../components/AuthTabs.js";
-import TextField from "../components/TextField.js";
-import Button from "../components/Button.js";
-import Shape from "../components/landing/Shapes.js";
-import { prefersReducedMotion } from "../components/Motion.js";
+import { useAuth } from "../../context/AuthContext.js";
+import { api } from "../../api.js";
+import Logo from "../../components/Logo.js";
+import AuthTabs from "../../components/AuthTabs.js";
+import TextField from "../../components/TextField.js";
+import Button from "../../components/Button.js";
+import Shape from "../../components/landing/Shapes.js";
+import { prefersReducedMotion } from "../../components/Motion.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STAMP_MS = 700; // time to show the "Admitted" stamp before leaving the page

@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
-import Icon from "./Icon.js";
-import { Modal } from "./admin/ui.js";
-import { DocPreview, fileSafe, printNode, savePng, useQrCode } from "./DocExport.js";
+import Icon from "../Icon.js";
+import { Modal } from "../admin/ui.js";
+import { DocPreview, fileSafe, printNode, savePng, useQrCode } from "../DocExport.js";
 
 const CERT_WIDTH = 1100;
 

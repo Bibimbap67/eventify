@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import Navbar from "../components/Navbar.js";
-import Icon from "../components/Icon.js";
-import QrScanner from "../components/QrScanner.js";
-import { playSound } from "../components/sound.js";
-import { api } from "../api.js";
+import Navbar from "../../components/Navbar.js";
+import Icon from "../../components/Icon.js";
+import QrScanner from "../../components/staff/QrScanner.js";
+import { playSound } from "../../components/sound.js";
+import { api } from "../../api.js";
 
 // How each server answer looks at the desk.
 const RESULTS = {

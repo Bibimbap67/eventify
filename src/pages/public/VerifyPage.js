@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import Navbar from "../components/Navbar.js";
-import Icon from "../components/Icon.js";
-import { api } from "../api.js";
+import Navbar from "../../components/Navbar.js";
+import Icon from "../../components/Icon.js";
+import { api } from "../../api.js";
 
 // Where a certificate's QR code leads: anyone can confirm the credential ID is real.
 export default function VerifyPage() {
