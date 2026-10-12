@@ -1,7 +1,7 @@
 const express = require("express");
-const { list, batch, publicFeedback } = require("../controllers/dataController");
+const { list, batch, publicFeedback, bookings } = require("../controllers/dataController");
 const { getSettings, updateSettings } = require("../controllers/settingsController");
-const { protect, optionalAuth } = require("../middleware/auth");
+const { protect, optionalAuth, requireRole } = require("../middleware/auth");
 const { requireAdmin } = require("../utils/audit");
 
 const router = express.Router();
@@ -13,5 +13,6 @@ router.put("/settings", protect, requireAdmin, updateSettings);
 router.get("/data/:resource", optionalAuth, list);
 router.post("/data/:resource/batch", protect, batch);
 router.get("/events/:id/feedback", publicFeedback);
+router.get("/venues/bookings", protect, requireRole("admin", "manager"), bookings);
 
 module.exports = router;

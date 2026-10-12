@@ -12,7 +12,8 @@
 // so they are never accepted for check-in.
 const crypto = require("crypto");
 const { Event, Registration, Certificate, Notification } = require("../models/records");
-const { checkInOpensAt, opensLabel } = require("../utils/checkIn");
+const { checkInOpensAt, opensLabel, formatTime } = require("../utils/checkIn");
+const { completeEndedEvents } = require("../utils/autoComplete");
 const { CLOSED_EVENT_STATUS, PUBLIC_EVENT_STATUS } = require("../utils/eventStatus");
 
 const QR_PREFIX = "EVENTIFY-TICKET:";
@@ -44,7 +45,7 @@ function eventView(event) {
     id: event._id,
     title: event.title,
     date: event.date,
-    time: event.startTime && event.endTime ? `${event.startTime} - ${event.endTime}` : "",
+    time: event.startTime && event.endTime ? `${formatTime(event.startTime)} - ${formatTime(event.endTime)}` : "",
     venue: event.venue,
     status: event.status,
     closed: CLOSED_EVENT_STATUS.includes(event.status),
@@ -98,7 +99,7 @@ const checkIn = async (req, res) => {
     return refuse(`Already checked in${registration.checkedInAt ? ` at ${registration.checkedInAt}` : ""}.`, attendee, "duplicate");
   }
 
-  const checkedInAt = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  const checkedInAt = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
   // The status filter makes this atomic: two desks scanning the same ticket cannot both admit it.
   const updated = await Registration.findOneAndUpdate(
     { _id: registration._id, attendanceStatus: { $nin: ["Checked in", "Checked In", "Attended"] } },
@@ -127,6 +128,7 @@ const checkIn = async (req, res) => {
 };
 
 const deskEvents = async (req, res) => {
+  await completeEndedEvents();
   const events = await Event.find({ status: { $in: PUBLIC_EVENT_STATUS } }).sort({ createdAt: -1 });
   const counts = await Registration.aggregate([
     { $match: { status: "Confirmed", eventId: { $in: events.map((event) => event._id) } } },

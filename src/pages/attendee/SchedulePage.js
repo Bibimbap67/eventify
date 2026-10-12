@@ -6,6 +6,7 @@ import { useEventContext } from "../../context/EventContext.js";
 import TicketPassModal from "../../components/attendee/TicketPassModal.js";
 import { eventBanner } from "../../data/options.js";
 import { seatOf } from "../../data/seating.js";
+import { formatTimesIn } from "../../data/time.js";
 
 export default function SchedulePage() {
   const { registrations, events } = useEventContext();
@@ -14,8 +15,9 @@ export default function SchedulePage() {
 
   // Active confirmed registrations
   const activeRegs = useMemo(() => {
-    return registrations.filter((r) => r.status === "Confirmed");
-  }, [registrations]);
+    // A cancelled event's tickets leave the itinerary; My Events still lists them.
+    return registrations.filter((r) => r.status === "Confirmed" && events.find((e) => e.id === r.eventId)?.status !== "CANCELLED");
+  }, [registrations, events]);
 
   // Map registrations to event details
   const scheduledItems = useMemo(() => {
@@ -26,7 +28,7 @@ export default function SchedulePage() {
           registration: reg,
           event: ev,
           date: ev?.fullDate || reg.fullDate || reg.date,
-          time: ev?.time || reg.time,
+          time: ev?.time || formatTimesIn(reg.time),
           startTime: ev?.startTime || "08:00 AM",
           location: ev?.fullLocation || reg.location,
           sessions: ev?.agenda || [],

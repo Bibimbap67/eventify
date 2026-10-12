@@ -11,6 +11,7 @@ import { notify } from "../../components/Toast.js";
 import { seatOf } from "../../data/seating.js";
 import { isCheckedIn } from "../../data/checkIn.js";
 import { ATTENDEE_TYPE } from "../../data/student.js";
+import { formatTimesIn } from "../../data/time.js";
 
 export default function MyEventsPage() {
   const entering = useEntering();
@@ -22,14 +23,15 @@ export default function MyEventsPage() {
   const [feedbackModalTarget, setFeedbackModalTarget] = useState(null);
   const [cancelModalTarget, setCancelModalTarget] = useState(null);
 
-  // Filter registrations
+  // Filter registrations. A ticket for an event the organizer cancelled moves to Cancelled.
+  const calledOff = (r) => events.find((event) => event.id === r.eventId)?.status === "CANCELLED";
   const upcomingRegs = registrations.filter(
-    (r) => r.status === "Confirmed" && r.attendanceStatus !== "Attended"
+    (r) => r.status === "Confirmed" && r.attendanceStatus !== "Attended" && !calledOff(r)
   );
   const pastRegs = registrations.filter(
     (r) => r.status === "Confirmed" && r.attendanceStatus === "Attended"
   );
-  const cancelledRegs = registrations.filter((r) => r.status === "Cancelled");
+  const cancelledRegs = registrations.filter((r) => r.status === "Cancelled" || calledOff(r));
 
   // Handlers
   const handleCompleteAttendance = (reg) => {
@@ -127,7 +129,7 @@ export default function MyEventsPage() {
                     <div className="reg-card__details">
                       <div>
                         <small>DATE & TIME</small>
-                        <strong>{reg.fullDate || reg.date} · {reg.time}</strong>
+                        <strong>{reg.fullDate || reg.date} · {formatTimesIn(reg.time)}</strong>
                       </div>
                       <div>
                         <small>VENUE</small>
@@ -277,7 +279,7 @@ export default function MyEventsPage() {
                   <article key={reg.id} className="registration-card registration-card--cancelled">
                     <div className="reg-card__top">
                       <span className="sbadge sbadge--cancelled">CANCELLED</span>
-                      <small>Cancelled on {reg.cancelledAt || "Recently"}</small>
+                      <small>{calledOff(reg) ? "Event cancelled by the organizer" : `Cancelled on ${reg.cancelledAt || "Recently"}`}</small>
                     </div>
 
                     <h3 className="reg-card__title">{reg.eventTitle}</h3>
@@ -287,7 +289,7 @@ export default function MyEventsPage() {
 
                     <div className="reg-card__footer">
                       <Link to={`/events/${reg.eventId}`} className="btn-sm btn-sm--yellow">
-                        View Event & Re-register
+                        {calledOff(reg) ? "View Event" : "View Event & Re-register"}
                       </Link>
                     </div>
                   </article>

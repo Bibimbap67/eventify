@@ -6,9 +6,10 @@ import { plural } from "../../components/ui.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { useEventContext } from "../../context/EventContext.js";
 import { categoryColor } from "../../data/options.js";
+import { toMinutes as minutes } from "../../data/time.js";
 
 const WEEKDAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-const STATUS_LABELS = { "REGISTRATION OPEN": "Registration open", "OPENS SOON": "Opens soon", COMPLETED: "Completed" };
+const STATUS_LABELS = { "REGISTRATION OPEN": "Registration open", "OPENS SOON": "Opens soon", COMPLETED: "Completed", CANCELLED: "Cancelled" };
 const pad = (n) => String(n).padStart(2, "0");
 const dayKey = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 const fromKey = (key) => new Date(`${key}T12:00:00`);
@@ -22,15 +23,6 @@ function eventDay(event) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(event.isoDate || "")) return event.isoDate;
   const parsed = new Date(event.date);
   return Number.isNaN(parsed.getTime()) ? "" : dayKey(parsed);
-}
-
-// Minutes after midnight for "13:00" or "1:00 PM"; null when there is no time.
-function minutes(time) {
-  const match = /^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i.exec(String(time || "").trim());
-  if (!match) return null;
-  let hours = Number(match[1]) % (match[3] ? 12 : 24);
-  if (/pm/i.test(match[3] || "")) hours += 12;
-  return hours * 60 + Number(match[2]);
 }
 
 const clock = (mins) => `${Math.floor(mins / 60) % 12 || 12}:${pad(mins % 60)} ${mins < 720 ? "AM" : "PM"}`;

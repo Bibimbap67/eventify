@@ -1,3 +1,6 @@
+// Event dates and times are typed in Philippine time. Hosts like Render run on UTC, which made
+// check-in open 8 hours late, so the server reads every time as Manila time.
+process.env.TZ = "Asia/Manila";
 require("dotenv").config({ quiet: true });
 const express = require("express");
 const cors = require("cors");
@@ -26,8 +29,7 @@ app.use("/api/admin", adminRoutes);
 
 app.use((req, res) => res.status(404).json({ message: "Route not found." }));
 
-// Express 5 sends errors from async routes here. Errors meant for the user (`expose`, like a
-// refused change or a broken JSON body) keep their status and message; anything else is a 500.
+// Express 5 sends errors from async routes here. Errors meant for the user (`expose`, like a refused change or a broken JSON body) keep their status and message; anything else is a 500.
 app.use((err, req, res, next) => {
   if (err.expose) return res.status(err.status).json({ message: err.message });
   console.error(err);

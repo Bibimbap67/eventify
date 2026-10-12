@@ -7,6 +7,7 @@ import { isReserved, seatOf } from "../data/seating.js";
 import { ATTENDEE_TYPE } from "../data/student.js";
 import { attendanceKey } from "../data/checkIn.js";
 import { SAVED_TO_PUBLIC } from "../data/eventStatus.js";
+import { formatTime, timeRange } from "../data/time.js";
 
 const EventContext = createContext(null);
 
@@ -58,9 +59,15 @@ export function EventProvider({ children }) {
   })), [setData]);
   const userProfile = useMemo(() => blankProfile(user), [user]);
 
+  const registrations = useMemo(
+    () => allRegistrations.filter((registration) => belongsToUser(registration, user)),
+    [allRegistrations, user]
+  );
   const events = useMemo(() => {
     return allEvents
       .filter((event) => SAVED_TO_PUBLIC[event.status])
+      // A cancelled event stays only for those who had a ticket, to show them it was called off.
+      .filter((event) => event.status !== "Cancelled" || registrations.some((r) => r.eventId === event.id))
       .map((event) => {
         const sessions = managerSessions.filter((session) => session.eventId === event.id);
         // The speakers listed on the event, each with their session if one names them.
@@ -69,7 +76,7 @@ export function EventProvider({ children }) {
         const named = listed.length ? listed : [...new Set(sessions.map((session) => session.speaker).filter(Boolean))].map((name) => ({ name, kind: "Guest speaker" }));
         const speakers = named.map((speaker, index) => {
           const session = sessions.find((item) => item.speaker?.trim().toLowerCase() === speaker.name.trim().toLowerCase());
-          return { id: `${event.id}-speaker-${index}`, ...speaker, topic: session?.title, time: session?.startTime, room: session?.room };
+          return { id: `${event.id}-speaker-${index}`, ...speaker, topic: session?.title, time: session?.startTime && formatTime(session.startTime), room: session?.room };
         });
         const date = new Date(`${event.date}T12:00:00`);
         return {
@@ -78,13 +85,13 @@ export function EventProvider({ children }) {
           isoDate: event.date,
           date: date.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }).toUpperCase(),
           fullDate: date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }),
-          time: `${event.startTime} - ${event.endTime}`,
+          time: timeRange(event.startTime, event.endTime),
           location: event.venue.toUpperCase(),
           fullLocation: event.venue,
           registered: liveRegisteredCount(event, loadedRegistrations, allRegistrations),
           speakers,
           agenda: sessions.map((session) => ({
-            time: `${session.startTime} - ${session.endTime}`,
+            time: timeRange(session.startTime, session.endTime),
             title: session.title,
             speaker: session.speaker,
             room: session.room,
@@ -94,11 +101,7 @@ export function EventProvider({ children }) {
           heroBg: "var(--color-yellow)",
         };
       });
-  }, [allEvents, allRegistrations, loadedRegistrations, managerSessions]);
-  const registrations = useMemo(
-    () => allRegistrations.filter((registration) => belongsToUser(registration, user)),
-    [allRegistrations, user]
-  );
+  }, [allEvents, allRegistrations, loadedRegistrations, managerSessions, registrations]);
   const certificates = useMemo(
     () => allCertificates.filter((certificate) => belongsToUser(certificate, user)),
     [allCertificates, user]
@@ -134,6 +137,8 @@ export function EventProvider({ children }) {
           message:
             targetEvent.status === "COMPLETED"
               ? "This event has already finished."
+              : targetEvent.status === "CANCELLED"
+              ? "This event was cancelled."
               : "Registration is not open for this event yet.",
         };
       }

@@ -24,6 +24,12 @@ export async function api(path, { method = "GET", body } = {}) {
   }
 
   const data = await response.json().catch(() => ({}));
+  // A signed-in request refused as signed out (e.g. this admin account signed in on another
+  // device): forget the token, and AuthContext signs this tab out.
+  if (response.status === 401 && token) {
+    clearToken();
+    window.dispatchEvent(new CustomEvent("eventify:signed-out", { detail: data.message }));
+  }
   if (!response.ok) throw new Error(data.message || "Something went wrong. Try again.");
   return data;
 }

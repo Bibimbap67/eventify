@@ -30,7 +30,7 @@ export default function HomePage() {
     }
   };
 
-  const upcomingEvents = events.filter((event) => event.status !== "COMPLETED").sort(bySoonest);
+  const upcomingEvents = events.filter((event) => event.status !== "COMPLETED" && event.status !== "CANCELLED").sort(bySoonest);
   const loadingEvents = useSkeleton(events.length === 0, "home");
   const programTerms = (userProfile.program || "")
     .toLowerCase()

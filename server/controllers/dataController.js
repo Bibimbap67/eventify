@@ -2,6 +2,7 @@
 //
 //   GET  /api/data/:resource         -> { items: [...] } (only what the caller may see)
 //   POST /api/data/:resource/batch   -> body { save: [records], remove: [ids] }
+//   GET  /api/venues/bookings        -> { capacity, bookings } (a venue's events on one day)
 //
 // The React contexts keep their data in memory and call /batch with whatever
 // changed. Each resource below decides who may read and write which records, so a
@@ -12,9 +13,11 @@ const {
 } = require("../models/records");
 const { seatId, seatIndex, onMap, firstFreeSeat } = require("../utils/seating");
 const { audit, diff } = require("../utils/audit");
-const { checkInOpensAt, opensLabel } = require("../utils/checkIn");
+const { checkInOpensAt, opensLabel, toMinutes, formatTime } = require("../utils/checkIn");
 const { PUBLIC_EVENT_STATUS, OPEN_EVENT_STATUS } = require("../utils/eventStatus");
 const { issueCertificates } = require("../utils/certificates");
+const { completeEndedEvents } = require("../utils/autoComplete");
+const { sendMail } = require("../utils/mail");
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -65,6 +68,37 @@ async function checkSeating(record, existing) {
     if (last >= Number(record.capacity || 0)) {
       deny(`Capacity can't go below ${last + 1}: seat ${seatId(last)} is already taken.`);
     }
+  }
+}
+
+// ---- venue booking -------------------------------------------------------------
+// One venue holds one event at a time, and no event may hold more people than its venue.
+// Events that were called off free their time slot.
+const FREED_EVENT_STATUS = ["Rejected", "Cancelled", "Archived"];
+
+async function venueBookings(venue, date, excludeId) {
+  return Event.find({ venue, date, _id: { $ne: excludeId }, status: { $nin: FREED_EVENT_STATUS } }).sort({ startTime: 1 });
+}
+
+// Only checked when the booking changes, so an older event can still be edited or closed.
+async function checkVenue(record, existing) {
+  if (!record.venue) return;
+  const venue = await Venue.findOne({ name: record.venue });
+  const resized = !existing || record.venue !== existing.venue || Number(record.capacity) !== Number(existing.capacity);
+  if (resized && venue?.capacity && Number(record.capacity) > venue.capacity) {
+    throw new HttpError(400, `${venue.name} holds ${venue.capacity} people. Set the capacity to ${venue.capacity} or less.`);
+  }
+  if (!record.date || FREED_EVENT_STATUS.includes(record.status)) return;
+  const reopened = existing && FREED_EVENT_STATUS.includes(existing.status);
+  const moved = !existing || reopened || ["venue", "date", "startTime", "endTime"].some((key) => record[key] !== existing[key]);
+  if (!moved) return;
+  const start = toMinutes(record.startTime);
+  const end = toMinutes(record.endTime);
+  if (start === null || end === null) return;
+  const clash = (await venueBookings(record.venue, record.date, existing?.id))
+    .find((other) => toMinutes(other.startTime) < end && start < toMinutes(other.endTime));
+  if (clash) {
+    throw new HttpError(409, `${record.venue} is already booked for ${clash.title} from ${formatTime(clash.startTime)} to ${formatTime(clash.endTime)} that day. Pick another time or venue.`);
   }
 }
 
@@ -135,10 +169,14 @@ const events = {
     if (isAdmin(user)) return {};
     const visible = { status: { $in: PUBLIC_EVENT_STATUS } };
     if (isManager(user)) return { $or: [visible, { managerId: managerKey(user) }] };
-    return visible;
+    if (!user) return visible;
+    // An attendee still sees a cancelled event they had a ticket for, so it doesn't just vanish.
+    const theirs = await Registration.distinct("eventId", { userId: user.id });
+    return { $or: [visible, { status: "Cancelled", _id: { $in: theirs } }] };
   },
   async save(user, record, existing) {
     await checkSeating(record, existing);
+    await checkVenue(record, existing);
     if (isAdmin(user)) return;
     if (!isManager(user)) deny();
     if (existing && existing.managerId !== managerKey(user)) deny();
@@ -304,6 +342,7 @@ const RESOURCES = {
     model: Announcement,
     scope: "manager",
     ...managerEventChild(),
+    afterSave: notifyAnnouncements,
     // Published updates show on the public event page; drafts stay with the event's manager.
     async read(user) {
       if (isAdmin(user)) return {};
@@ -341,6 +380,43 @@ const RESOURCES = {
   // admins read it through GET /api/admin/audit-logs, so nobody can edit or delete entries.
   venues: { model: Venue, ...publicReadAdminWrite },
 };
+
+// A newly published announcement goes to everyone holding a ticket to its event: an inbox
+// notification, and an email. Emails are not awaited, so a slow mail server never holds up saving.
+async function notifyAnnouncements(saved) {
+  const published = saved.filter(({ before, after }) => after.status === "Published" && before?.status !== "Published");
+  for (const { id, after } of published) {
+    const event = await Event.findById(after.eventId);
+    if (!event) continue;
+    const tickets = await Registration.find({ eventId: event._id, status: "Confirmed" });
+    const now = new Date();
+    await Notification.insertMany(tickets.filter((ticket) => ticket.userId).map((ticket) => ({
+      _id: `notif-${id}-${ticket._id}`,
+      scope: "attendee",
+      userId: ticket.userId,
+      eventId: event._id,
+      type: "announcement",
+      title: `${event.title}: ${after.title}`,
+      message: after.message,
+      time: "Just now",
+      timestamp: now.toISOString(),
+      read: false,
+      link: `/events/${event._id}`,
+    })), { ordered: false }).catch((err) => {
+      if (err.code !== 11000) throw err; // already notified (the announcement was published before)
+    });
+    const emails = [...new Set(tickets.map((ticket) => ticket.email).filter(Boolean))];
+    // Blind copies, so attendees never see each other's addresses. 50 at a time stays under Gmail's per-message limit.
+    for (let i = 0; i < emails.length; i += 50) {
+      sendMail({
+        to: process.env.MAIL_FROM || process.env.SMTP_USER || "",
+        bcc: emails.slice(i, i + 50),
+        subject: `${event.title}: ${after.title}`,
+        text: `${after.message}\n\nYou're getting this because you have a ticket to ${event.title}.\nEvent page: ${process.env.CLIENT_URL || "https://eventifys.vercel.app"}/events/${event._id}\n\nEventify · National University - Mall of Asia`,
+      }).catch((err) => console.error("Could not send the announcement email:", err.message));
+    }
+  }
+}
 
 // ---- audit trail ---------------------------------------------------------------
 // Every change an admin makes through /batch is recorded with its outcome. Other users are
@@ -424,6 +500,7 @@ function getResource(req) {
 
 const list = async (req, res) => {
   const resource = getResource(req);
+  if (resource === events) await completeEndedEvents();
   const filter = await resource.read(req.user);
   if (!filter) return res.json({ items: [] });
   if (resource.scope) filter.scope = resource.scope;
@@ -519,4 +596,17 @@ const publicFeedback = async (req, res) => {
   res.json({ items });
 };
 
-module.exports = { list, batch, publicFeedback };
+// GET /api/venues/bookings?venue=&date=&exclude=: what a venue already holds that day, so the
+// event forms can show the taken times and the venue's size before saving (checkVenue enforces both).
+const bookings = async (req, res) => {
+  const name = String(req.query.venue || "");
+  const date = String(req.query.date || "");
+  const venue = await Venue.findOne({ name });
+  const booked = date ? await venueBookings(name, date, String(req.query.exclude || "")) : [];
+  res.json({
+    capacity: venue?.capacity || null,
+    bookings: booked.map((event) => ({ id: event._id, title: event.title, startTime: event.startTime, endTime: event.endTime })),
+  });
+};
+
+module.exports = { list, batch, publicFeedback, bookings };

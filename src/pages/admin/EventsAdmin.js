@@ -2,7 +2,7 @@ import React, { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAdmin } from "../../context/AdminContext.js";
 import { ADMIN_STATUSES } from "../../data/eventStatus.js";
-import { ORGANIZERS } from "../../data/options.js";
+import { EVENT_CATEGORIES, ORGANIZERS } from "../../data/options.js";
 import Icon from "../../components/Icon.js";
 import { ConfirmModal, Modal } from "../../components/Modal.js";
 import { SeatingField } from "../../components/SeatMap.js";
@@ -11,6 +11,10 @@ import {
   ArchiveSwitch, CapacityBar, FilterChips, SectionHeading, StatusBadge, Table, plural,
 } from "../../components/ui.js";
 import { LoadError, SearchFilter, formatDay, useApi, useFilters } from "../../components/admin/parts.js";
+import { formatTime, timeRange } from "../../data/time.js";
+import { useManager } from "../../context/ManagerContext.js";
+import { OvertimeButtons } from "../../components/manager/EventFields.js";
+import { AnnouncementComposer } from "../../components/manager/Announcements.js";
 
 // Status changes the admin can make: label -> [from statuses, to status, needs confirming].
 const ACTIONS = [
@@ -70,7 +74,7 @@ export default function EventsAdmin() {
       render: (event) => (
         <span className="manager-mono">
           {formatDay(event.date)}
-          {event.start && <span className="admin-cell-sub">{event.start}{event.end ? `–${event.end}` : ""}</span>}
+          {event.start && <span className="admin-cell-sub">{timeRange(event.start, event.end, "–")}</span>}
         </span>
       ),
     },
@@ -167,7 +171,7 @@ export default function EventsAdmin() {
 
       {viewing && (
         <EventDetails
-          event={viewing}
+          event={db.events.find((item) => item.id === viewing.id) || viewing}
           onClose={() => setViewing(null)}
           onEdit={() => {
             setEditing(viewing);
@@ -223,14 +227,16 @@ export default function EventsAdmin() {
   );
 }
 
-// Read-only oversight of one event. Its schedule and announcements belong to its manager,
-// so they are listed here but edited only in the manager workspace.
+// Oversight of one event. Its schedule belongs to its manager, so it is listed here but edited
+// only in the manager workspace; the admin may post announcements and add overtime.
 function EventDetails({ event, onClose, onEdit }) {
-  const { venueName } = useAdmin();
+  const { venueName, update, toast } = useAdmin();
+  const { allAnnouncements } = useManager();
+  const announcements = allAnnouncements.filter((item) => item.eventId === event.id);
   const { data, error, reload } = useApi(`/admin/events/${encodeURIComponent(event.id)}`);
   const facts = [
     ["Status", <StatusBadge key="status" value={event.status} />],
-    ["Date", `${formatDay(event.date)}${event.start ? ` · ${event.start}${event.end ? `–${event.end}` : ""}` : ""}`],
+    ["Date", `${formatDay(event.date)}${event.start ? ` · ${timeRange(event.start, event.end, "–")}` : ""}`],
     ["Venue", venueName(event.venueId, event.id)],
     ["Capacity", `${event.capacity || 0} · ${event.seating === "reserved" ? "reserved seats" : "free seating"}`],
     ["Organizer", event.organizer || "—"],
@@ -244,6 +250,14 @@ function EventDetails({ event, onClose, onEdit }) {
           <dl className="manager-definition-list">
             {facts.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
           </dl>
+          <OvertimeButtons
+            event={event}
+            endTime={event.end}
+            onExtend={(end, minutes) => {
+              update("events", event.id, { end });
+              toast(`Added ${minutes} minutes. ${event.title} now ends at ${formatTime(end)}.`);
+            }}
+          />
 
           <h3><Icon name="speaker" size={16} /> Speakers</h3>
           {event.speakers?.length ? (
@@ -274,7 +288,7 @@ function EventDetails({ event, onClose, onEdit }) {
                     <li key={session.id}>
                       <b>{session.title}</b>
                       <small>
-                        {[session.speaker, session.startTime && `${session.startTime}${session.endTime ? `–${session.endTime}` : ""}`, session.room || session.time]
+                        {[session.speaker, session.startTime && timeRange(session.startTime, session.endTime, "–"), session.room || session.time]
                           .filter(Boolean).join(" · ")}
                       </small>
                     </li>
@@ -282,24 +296,26 @@ function EventDetails({ event, onClose, onEdit }) {
                 </ul>
               ) : <p className="manager-muted">No sessions yet.</p>}
 
-              <h3><Icon name="megaphone" size={16} /> Announcements</h3>
-              {data.announcements.length ? (
-                <ul className="admin-plain-list">
-                  {data.announcements.map((item) => (
-                    <li key={item.id}>
-                      <b>{item.title}</b> <StatusBadge value={item.status || "Draft"} />
-                      {item.message && <small>{item.message}</small>}
-                    </li>
-                  ))}
-                </ul>
-              ) : <p className="manager-muted">No announcements yet.</p>}
             </>
           )}
-          {!data && !error && <p className="manager-muted">Loading sessions and announcements…</p>}
+
+          <h3><Icon name="megaphone" size={16} /> Announcements</h3>
+          {announcements.length ? (
+            <ul className="admin-plain-list">
+              {announcements.map((item) => (
+                <li key={item.id}>
+                  <b>{item.title}</b> <StatusBadge value={item.status || "Draft"} />
+                  {item.message && <small>{item.message}</small>}
+                </li>
+              ))}
+            </ul>
+          ) : <p className="manager-muted">No announcements yet.</p>}
+          <AnnouncementComposer eventId={event.id} />
+          {!data && !error && <p className="manager-muted">Loading sessions…</p>}
 
           <p className="admin-note">
             <Icon name="info" size={16} />
-            Sessions, speakers and announcements are managed in the event manager's workspace and shown here read-only.
+            Sessions and speakers are managed in the event manager's workspace and shown here read-only.
           </p>
           <div className="admin-dialog-actions">
             <Link className="manager-button" to={`/admin/registrations?eventId=${encodeURIComponent(event.id)}`}>
@@ -321,7 +337,7 @@ function EventForm({ event, defaultCapacity, onClose, onSave }) {
   // Manager events store the venue by name; preselect the matching venue.
   const [form, setForm] = useState(() => (event
     ? { ...event, capacity: String(event.capacity || ""), venueId: event.venueId || db.venues.find((venue) => venue.name === event.venue)?.id || "" }
-    : { title: "", organizer: ORGANIZERS[0], date: "", start: "", end: "", venueId: "", capacity: String(defaultCapacity || ""), seating: "free" }));
+    : { title: "", category: "Academic", organizer: ORGANIZERS[0], date: "", start: "", end: "", venueId: "", capacity: String(defaultCapacity || ""), seating: "free" }));
   const [errors, setErrors] = useState({});
   const set = useCallback((key) => (e) => setForm((current) => ({ ...current, [key]: e.target.value })), []);
   const organizers = form.organizer && !ORGANIZERS.includes(form.organizer) ? [form.organizer, ...ORGANIZERS] : ORGANIZERS;
@@ -342,7 +358,7 @@ function EventForm({ event, defaultCapacity, onClose, onSave }) {
         && other.date === form.date
         && !CLOSED.includes(other.status)
         && form.start < other.end && other.start < form.end);
-      if (clash) next.venueId = `Conflict: ${clash.title} uses this venue ${clash.start}–${clash.end}.`;
+      if (clash) next.venueId = `Conflict: ${clash.title} uses this venue ${timeRange(clash.start, clash.end, "–")}.`;
     }
     setErrors(next);
     return !Object.keys(next).length;
@@ -351,8 +367,8 @@ function EventForm({ event, defaultCapacity, onClose, onSave }) {
   function submit(e) {
     e.preventDefault();
     if (!validate()) return;
-    const { title, organizer, date, start, end, venueId, seating } = form;
-    onSave({ title: title.trim(), organizer, date, start, end, venueId, seating, capacity: Number(form.capacity) });
+    const { title, category, organizer, date, start, end, venueId, seating } = form;
+    onSave({ title: title.trim(), category: category || "Academic", organizer, date, start, end, venueId, seating, capacity: Number(form.capacity) });
   }
 
   const field = (key, label, input) => (
@@ -372,6 +388,11 @@ function EventForm({ event, defaultCapacity, onClose, onSave }) {
             <input value={form.title} onChange={set("title")} aria-invalid={Boolean(errors.title)} />
             {errors.title && <small>{errors.title}</small>}
           </label>
+          {field("category", "Category", (
+            <select value={form.category || "Academic"} onChange={set("category")}>
+              {EVENT_CATEGORIES.filter((item) => item !== "All").map((item) => <option key={item}>{item}</option>)}
+            </select>
+          ))}
           {field("organizer", "Organizer", (
             <select value={form.organizer} onChange={set("organizer")}>
               {organizers.map((name) => <option key={name}>{name}</option>)}

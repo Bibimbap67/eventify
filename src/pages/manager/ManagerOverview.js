@@ -9,6 +9,7 @@ import {
 } from "../../components/ui.js";
 import { PAST_STATUSES } from "../../data/eventStatus.js";
 import { isCheckedIn } from "../../data/checkIn.js";
+import { formatTime, timeRange } from "../../data/time.js";
 
 function greeting() {
   const hour = new Date().getHours();
@@ -81,7 +82,7 @@ export default function ManagerOverview() {
             <span className="manager-next__title">{nextEvent.title}</span>
             <span className="manager-facts">
               <span><Icon name="calendar" size={16} /> {eventDate(nextEvent.date, { weekday: "short", month: "short", day: "numeric" })}</span>
-              <span><Icon name="clock" size={16} /> {nextEvent.startTime}–{nextEvent.endTime}</span>
+              <span><Icon name="clock" size={16} /> {timeRange(nextEvent.startTime, nextEvent.endTime, "–")}</span>
               <span><Icon name="pin" size={16} /> {nextEvent.venue}</span>
             </span>
             <span className="manager-next__meter">
@@ -142,7 +143,7 @@ export default function ManagerOverview() {
                   <li key={session.id}>
                     <span className="manager-session-list__when">
                       <b>{eventDate(event.date, { month: "short", day: "numeric" })}</b>
-                      <time>{session.startTime}</time>
+                      <time>{formatTime(session.startTime)}</time>
                     </span>
                     <span>
                       <strong>{session.title}</strong>

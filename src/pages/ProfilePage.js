@@ -9,20 +9,16 @@ import { useAuth } from "../context/AuthContext.js";
 import { ACADEMIC_PROGRAMS, STUDENT_ID_EXAMPLE, departmentOf, formatStudentId, validStudentId } from "../data/student.js";
 
 const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
-const BLANK_PASSWORDS = { current: "", next: "", confirm: "" };
 
-// Every role edits its name, email and password here; the student details and stats are for students only.
+// Every role edits its name and email here (passwords change through "Forgot password" on the sign-in page); the student details and stats are for students only.
 export default function ProfilePage() {
   const { userProfile, updateProfile, registrations, certificates, refresh } = useEventContext();
-  const { user, changePassword } = useAuth();
+  const { user } = useAuth();
   // The certificate count comes from the server, which issues them; read the latest.
   useEffect(() => {
     refresh();
   }, [refresh]);
   const isStudent = user?.role === "user";
-  const [passwords, setPasswords] = useState(BLANK_PASSWORDS);
-  const [passwordError, setPasswordError] = useState("");
-  const [changing, setChanging] = useState(false);
 
   const [form, setForm] = useState({ ...userProfile });
   const [isEditing, setIsEditing] = useState(false);
@@ -56,27 +52,6 @@ export default function ProfilePage() {
       notify(err.message, "error", "Profile not saved");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const setPassword = (key) => (e) => {
-    setPasswords({ ...passwords, [key]: e.target.value });
-    setPasswordError("");
-  };
-
-  const handlePassword = async (e) => {
-    e.preventDefault();
-    if (passwords.next.length < 6) return setPasswordError("Use at least 6 characters for the new password.");
-    if (passwords.next !== passwords.confirm) return setPasswordError("The new passwords don't match.");
-    setChanging(true);
-    try {
-      await changePassword(passwords.current, passwords.next);
-      setPasswords(BLANK_PASSWORDS);
-      notify("Use your new password the next time you sign in.", "success", "Password changed");
-    } catch (err) {
-      setPasswordError(err.message);
-    } finally {
-      setChanging(false);
     }
   };
 
@@ -273,30 +248,6 @@ export default function ProfilePage() {
             </div>
           </form>
         )}
-
-        <form className="panel profile-edit-form" onSubmit={handlePassword} noValidate>
-          <h2>CHANGE PASSWORD</h2>
-          <label className="field">
-            <span className="field__label">CURRENT PASSWORD</span>
-            <input type="password" className="input" autoComplete="current-password" value={passwords.current} onChange={setPassword("current")} required />
-          </label>
-          <div className="two">
-            <label className="field">
-              <span className="field__label">NEW PASSWORD</span>
-              <input type="password" className="input" autoComplete="new-password" value={passwords.next} onChange={setPassword("next")} required />
-            </label>
-            <label className="field">
-              <span className="field__label">CONFIRM NEW PASSWORD</span>
-              <input type="password" className="input" autoComplete="new-password" value={passwords.confirm} onChange={setPassword("confirm")} required />
-            </label>
-          </div>
-          {passwordError && <p className="field__error" role="alert">{passwordError}</p>}
-          <div className="action-row">
-            <button type="submit" className="btn-sm btn-sm--yellow" disabled={changing || !passwords.current} aria-busy={changing || undefined}>
-              {changing ? <><Spinner /> Changing…</> : "Change Password"}
-            </button>
-          </div>
-        </form>
       </main>
     </div>
   );

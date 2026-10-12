@@ -30,7 +30,7 @@ export function AnnouncementComposer({ eventId, events }) {
 
   return (
     <form className="manager-panel manager-composer" onSubmit={submit}>
-      <PanelHeader eyebrow="New announcement" title="Tell participants what changed" aside={<span className="manager-muted">Shown on the event page. No email is sent.</span>} />
+      <PanelHeader eyebrow="New announcement" title="Tell participants what changed" aside={<span className="manager-muted">Shown on the event page, and sent to every ticket holder as a notification and an email.</span>} />
       <div className="manager-form">
         {events && (
           <label className="manager-field manager-field--wide">Event

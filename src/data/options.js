@@ -27,6 +27,21 @@ export const CATEGORY_COLORS = {
 
 export const categoryColor = (category) => CATEGORY_COLORS[category] || { bg: "#ffffff", ink: "#0a0a0a" };
 
+// Each category's icon (names from components/Icon.js). Event cards show the icon instead of
+// the word, and CategoryLegend explains them.
+export const CATEGORY_ICONS = {
+  Technology: "cpu",
+  Academic: "book",
+  Career: "briefcase",
+  Workshop: "wrench",
+  Seminar: "speaker",
+  Competition: "trophy",
+  Organization: "users",
+  Community: "heart",
+};
+
+export const categoryIcon = (category) => CATEGORY_ICONS[category] || "calendar";
+
 // Inbox notifications: icon and tone (the toast colors) by type. Unknown types read as updates.
 const NOTIFICATION_KINDS = {
   registration: { icon: "ticket", tone: "success" },

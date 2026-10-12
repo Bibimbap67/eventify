@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "../../components/Navbar.js";
-import EventCard from "../../components/attendee/EventCard.js";
+import EventCard, { CategoryLegend } from "../../components/attendee/EventCard.js";
 import Icon from "../../components/Icon.js";
 import { useEntering } from "../../components/Motion.js";
 import { EventCardSkeleton, useSkeleton } from "../../components/Skeleton.js";
@@ -218,6 +218,7 @@ export default function EventsPage() {
 
         {/* Events Grid */}
         <section className="explore-results">
+          <CategoryLegend />
           {loadingEvents ? (
             <div className="events-grid" aria-busy="true" aria-label="Loading events">
               {Array.from({ length: 6 }, (_, i) => <EventCardSkeleton key={i} />)}

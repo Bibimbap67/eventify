@@ -8,6 +8,7 @@ import { seatOf } from "../../data/seating.js";
 import { attendanceKey, isCheckedIn } from "../../data/checkIn.js";
 import { ATTENDEE_TYPE } from "../../data/student.js";
 import { DocPreview, fileSafe, printNode, savePng, useQrCode } from "../DocExport.js";
+import { formatTimesIn } from "../../data/time.js";
 
 const TICKET_WIDTH = 440;
 const POLL_MS = 4000;
@@ -88,7 +89,7 @@ export default function TicketPassModal({ registration, onClose }) {
                   </div>
                   <div>
                     <dt>DATE & TIME</dt>
-                    <dd>{registration.fullDate || registration.date} · {registration.time}</dd>
+                    <dd>{registration.fullDate || registration.date} · {formatTimesIn(registration.time)}</dd>
                   </div>
                   <div>
                     <dt>VENUE</dt>

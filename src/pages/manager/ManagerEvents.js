@@ -10,8 +10,9 @@ import {
 } from "../../components/ui.js";
 import { PAST_STATUSES } from "../../data/eventStatus.js";
 import {
-  CATEGORIES, EMPTY_EVENT, SaveButton, SpeakersField, VenueField, cleanSpeakers,
+  BookedTimes, CATEGORIES, EMPTY_EVENT, SaveButton, SpeakersField, VenueField, cleanSpeakers, clashOf, useVenueDay,
 } from "../../components/manager/EventFields.js";
+import { timeRange } from "../../data/time.js";
 
 // The event's listed speakers; older events only named speakers on their sessions.
 function speakerNames(event, sessions) {
@@ -34,6 +35,7 @@ export default function ManagerEvents() {
   const creating = params.get("new") === "1";
   const setCreating = (open) => setParams(open ? { new: "1" } : {}, { replace: true });
   const patch = (field) => (e) => setForm((current) => ({ ...current, [field]: e.target.value }));
+  const venueDay = useVenueDay(form.venue, form.date);
 
   const archived = events.filter((event) => event.status === "Archived");
   const inView = useMemo(() => events.filter((event) => (event.status === "Archived") === (view === "archive")), [events, view]);
@@ -56,6 +58,15 @@ export default function ManagerEvents() {
     const speakers = cleanSpeakers(form.speakers);
     if (!form.title.trim() || !form.description.trim() || !form.date || !form.startTime || !form.endTime || form.startTime >= form.endTime || !form.venue.trim() || !(Number(form.capacity) > 0) || !form.organizer.trim()) {
       setFormError("Complete the required fields, including the organizer, and enter a valid time range and capacity.");
+      return;
+    }
+    if (venueDay.capacity && Number(form.capacity) > venueDay.capacity) {
+      setFormError(`${form.venue} holds ${venueDay.capacity} people. Set the capacity to ${venueDay.capacity} or less.`);
+      return;
+    }
+    const clash = clashOf(venueDay.bookings, form.startTime, form.endTime);
+    if (clash) {
+      setFormError(`${form.venue} is booked for ${clash.title} from ${timeRange(clash.startTime, clash.endTime, " to ")} that day. Pick a free time or another venue.`);
       return;
     }
     if (!speakers) {
@@ -109,7 +120,8 @@ export default function ManagerEvents() {
             <label className="manager-field">Start time<input type="time" value={form.startTime} onChange={patch("startTime")} /></label>
             <label className="manager-field">End time<input type="time" value={form.endTime} onChange={patch("endTime")} /></label>
             <VenueField value={form.venue} onChange={patch("venue")} />
-            <label className="manager-field">Capacity<input type="number" min="1" value={form.capacity} onChange={patch("capacity")} /></label>
+            <label className="manager-field">Capacity<input type="number" min="1" max={venueDay.capacity || undefined} value={form.capacity} onChange={patch("capacity")} />{venueDay.capacity && <small className="manager-hint">Up to {venueDay.capacity} for this venue.</small>}</label>
+            <BookedTimes venue={form.venue} date={form.date} bookings={venueDay.bookings} />
             <label className="manager-field">Organizer<input value={form.organizer} onChange={patch("organizer")} placeholder="e.g. CCIT Student Council" /></label>
             <label className="manager-field">Requirements<textarea rows="2" value={form.requirements} onChange={patch("requirements")} /></label>
             <SeatingField value={form.seating} onChange={(seating) => setForm((current) => ({ ...current, seating }))} capacity={form.capacity} />
@@ -173,7 +185,7 @@ function EventCard({ event, count, speakers }) {
         </div>
       </div>
       <div className="manager-facts">
-        <span><Icon name="clock" size={16} /> {event.startTime}–{event.endTime}</span>
+        <span><Icon name="clock" size={16} /> {timeRange(event.startTime, event.endTime, "–")}</span>
         <span><Icon name="pin" size={16} /> {event.venue}</span>
         <PrepChip value={event.preparationStatus} />
       </div>

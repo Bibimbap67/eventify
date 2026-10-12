@@ -5,12 +5,14 @@
 // show the admin words (AdminContext translates them). The server's lists are in
 // server/utils/eventStatus.js.
 
-// Saved word -> public word. Any other status stays hidden from attendees.
+// Saved word -> public word. Any other status stays hidden from attendees. Cancelled events
+// only reach attendees who had registered for them (EventContext checks).
 export const SAVED_TO_PUBLIC = {
   "Registration Open": "REGISTRATION OPEN",
   Published: "REGISTRATION OPEN",
   Approved: "OPENS SOON",
   Completed: "COMPLETED",
+  Cancelled: "CANCELLED",
 };
 
 // Saved word -> admin screen word. Words not listed (Rejected, Archived) show as they are.

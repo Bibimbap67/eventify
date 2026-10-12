@@ -88,7 +88,8 @@ export default function EventDetail() {
 
   const event = events.find((e) => e.id === id);
   const publishedAnnouncements = allAnnouncements.filter((item) => item.eventId === id && item.status === "Published");
-  const existingReg = event ? isEventRegistered(event.id) : null;
+  // A cancelled event's ticket is void, so the sidebar shows the closed state instead of a pass.
+  const existingReg = event && event.status !== "CANCELLED" ? isEventRegistered(event.id) : null;
 
   const [isRegistering, setIsRegistering] = useState(false);
   const [formName, setFormName] = useState(userProfile?.name || "");
@@ -135,6 +136,8 @@ export default function EventDetail() {
   const registrationUnavailableLabel =
     event.status === "COMPLETED"
       ? "Event completed"
+      : event.status === "CANCELLED"
+      ? "Event cancelled"
       : event.status === "OPENS SOON"
       ? "Registration opens soon"
       : "Registration closed";
@@ -426,7 +429,9 @@ export default function EventDetail() {
                 </h3>
 
                 <p className="ticket-claim-card__desc">
-                  {existingReg
+                  {event.status === "CANCELLED"
+                    ? "The organizer cancelled this event. Your ticket no longer applies."
+                    : existingReg
                     ? "You are confirmed for this event! Present your digital pass or QR ticket at the check-in desk."
                     : reserved
                     ? "Register and pick your seat. Your ticket pass appears right after you confirm."

@@ -15,7 +15,7 @@ const ATTENDANCE_FILTERS = [
   { value: "attended", label: "Attended" },
 ];
 
-const timeNow = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+const timeNow = () => new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 const matchesQuery = (item, query) => `${item.name} ${item.email}`.toLowerCase().includes(query.toLowerCase());
 
 // Rows you just acted on stay where they are until the search or filter changes. The next row

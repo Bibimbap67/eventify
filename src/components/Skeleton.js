@@ -10,16 +10,13 @@ export default function Skeleton({ className = "", style }) {
 export function EventCardSkeleton() {
   return (
     <div className="event-card event-card--skeleton" aria-hidden="true">
-      <div className="event-card__accent" />
       <div className="event-card__body">
-        <div className="event-card__top"><Skeleton style={{ width: 96, height: 26 }} /></div>
+        <Skeleton style={{ width: 36, height: 36, marginBottom: 12 }} />
         <Skeleton className="skeleton--title" />
         <Skeleton className="skeleton--title" style={{ width: "60%" }} />
-        <Skeleton className="skeleton--line" />
-        <Skeleton className="skeleton--line" style={{ width: "80%" }} />
-        <Skeleton className="skeleton--box" />
-        <Skeleton className="skeleton--line" style={{ width: "70%", marginTop: 14 }} />
+        <Skeleton className="skeleton--line" style={{ width: "50%", marginTop: "auto" }} />
       </div>
+      <div className="event-card__stub" />
     </div>
   );
 }

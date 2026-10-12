@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { api, getToken, setToken, clearToken } from "../api.js";
+import { notify } from "../components/Toast.js";
 
 const AuthContext = createContext(null);
 
@@ -16,6 +17,33 @@ export function AuthProvider({ children }) {
       .catch(() => clearToken())
       .finally(() => setInitializing(false));
   }, []);
+
+  const userRef = useRef(user);
+  userRef.current = user;
+
+  // api.js reports a token the server refused; drop the user so protected pages send them to sign in.
+  useEffect(() => {
+    const signedOut = (e) => {
+      if (userRef.current) notify(e.detail || "Please sign in again.", "warning", "Signed out");
+      setUser(null);
+    };
+    window.addEventListener("eventify:signed-out", signedOut);
+    return () => window.removeEventListener("eventify:signed-out", signedOut);
+  }, []);
+
+  // An admin may be signed in on one device only. Check now and then (and on returning to the
+  // tab) so the older device is signed out even while nobody clicks anything there.
+  const isAdmin = user?.role === "admin";
+  useEffect(() => {
+    if (!isAdmin) return undefined;
+    const check = () => api("/auth/me").catch(() => {});
+    const timer = setInterval(check, 30000);
+    window.addEventListener("focus", check);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", check);
+    };
+  }, [isAdmin]);
 
   async function login(email, password) {
     const data = await api("/auth/login", { method: "POST", body: { email, password } });

@@ -22,7 +22,7 @@ const validStudentId = (id) => {
 };
 
 function signToken(user) {
-  return jwt.sign({ id: user._id.toString() }, process.env.JWT_SECRET, {
+  return jwt.sign({ id: user._id.toString(), sid: user.sessionId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 }
@@ -58,6 +58,10 @@ const login = async (req, res) => {
     return res.status(403).json({ message: "This account is inactive. Contact an administrator." });
   }
 
+  if (user.role === "admin") {
+    user.sessionId = crypto.randomBytes(16).toString("hex"); // signs out the admin's other device
+    await user.save();
+  }
   res.json({ token: signToken(user), user });
 };
 

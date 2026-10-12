@@ -3,7 +3,7 @@ import { useAuth } from "./AuthContext.js";
 import { api, newId } from "../api.js";
 import { useServerStore } from "./useServerStore.js";
 import { notify } from "../components/Toast.js";
-import { attendanceKey } from "../data/checkIn.js";
+import { attendanceKey, eventEndsAt } from "../data/checkIn.js";
 
 const ManagerContext = createContext(null);
 // State key -> MongoDB-backed API resource (see server/controllers/dataController.js).
@@ -37,6 +37,18 @@ export function ManagerProvider({ children }) {
   useEffect(() => {
     loadVenues();
   }, [loadVenues]);
+
+  // The server marks an event Completed once its end time passes (server/utils/autoComplete.js).
+  // Reload just after the next one ends, so open screens show it without a page refresh.
+  useEffect(() => {
+    const ends = data.events
+      .filter((event) => !["Pending", "Completed", "Cancelled", "Rejected", "Archived"].includes(event.status))
+      .map((event) => eventEndsAt(event)?.getTime())
+      .filter((end) => end > Date.now());
+    if (!ends.length) return undefined;
+    const timer = setTimeout(reload, Math.min(Math.min(...ends) - Date.now() + 5000, 2 ** 31 - 1));
+    return () => clearTimeout(timer);
+  }, [data.events, reload]);
 
   const managerId = user?.managerId || user?.id;
   const events = useMemo(() => data.events.filter((event) => event.managerId === managerId), [data.events, managerId]);

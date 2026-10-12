@@ -24,6 +24,8 @@ const userSchema = new mongoose.Schema(
     // Forgot password: only a hash of the emailed token is kept, so a database leak can't reset passwords.
     resetTokenHash: { type: String, select: false },
     resetTokenExpires: { type: Date, select: false },
+    // An admin is signed in on one device at a time: each login replaces this, and older tokens stop working.
+    sessionId: { type: String, select: false },
   },
   {
     timestamps: true,

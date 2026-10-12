@@ -54,7 +54,7 @@ export default function StaffPage() {
       data = { result: "invalid", message: err.message, attendee: null };
     }
     setResult(data);
-    setLog((current) => [{ ...data, id: `${Date.now()}`, at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) }, ...current].slice(0, 12));
+    setLog((current) => [{ ...data, id: `${Date.now()}`, at: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true }) }, ...current].slice(0, 12));
     playSound(data.result === "checked-in" ? "success" : "error");
     if (data.result === "checked-in") {
       loadEvents();

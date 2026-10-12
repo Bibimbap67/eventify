@@ -1,13 +1,20 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
+const SIGNED_IN_ELSEWHERE = "This admin account signed in on another device, so you were signed out here.";
+
 async function userFromToken(req) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) return null;
   const payload = jwt.verify(token, process.env.JWT_SECRET);
   const user = await User.findById(payload.id);
-  return user && user.status !== "inactive" ? user : null;
+  if (!user || user.status === "inactive") return null;
+  // An admin's token works only until the account signs in again somewhere (authController login).
+  if (user.role === "admin" && !(await User.exists({ _id: user._id, sessionId: payload.sid ?? null }))) {
+    throw new Error(SIGNED_IN_ELSEWHERE);
+  }
+  return user;
 }
 
 async function protect(req, res, next) {
@@ -16,8 +23,8 @@ async function protect(req, res, next) {
     if (!user) return res.status(401).json({ message: "Not signed in." });
     req.user = user;
     next();
-  } catch {
-    res.status(401).json({ message: "Session expired. Please sign in again." });
+  } catch (err) {
+    res.status(401).json({ message: err.message === SIGNED_IN_ELSEWHERE ? err.message : "Session expired. Please sign in again." });
   }
 }
 

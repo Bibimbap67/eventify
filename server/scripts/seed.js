@@ -21,6 +21,7 @@ const {
   Event, Registration, Certificate, Notification, Session, Announcement, Feedback, Venue, AuditLog,
 } = require("../models/records");
 const { seatId } = require("../utils/seating");
+const { formatTime } = require("../utils/checkIn");
 
 if (process.env.NODE_ENV === "production") {
   console.error("Refusing to replace data with demo data in production.");
@@ -231,7 +232,7 @@ async function run() {
       eventId: event._id, eventTitle: event.title, name: student.name, email: student.email, studentId: student.studentId,
       date: label(event.date, { month: "short", day: "2-digit", year: "numeric" }).toUpperCase(),
       fullDate: label(event.date, { weekday: "long", month: "long", day: "numeric", year: "numeric" }),
-      time: `${event.startTime} - ${event.endTime}`, location: event.venue.toUpperCase(),
+      time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`, location: event.venue.toUpperCase(),
       status: "Confirmed", attendanceStatus: "Not Checked In", checkedInAt: null,
       registrationDate: iso(registered), ticketCode: `TKT-${between(1000, 9999)}-${event.date.slice(0, 4)}`,
       ticketType: "Student Attendee", seating: event.seating,

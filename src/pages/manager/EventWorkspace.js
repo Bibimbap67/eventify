@@ -11,13 +11,14 @@ import {
 } from "../../components/ui.js";
 import { PAST_STATUSES } from "../../data/eventStatus.js";
 import {
-  CATEGORIES, PREP_STATUSES, SaveButton, SpeakersField, VenueField, cleanSpeakers,
+  BookedTimes, CATEGORIES, OvertimeButtons, PREP_STATUSES, SaveButton, SpeakersField, VenueField, cleanSpeakers, clashOf, useVenueDay,
 } from "../../components/manager/EventFields.js";
 import { RegistrationDesk } from "../../components/manager/Desks.js";
 import { EMPTY_SESSION, SessionDialog, SessionTimeline } from "../../components/manager/Sessions.js";
 import { AnnouncementComposer, AnnouncementList } from "../../components/manager/Announcements.js";
 import { FeedbackPanel, ReportPanel } from "../../components/manager/Results.js";
 import { seatOf } from "../../data/seating.js";
+import { formatTime, timeRange } from "../../data/time.js";
 
 // One event's workspace (/manager/events/:eventId/:tab): overview, details, schedule,
 // participants, announcements, feedback and reports.
@@ -61,6 +62,7 @@ function EventWorkspace({ event, tab }) {
   const activeTab = WORKSPACE_TABS.some((item) => item.id === tab) ? tab : "overview";
   const tabCounts = { sessions: eventSessions.length, participants: registrationCount, announcements: eventAnnouncements.length, feedback: eventFeedback.length };
   const base = `/manager/events/${event.id}`;
+  const venueDay = useVenueDay(form.venue, form.date, event.id);
 
   function patchForm(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -75,7 +77,14 @@ function EventWorkspace({ event, tab }) {
     if (!form.date || Number.isNaN(Date.parse(`${form.date}T12:00:00`))) nextErrors.date = "Choose a valid event date.";
     if (!form.venue) nextErrors.venue = "Choose a venue.";
     if (!(Number(form.capacity) > 0)) nextErrors.capacity = "Capacity must be greater than zero.";
+    else if (venueDay.capacity && Number(form.capacity) > venueDay.capacity && (form.venue !== event.venue || Number(form.capacity) !== Number(event.capacity))) {
+      nextErrors.capacity = `${form.venue} holds ${venueDay.capacity} people. Use ${venueDay.capacity} or less.`;
+    }
     if (!form.startTime || !form.endTime || form.startTime >= form.endTime) nextErrors.endTime = "End time must be after start time.";
+    else if (["venue", "date", "startTime", "endTime"].some((key) => form[key] !== event[key])) {
+      const clash = clashOf(venueDay.bookings, form.startTime, form.endTime);
+      if (clash) nextErrors.endTime = `${form.venue} is booked for ${clash.title} from ${timeRange(clash.startTime, clash.endTime, " to ")}. Pick a free time.`;
+    }
     if (!form.organizer?.trim()) nextErrors.organizer = "Enter the organization running this event.";
     const speakers = cleanSpeakers(form.speakers);
     if (!speakers) nextErrors.speakers = "Give every speaker a name and a role, or remove the empty row.";
@@ -116,9 +125,18 @@ function EventWorkspace({ event, tab }) {
           <h2>{event.title}</h2>
           <div className="manager-facts">
             <span><Icon name="calendar" size={16} /> {longDate(event.date)}</span>
-            <span><Icon name="clock" size={16} /> {event.startTime}–{event.endTime}</span>
+            <span><Icon name="clock" size={16} /> {timeRange(event.startTime, event.endTime, "–")}</span>
             {!PAST_STATUSES.includes(event.status) && <span className="manager-countdown">{countdownLabel(event.date)}</span>}
           </div>
+          <OvertimeButtons
+            event={event}
+            endTime={event.endTime}
+            onExtend={(endTime, minutes) => {
+              updateEvent(event.id, { endTime });
+              setForm((current) => ({ ...current, endTime })); // so saving the details form keeps the overtime
+              toast(`Added ${minutes} minutes. The event now ends at ${formatTime(endTime)}.`);
+            }}
+          />
         </div>
         <div className="manager-workspace-head__side">
           <StatusBadge value={event.status} />
@@ -241,7 +259,8 @@ function EventWorkspace({ event, tab }) {
             <label className="manager-field">Start time<input type="time" value={form.startTime} onChange={(e) => patchForm("startTime", e.target.value)} /></label>
             <label className="manager-field">End time<input type="time" value={form.endTime} onChange={(e) => patchForm("endTime", e.target.value)} />{errors.endTime && <small>{errors.endTime}</small>}</label>
             <VenueField value={form.venue} onChange={(e) => patchForm("venue", e.target.value)} error={errors.venue} />
-            <label className="manager-field">Capacity<input type="number" min="1" value={form.capacity} onChange={(e) => patchForm("capacity", e.target.value)} />{errors.capacity && <small>{errors.capacity}</small>}</label>
+            <label className="manager-field">Capacity<input type="number" min="1" max={venueDay.capacity || undefined} value={form.capacity} onChange={(e) => patchForm("capacity", e.target.value)} />{errors.capacity ? <small>{errors.capacity}</small> : venueDay.capacity && <small className="manager-hint">Up to {venueDay.capacity} for this venue.</small>}</label>
+            <BookedTimes venue={form.venue} date={form.date} bookings={venueDay.bookings} />
             <label className="manager-field">Organizer<input value={form.organizer || ""} onChange={(e) => patchForm("organizer", e.target.value)} placeholder="e.g. CCIT Student Council" />{errors.organizer && <small>{errors.organizer}</small>}</label>
             <label className="manager-field">Requirements<textarea rows="2" value={form.requirements} onChange={(e) => patchForm("requirements", e.target.value)} /></label>
             <label className="manager-field">Preparation status<select value={form.preparationStatus} onChange={(e) => patchForm("preparationStatus", e.target.value)}>{PREP_STATUSES.map((item) => <option key={item}>{item}</option>)}</select></label>

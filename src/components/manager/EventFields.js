@@ -1,11 +1,15 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Icon from "../Icon.js";
 import Spinner from "../Spinner.js";
 import { useManager } from "../../context/ManagerContext.js";
+import { EVENT_CATEGORIES } from "../../data/options.js";
+import { api } from "../../api.js";
+import { checkInOpensAt, eventEndsAt } from "../../data/checkIn.js";
+import { addMinutes, formatTime, timeRange, toMinutes } from "../../data/time.js";
 
 // Form pieces for creating and editing a manager event (My events, and an event's Details tab).
 
-export const CATEGORIES = ["Academic", "Career", "Workshop", "Seminar", "Competition", "Community", "Technology"];
+export const CATEGORIES = EVENT_CATEGORIES.filter((category) => category !== "All");
 export const PREP_STATUSES = ["Needs attention", "In progress", "On track", "Venue confirmed", "Ready", "Closed out"];
 export const EMPTY_EVENT = { title: "", category: "Academic", description: "", date: "", startTime: "", endTime: "", venue: "", capacity: "", seating: "free", organizer: "", requirements: "", importantDate: "", speakers: [] };
 const SPEAKER_KINDS = ["Speaker", "Guest speaker"];
@@ -72,3 +76,67 @@ export function VenueField({ value, onChange, error }) {
     </label>
   );
 }
+
+// What a venue already holds on a day, and how many people it fits, for the event forms.
+// The server enforces both (checkVenue in dataController.js); this shows them before saving.
+export function useVenueDay(venue, date, excludeId) {
+  const [day, setDay] = useState(NO_VENUE_DAY);
+  useEffect(() => {
+    if (!venue) return setDay(NO_VENUE_DAY);
+    let live = true;
+    api(`/venues/bookings?${new URLSearchParams({ venue, date: date || "", exclude: excludeId || "" })}`)
+      .then((res) => live && setDay(res))
+      .catch(() => live && setDay(NO_VENUE_DAY)); // the server still checks on save
+    return () => {
+      live = false;
+    };
+  }, [venue, date, excludeId]);
+  return day;
+}
+const NO_VENUE_DAY = { capacity: null, bookings: [] };
+
+// The booking that overlaps start–end, if any. Back-to-back events (one ends at 5, the next starts at 5) are fine.
+export const clashOf = (bookings, start, end) => bookings.find((booking) => toMinutes(booking.startTime) < toMinutes(end) && toMinutes(start) < toMinutes(booking.endTime));
+
+// The venue's taken times that day, so the manager picks a free slot.
+export function BookedTimes({ venue, date, bookings }) {
+  if (!venue || !date) return null;
+  return (
+    <div className="manager-field manager-field--wide manager-booked" aria-live="polite">
+      {bookings.length ? (
+        <>
+          <strong><Icon name="calendar-clock" size={16} /> Already booked at {venue} that day</strong>
+          <ul>
+            {bookings.map((booking) => <li key={booking.id}><b>{timeRange(booking.startTime, booking.endTime)}</b> {booking.title}</li>)}
+          </ul>
+        </>
+      ) : <span className="manager-muted"><Icon name="check-circle" size={16} /> {venue} is free all day.</span>}
+    </div>
+  );
+}
+
+const OVERTIME_MINUTES = [5, 10, 20, 30];
+
+// An event ends, and is marked Completed, at its end time. While it runs, these push the end back.
+export function OvertimeButtons({ event, endTime, onExtend }) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
+  const timed = { date: event.date, startTime: event.startTime, endTime };
+  const running = LIVE_STATUSES.includes(event.status) && checkInOpensAt(timed) <= now && now < eventEndsAt(timed);
+  if (!running) return null;
+  const latest = toMinutes(endTime) >= 23 * 60 + 59;
+  return (
+    <div className="manager-overtime" role="group" aria-label="Add overtime">
+      <span><Icon name="hourglass" size={16} /> Running late? Ends {formatTime(endTime)}. Add overtime:</span>
+      {OVERTIME_MINUTES.map((minutes) => (
+        <button key={minutes} type="button" className="manager-button manager-button--small" disabled={latest} onClick={() => onExtend(addMinutes(endTime, minutes), minutes)}>
+          +{minutes} min
+        </button>
+      ))}
+    </div>
+  );
+}
+const LIVE_STATUSES = ["Registration Open", "Published", "Approved", "Registration Closed", "Ongoing"];

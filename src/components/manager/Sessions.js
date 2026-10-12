@@ -5,6 +5,7 @@ import { usePending } from "../Motion.js";
 import { EmptyState } from "../ui.js";
 import { SaveButton } from "./EventFields.js";
 import { useManager } from "../../context/ManagerContext.js";
+import { formatTime } from "../../data/time.js";
 
 // An event's programme: the session timeline and the add / edit session dialog.
 
@@ -16,7 +17,7 @@ export function SessionTimeline({ sessions, eventTitle, onEdit, onRemove }) {
     <ol className="manager-timeline">
       {sessions.map((session) => (
         <li key={session.id} className="manager-session-row">
-          <time>{session.startTime}<span>{session.endTime}</span></time>
+          <time>{formatTime(session.startTime)}<span>{formatTime(session.endTime)}</span></time>
           <div>
             <h4>{session.title}</h4>
             <p>

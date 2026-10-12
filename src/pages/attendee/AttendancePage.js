@@ -8,6 +8,7 @@ import TicketPassModal from "../../components/attendee/TicketPassModal.js";
 import { notify } from "../../components/Toast.js";
 import { seatOf } from "../../data/seating.js";
 import { attendanceKey, isCheckedIn } from "../../data/checkIn.js";
+import { formatTimesIn } from "../../data/time.js";
 
 export default function AttendancePage() {
   const entering = useEntering();
@@ -19,7 +20,7 @@ export default function AttendancePage() {
     notify(`${reg.eventTitle} is marked as attended. You can now leave feedback from My Events.`, "success", "Attendance complete");
   };
 
-  const confirmedRegs = registrations.filter((r) => r.status === "Confirmed");
+  const confirmedRegs = registrations.filter((r) => r.status === "Confirmed" && events.find((event) => event.id === r.eventId)?.status !== "CANCELLED");
   const checkedInCount = confirmedRegs.filter(isCheckedIn).length;
   const pendingCount = confirmedRegs.length - checkedInCount;
 
@@ -82,7 +83,7 @@ export default function AttendancePage() {
                         ? "NOT CHECKED IN"
                         : <><Icon name="check" size={16} /> {state === "attended" ? "ATTENDED" : "CHECKED IN"}</>}
                     </span>
-                    <span className="attendance-card__date">{reg.fullDate || reg.date} · {reg.time}</span>
+                    <span className="attendance-card__date">{reg.fullDate || reg.date} · {formatTimesIn(reg.time)}</span>
                   </div>
 
                   <h3 className="attendance-card__title">{reg.eventTitle}</h3>
