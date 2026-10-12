@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("dotenv").config({ quiet: true });
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
@@ -26,7 +26,6 @@ app.use("/api/admin", adminRoutes);
 
 app.use((req, res) => res.status(404).json({ message: "Route not found." }));
 
-
 // Express 5 sends errors from async routes here. Errors meant for the user (`expose`, like a
 // refused change or a broken JSON body) keep their status and message; anything else is a 500.
 app.use((err, req, res, next) => {
@@ -39,7 +38,7 @@ const PORT = process.env.PORT || 5000;
 
 connectDB()
   .then(() => {
-    app.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
+    app.listen(PORT, () => console.log(`Server is listening on port ${PORT}`));
   })
   .catch((err) => {
     console.error("Failed to connect to MongoDB:", err.message);
