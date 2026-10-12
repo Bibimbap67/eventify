@@ -129,7 +129,7 @@ const forgotPassword = async (req, res) => {
     user.resetTokenHash = hashToken(token);
     user.resetTokenExpires = new Date(Date.now() + RESET_TTL_MS);
     await user.save();
-    const link = `${process.env.CLIENT_URL || "http://localhost:3000"}/reset-password/${token}`;
+    const link = `${process.env.CLIENT_URL || "https://eventifys.vercel.app"}/reset-password/${token}`;
     // Not awaited: a slow mail server must not make known emails answer slower than unknown ones.
     sendMail({
       to: user.email,

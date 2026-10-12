@@ -31,7 +31,7 @@ You need MongoDB, either installed locally or a free MongoDB Atlas database.
    JWT_SECRET=any-long-random-text
    ```
 
-   Optional: `PORT` (default 5000), `CLIENT_URL` (default http://localhost:3000),
+   Optional: `PORT` (default 5000), `CLIENT_URL` (default https://eventifys.vercel.app; set it to http://localhost:3000 locally),
    `JWT_EXPIRES_IN` (default 7d), and `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`,
    `MAIL_FROM` for password-reset emails (without them the reset link prints in the server console).
 2. Optional: add `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` and `SEED_PASSWORD_SUFFIX`, then load
