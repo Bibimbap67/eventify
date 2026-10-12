@@ -3,6 +3,9 @@
 Event management system project. A React app (this folder) talks to an Express + MongoDB
 server (`server/`). See `SYSTEM_FLOW.md` for how the parts work together.
 
+**Target client:** National University - Mall of Asia (NU MOA). Eventify runs events for the
+whole campus: every college, the Student Council and offices such as Career Services.
+
 ## Clone the Repository
 
 ```bash

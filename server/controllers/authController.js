@@ -134,7 +134,7 @@ const forgotPassword = async (req, res) => {
     sendMail({
       to: user.email,
       subject: "Reset your Eventify password",
-      text: `Hi ${user.name},\n\nSomeone asked to reset the password for your Eventify account. Open this link to choose a new one:\n\n${link}\n\nThe link works once and expires in 30 minutes. If you didn't ask for this, ignore this email and your password stays the same.\n\nEventify · NU MOA School of Information Technology`,
+      text: `Hi ${user.name},\n\nSomeone asked to reset the password for your Eventify account. Open this link to choose a new one:\n\n${link}\n\nThe link works once and expires in 30 minutes. If you didn't ask for this, ignore this email and your password stays the same.\n\nEventify · National University - Mall of Asia`,
     }).catch((err) => console.error("Could not send the password reset email:", err.message));
   }
   res.json({ message: RESET_SENT });

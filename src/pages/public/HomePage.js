@@ -131,7 +131,7 @@ export default function HomePage() {
         <div className="home-footer__inner">
           <div className="home-footer__col">
             <strong>EVENTIFY CAMPUS PORTAL</strong>
-            <p>National University MOA, School of Information Technology</p>
+            <p>National University - Mall of Asia</p>
             <p>Empowering student builders, researchers, and campus organizations through seamless event participation.</p>
           </div>
           <div className="home-footer__links">

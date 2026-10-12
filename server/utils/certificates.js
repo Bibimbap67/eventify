@@ -3,7 +3,7 @@
 const crypto = require("crypto");
 const { Event, Registration, Certificate } = require("../models/records");
 
-const ORGANIZER = "School of Information Technology · National University MOA";
+const CAMPUS = "National University - Mall of Asia";
 const SIGNATORY = { signatoryName: "Dr. Ronald Reyes", signatoryRole: "Dean, School of Information Technology" };
 // No 0/O or 1/I, so a credential ID is easy to read out and type. 32 letters: no bias from % 32.
 const ID_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -40,7 +40,8 @@ async function issueCertificates(eventIds) {
         recipientName: registration.name || "Attendee",
         credentialId: `CERT-NU-${now.getFullYear()}-${code(8)}`,
         issueDate: now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
-        organizer: ORGANIZER,
+        // The office or group that ran the event, then the campus (the certificate prints one per line).
+        organizer: [event.organizer, CAMPUS].filter(Boolean).join(" · "),
         hoursEarned: hoursEarned(event),
         status: "Issued",
         ...SIGNATORY,

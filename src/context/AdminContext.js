@@ -52,7 +52,7 @@ const ADMIN_EVENT_DEFAULTS = {
 // What the Settings page edits. Each one is used: the organization and term head the admin
 // sidebar, and the capacity pre-fills new events. The server refuses any other key.
 export const initialSettings = {
-  orgName: "School of Information Technology",
+  orgName: "National University - Mall of Asia",
   academicTerm: "1st Term AY 2026-2027",
   defaultCapacity: 100,
 };

@@ -11,7 +11,7 @@ export default function CertificateModal({ certificate, onClose }) {
   const qr = useQrCode(certificate ? `${window.location.origin}/verify/${encodeURIComponent(certificate.credentialId)}` : "");
   if (!certificate) return null;
 
-  const organizerLines = String(certificate.organizer || "School of Information Technology · National University MOA").split("·");
+  const organizerLines = String(certificate.organizer || "National University - Mall of Asia").split("·");
   const name = `certificate-${fileSafe(certificate.eventTitle)}`;
 
   const run = (action) => async () => {

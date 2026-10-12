@@ -128,7 +128,7 @@ const COMMENTS = [
   "A little long, but very informative.",
   "The sound system had problems at the start. Otherwise great.",
 ];
-const ORGANIZER_LINE = "School of Information Technology · National University MOA";
+const CAMPUS = "National University - Mall of Asia";
 
 // ---- helpers ----------------------------------------------------------------------
 
@@ -287,7 +287,7 @@ async function run() {
       rows.certificates.push({
         _id: `cert-${registration._id}`, userId: student.id, eventId: event._id, eventTitle: event.title,
         credentialId: `CERT-NU-${event.date.slice(0, 4)}-${code(8)}`, recipientName: student.name,
-        issueDate: label(event.date, { month: "long", day: "numeric", year: "numeric" }), organizer: ORGANIZER_LINE,
+        issueDate: label(event.date, { month: "long", day: "numeric", year: "numeric" }), organizer: `${event.organizer} · ${CAMPUS}`,
         hoursEarned: `${hours} Continuing Professional Development Hour${hours === 1 ? "" : "s"}`, status: "Issued",
         signatoryName: "Dr. Ronald Reyes", signatoryRole: "Dean, School of Information Technology",
         ...stamps(at(event.date, event.endTime)),
