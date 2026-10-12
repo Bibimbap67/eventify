@@ -1,5 +1,6 @@
 import React, { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
 import LoginPage from "./pages/public/LoginPage.js";
 import HomePage from "./pages/public/HomePage.js";
 import EventsPage from "./pages/public/EventsPage.js";
@@ -118,6 +119,7 @@ export default function App() {
       </Routes>
       </PageTransition>
       <ToastHost />
+      <Analytics />
     </>
   );
 }
