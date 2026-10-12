@@ -1,19 +1,25 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAdmin } from "../../context/AdminContext.js";
+import { useEventContext } from "../../context/EventContext.js";
 import Icon from "../../components/Icon.js";
 import { TableSkeleton, useSkeleton } from "../../components/Skeleton.js";
-import { SectionHeading, StatusBadge, Table } from "../../components/manager/parts.js";
+import { SectionHeading, StatusBadge, Table } from "../../components/ui.js";
 import { Pagination, SearchFilter, useFilters } from "../../components/admin/parts.js";
 
 const PAGE_SIZE = 25;
 const DEFAULTS = { q: "", eventId: "", page: "1" };
 const COLUMNS = ["Recipient", "Event", "Credential ID", "Issued", "Status", "Verify"];
 
-// Issued certificates, read-only. They are created automatically when a checked-in attendee
+// Issued certificates, read-only. The server creates them when a checked-in attendee
 // completes an event, so there is nothing to issue or edit by hand here.
 export default function CertificatesAdmin() {
   const { db, eventTitle } = useAdmin();
+  const { refresh } = useEventContext();
+  // Read the latest certificates the server issued when the page opens.
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
   const [filters, setFilters] = useFilters(DEFAULTS);
   const page = Math.max(1, Number(filters.page) || 1);
   const onPage = useCallback((value) => setFilters({ page: value }), [setFilters]);

@@ -1,17 +1,18 @@
-import React, { createContext, useContext, useCallback, useEffect, useMemo } from "react";
+import React, { createContext, useContext, useCallback, useMemo } from "react";
 import { useAuth } from "./AuthContext.js";
 import { useManager } from "./ManagerContext.js";
 import { newId } from "../api.js";
 import { useServerStore, liveRegisteredCount } from "./useServerStore.js";
 import { isReserved, seatOf } from "../data/seating.js";
 import { ATTENDEE_TYPE } from "../data/student.js";
+import { attendanceKey } from "../data/checkIn.js";
+import { SAVED_TO_PUBLIC } from "../data/eventStatus.js";
 
 const EventContext = createContext(null);
 
 // State key -> MongoDB-backed API resource (see server/controllers/dataController.js).
+// Events and registrations live in ManagerContext; this adds the attendee's own records.
 const EVENT_RESOURCES = {
-  events: "events",
-  registrations: "registrations",
   certificates: "certificates",
   notifications: "notifications",
 };
@@ -39,46 +40,27 @@ function belongsToUser(record, user) {
 export function EventProvider({ children }) {
   const { user, updateProfile: saveProfile } = useAuth();
   const {
-    allManagerEvents: managerEvents,
-    allManagerRegistrations: managerRegistrations,
-    loadedManagerRegistrations,
+    allManagerEvents: allEvents,
+    allManagerRegistrations: allRegistrations,
+    loadedManagerRegistrations: loadedRegistrations,
     sessions: managerSessions,
     addAttendeeRegistration,
     submitAttendeeFeedback,
-    updateRegistration: updateManagerRegistration,
+    updateRegistration,
     reloadManagerData,
   } = useManager();
-  const { data, setData, loaded, ready, reload } = useServerStore(EVENT_RESOURCES, user?.id || "guest");
-  const {
-    events: allEvents,
-    registrations: allRegistrations,
-    certificates: allCertificates,
-    notifications: allNotifications,
-  } = data;
-  // Setters that work like the old useState setters, one per collection.
-  const { setEvents, setRegistrations, setCertificates, setNotifications } = useMemo(() => {
-    const setter = (key) => (update) => setData((current) => ({
-      ...current,
-      [key]: typeof update === "function" ? update(current[key]) : update,
-    }));
-    return {
-      setEvents: setter("events"),
-      setRegistrations: setter("registrations"),
-      setCertificates: setter("certificates"),
-      setNotifications: setter("notifications"),
-    };
-  }, [setData]);
+  const { data, setData, reload } = useServerStore(EVENT_RESOURCES, user?.id || "guest");
+  const { certificates: allCertificates, notifications: allNotifications } = data;
+  // Works like a useState setter. Certificates have none: only the server issues them.
+  const setNotifications = useCallback((update) => setData((current) => ({
+    ...current,
+    notifications: typeof update === "function" ? update(current.notifications) : update,
+  })), [setData]);
   const userProfile = useMemo(() => blankProfile(user), [user]);
 
   const events = useMemo(() => {
-    const publicStatus = {
-      "Registration Open": "REGISTRATION OPEN",
-      Published: "REGISTRATION OPEN",
-      Approved: "OPENS SOON",
-      Completed: "COMPLETED",
-    };
-    const managerEventRows = managerEvents
-      .filter((event) => publicStatus[event.status])
+    return allEvents
+      .filter((event) => SAVED_TO_PUBLIC[event.status])
       .map((event) => {
         const sessions = managerSessions.filter((session) => session.eventId === event.id);
         // The speakers listed on the event, each with their session if one names them.
@@ -92,14 +74,14 @@ export function EventProvider({ children }) {
         const date = new Date(`${event.date}T12:00:00`);
         return {
           ...event,
-          status: publicStatus[event.status],
+          status: SAVED_TO_PUBLIC[event.status],
           isoDate: event.date,
           date: date.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }).toUpperCase(),
           fullDate: date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }),
           time: `${event.startTime} - ${event.endTime}`,
           location: event.venue.toUpperCase(),
           fullLocation: event.venue,
-          registered: liveRegisteredCount(event, loadedManagerRegistrations, managerRegistrations),
+          registered: liveRegisteredCount(event, loadedRegistrations, allRegistrations),
           speakers,
           agenda: sessions.map((session) => ({
             time: `${session.startTime} - ${session.endTime}`,
@@ -112,21 +94,10 @@ export function EventProvider({ children }) {
           heroBg: "var(--color-yellow)",
         };
       });
-    const localEventRows = allEvents
-      .filter((event) => ["REGISTRATION OPEN", "OPENS SOON", "COMPLETED"].includes(event.status))
-      .map((event) => ({
-        ...event,
-        isoDate: event.adminDate || "",
-        registered: liveRegisteredCount(event, loaded.registrations, allRegistrations),
-      }));
-    return [...new Map([...managerEventRows, ...localEventRows].map((event) => [event.id, event])).values()];
-  }, [allEvents, allRegistrations, loaded.registrations, loadedManagerRegistrations, managerEvents, managerRegistrations, managerSessions]);
+  }, [allEvents, allRegistrations, loadedRegistrations, managerSessions]);
   const registrations = useMemo(
-    () => [
-      ...allRegistrations.filter((registration) => belongsToUser(registration, user)),
-      ...managerRegistrations.filter((registration) => belongsToUser(registration, user)),
-    ],
-    [allRegistrations, managerRegistrations, user]
+    () => allRegistrations.filter((registration) => belongsToUser(registration, user)),
+    [allRegistrations, user]
   );
   const certificates = useMemo(
     () => allCertificates.filter((certificate) => belongsToUser(certificate, user)),
@@ -136,53 +107,6 @@ export function EventProvider({ children }) {
     () => allNotifications.filter((notification) => belongsToUser(notification, user)),
     [allNotifications, user]
   );
-
-  // Issue certificates for attended, completed events. Waits for the server data so it never
-  // duplicates a certificate that already exists. Managers cannot issue certificates.
-  const canIssueCertificates = ready && ["user", "admin"].includes(user?.role);
-  useEffect(() => {
-    if (!canIssueCertificates) return;
-    const completedEventIds = new Set([
-      ...managerEvents.filter((event) => event.status === "Completed").map((event) => event.id),
-      ...allEvents.filter((event) => ["Completed", "COMPLETED"].includes(event.status)).map((event) => event.id),
-    ]);
-    const eligibleRegistrations = [...managerRegistrations, ...allRegistrations].filter((registration) =>
-      registration.status === "Confirmed" &&
-      registration.attendanceStatus === "Attended" &&
-      completedEventIds.has(registration.eventId) &&
-      registration.userId
-    );
-    const issuedKeys = new Set(allCertificates.map((certificate) => `${certificate.eventId}:${certificate.userId}`));
-    const newCertificates = eligibleRegistrations
-      .filter((registration) => !issuedKeys.has(`${registration.eventId}:${registration.userId}`))
-      .map((registration) => {
-        const now = new Date();
-        // 8 random characters: 4 digits collided often, and the server refuses a repeated ID.
-        const credentialId = `CERT-NU-${now.getFullYear()}-${Math.random().toString(36).slice(2, 10).toUpperCase().padEnd(8, "0")}`;
-        return {
-          id: newId("cert"),
-          userId: registration.userId,
-          credentialId,
-          eventId: registration.eventId,
-          eventTitle: registration.eventTitle,
-          organizer: "School of Information Technology · National University MOA",
-          recipientName: registration.name || "Attendee",
-          issueDate: now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
-          hoursEarned: "5 Continuing Professional Development Hours",
-          status: "Issued",
-          signatoryName: "Dr. Ronald Reyes",
-          signatoryRole: "Dean, School of Information Technology",
-          verificationUrl: `https://nu-moa.edu.ph/verify/${credentialId}`,
-        };
-      });
-    if (newCertificates.length) {
-      setCertificates((current) => {
-        const currentKeys = new Set(current.map((certificate) => `${certificate.eventId}:${certificate.userId}`));
-        const additions = newCertificates.filter((certificate) => !currentKeys.has(`${certificate.eventId}:${certificate.userId}`));
-        return additions.length ? [...additions, ...current] : current;
-      });
-    }
-  }, [allCertificates, allEvents, allRegistrations, canIssueCertificates, managerEvents, managerRegistrations, setCertificates]);
 
   // Check if current user is registered for an event
   const isEventRegistered = useCallback(
@@ -249,12 +173,7 @@ export function EventProvider({ children }) {
         feedback: null,
       };
 
-      // Update registrations
-      if (managerEvents.some((event) => event.id === eventId)) {
-        addAttendeeRegistration(newRegistration);
-      } else {
-        setRegistrations((prev) => [newRegistration, ...prev]);
-      }
+      addAttendeeRegistration(newRegistration);
 
       // Add notification
       const newNotif = {
@@ -273,7 +192,7 @@ export function EventProvider({ children }) {
 
       return { success: true, registration: newRegistration };
     },
-    [addAttendeeRegistration, events, managerEvents, registrations, setNotifications, setRegistrations, userProfile, user]
+    [addAttendeeRegistration, events, registrations, setNotifications, userProfile, user]
   );
 
   // Cancel an existing registration
@@ -283,8 +202,7 @@ export function EventProvider({ children }) {
       if (!reg) return false;
 
       const patch = { status: "Cancelled", cancelledAt: new Date().toISOString().slice(0, 10) };
-      if (managerRegistrations.some((item) => item.id === registrationId)) updateManagerRegistration(registrationId, patch);
-      else setRegistrations((prev) => prev.map((item) => item.id === registrationId ? { ...item, ...patch } : item));
+      updateRegistration(registrationId, patch);
 
       // Add cancellation notification
       setNotifications((prev) => [
@@ -305,44 +223,29 @@ export function EventProvider({ children }) {
 
       return true;
     },
-    [managerRegistrations, registrations, setNotifications, setRegistrations, updateManagerRegistration, user]
+    [registrations, setNotifications, updateRegistration, user]
   );
 
   const completeAttendance = useCallback(
     (registrationId) => {
       const reg = registrations.find((r) => r.id === registrationId);
-      const eventCompleted = managerEvents.some((event) => event.id === reg?.eventId && event.status === "Completed") ||
-        allEvents.some((event) => event.id === reg?.eventId && ["Completed", "COMPLETED"].includes(event.status));
-      if (!reg || reg.status !== "Confirmed" || reg.attendanceStatus?.toLowerCase() !== "checked in" || !eventCompleted) return false;
+      const eventCompleted = allEvents.some((event) => event.id === reg?.eventId && event.status === "Completed");
+      if (!reg || reg.status !== "Confirmed" || attendanceKey(reg.attendanceStatus) !== "checked-in" || !eventCompleted) return false;
 
-      if (managerRegistrations.some((item) => item.id === registrationId)) updateManagerRegistration(registrationId, { attendanceStatus: "Attended" });
-      else setRegistrations((prev) => prev.map((item) => item.id === registrationId ? { ...item, attendanceStatus: "Attended" } : item));
+      // The server issues the certificate once this is saved.
+      updateRegistration(registrationId, { attendanceStatus: "Attended" });
 
       return true;
     },
-    [allEvents, managerEvents, managerRegistrations, registrations, setRegistrations, updateManagerRegistration]
+    [allEvents, registrations, updateRegistration]
   );
 
   // Submit post-event feedback
   const submitFeedback = useCallback(
     (registrationId, feedbackData) => {
-      setRegistrations((prev) =>
-        prev.map((r) =>
-          r.id === registrationId
-            ? {
-                ...r,
-                feedback: {
-                  ...feedbackData,
-                  submittedAt: new Date().toISOString().replace("T", " ").slice(0, 16),
-                },
-              }
-            : r
-        )
-      );
-
       const reg = registrations.find((r) => r.id === registrationId);
       if (reg) {
-        if (managerRegistrations.some((item) => item.id === registrationId)) submitAttendeeFeedback(registrationId, feedbackData);
+        submitAttendeeFeedback(registrationId, feedbackData);
         setNotifications((prev) => [
           {
             id: newId("notif"),
@@ -362,7 +265,7 @@ export function EventProvider({ children }) {
 
       return true;
     },
-    [managerRegistrations, registrations, setNotifications, setRegistrations, submitAttendeeFeedback]
+    [registrations, setNotifications, submitAttendeeFeedback]
   );
 
   // Notification actions
@@ -386,51 +289,11 @@ export function EventProvider({ children }) {
     reloadManagerData();
   }, [reload, reloadManagerData]);
 
-  // Admin "reset": deletes these records from the database (the sync sends the deletes).
-  const resetToDefaultSeed = useCallback(() => {
-    setData({ events: [], registrations: [], certificates: [], notifications: [] });
-  }, [setData]);
-
-  const updateEvent = useCallback((eventId, patch) => {
-    setEvents((current) => current.map((event) => event.id === eventId ? { ...event, ...patch } : event));
-  }, [setEvents]);
-
-  const addEvent = useCallback((event) => {
-    setEvents((current) => [event, ...current]);
-  }, [setEvents]);
-
-  const deleteEvent = useCallback((eventId) => {
-    setEvents((current) => current.filter((event) => event.id !== eventId));
-    setRegistrations((current) => current.filter((registration) => registration.eventId !== eventId));
-    setCertificates((current) => current.filter((certificate) => certificate.eventId !== eventId));
-    setNotifications((current) => current.filter((notification) => notification.eventId !== eventId));
-  }, [setCertificates, setEvents, setNotifications, setRegistrations]);
-
-  const deleteCertificate = useCallback((certificateId) => {
-    setCertificates((current) => current.filter((certificate) => certificate.id !== certificateId));
-  }, [setCertificates]);
-
-  const updateRegistration = useCallback((registrationId, patch) => {
-    setRegistrations((current) => current.map((registration) => registration.id === registrationId
-      ? { ...registration, ...patch }
-      : registration));
-  }, [setRegistrations]);
-
-  const addRegistration = useCallback((registration) => {
-    setRegistrations((current) => [registration, ...current]);
-  }, [setRegistrations]);
-
-  const deleteRegistration = useCallback((registrationId) => {
-    setRegistrations((current) => current.filter((registration) => registration.id !== registrationId));
-  }, [setRegistrations]);
-
   return (
     <EventContext.Provider
       value={{
         events,
-        allEvents,
         registrations,
-        allRegistrations,
         certificates,
         allCertificates,
         notifications,
@@ -444,14 +307,6 @@ export function EventProvider({ children }) {
         markNotificationRead,
         markAllNotificationsRead,
         updateProfile,
-        resetToDefaultSeed,
-        updateEvent,
-        addEvent,
-        deleteEvent,
-        deleteCertificate,
-        updateRegistration,
-        addRegistration,
-        deleteRegistration,
       }}
     >
       {children}

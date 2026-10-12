@@ -1,13 +1,6 @@
-import React from "react";
-import Icon from "../Icon.js";
-import { useDialog } from "../Motion.js";
-
-export function StatusBadge({ value }) {
-  const statusText = String(value || "").toLowerCase();
-  const statusName = statusText.split(" ").join("-");
-
-  return <span className={"sbadge sbadge--" + statusName}>{value}</span>;
-}
+import React, { useState } from "react";
+import Icon from "./Icon.js";
+import { useDialog } from "./Motion.js";
 
 // Shared by admin and attendee dialogs. `children` may be a function that receives the
 // animated close, for "Cancel" buttons inside the dialog.
@@ -63,4 +56,20 @@ export function ConfirmModal({
       )}
     </Modal>
   );
+}
+
+// One confirm dialog per screen for actions that are hard to undo (cancel, remove, complete).
+export function useConfirm() {
+  const [request, setRequest] = useState(null);
+  const dialog = request && (
+    <ConfirmModal
+      {...request}
+      onCancel={() => setRequest(null)}
+      onConfirm={() => {
+        request.onConfirm();
+        setRequest(null);
+      }}
+    />
+  );
+  return [dialog, setRequest];
 }

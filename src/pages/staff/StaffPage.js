@@ -4,6 +4,7 @@ import Icon from "../../components/Icon.js";
 import QrScanner from "../../components/staff/QrScanner.js";
 import { playSound } from "../../components/sound.js";
 import { api } from "../../api.js";
+import { isCheckedIn } from "../../data/checkIn.js";
 
 // How each server answer looks at the desk.
 const RESULTS = {
@@ -12,7 +13,6 @@ const RESULTS = {
   "wrong-event": { tone: "warn", icon: "alert", title: "Wrong event" },
   invalid: { tone: "bad", icon: "close", title: "Not a valid ticket" },
 };
-const isIn = (attendee) => ["checked in", "attended"].includes(String(attendee.attendanceStatus).toLowerCase());
 
 // The door: staff pick the event they are working, scan tickets, and see who has arrived.
 // Every scan is checked by the server against the database; there is no manual check-in here.
@@ -201,8 +201,8 @@ export default function StaffPage() {
                       <td>#{attendee.ticketCode}</td>
                       <td>{attendee.seat || "Free"}</td>
                       <td>
-                        <span className={`sbadge ${isIn(attendee) ? "sbadge--checked-in" : "sbadge--not-checked-in"}`}>
-                          {isIn(attendee) ? `In · ${attendee.checkedInAt || ""}` : "Not yet"}
+                        <span className={`sbadge ${isCheckedIn(attendee) ? "sbadge--checked-in" : "sbadge--not-checked-in"}`}>
+                          {isCheckedIn(attendee) ? `In · ${attendee.checkedInAt || ""}` : "Not yet"}
                         </span>
                       </td>
                     </tr>

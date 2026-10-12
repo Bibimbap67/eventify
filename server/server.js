@@ -9,7 +9,7 @@ const ticketRoutes = require("./routes/ticketRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 
 if (!process.env.JWT_SECRET) {
-  console.error("JWT_SECRET is not set. Copy server/.env.example to server/.env and fill it in.");
+  console.error("JWT_SECRET is not set. Add it to server/.env (see the README).");
   process.exit(1);
 }
 
@@ -26,8 +26,11 @@ app.use("/api/admin", adminRoutes);
 
 app.use((req, res) => res.status(404).json({ message: "Route not found." }));
 
-// eslint-disable-next-line no-unused-vars
+
+// Express 5 sends errors from async routes here. Errors meant for the user (`expose`, like a
+// refused change or a broken JSON body) keep their status and message; anything else is a 500.
 app.use((err, req, res, next) => {
+  if (err.expose) return res.status(err.status).json({ message: err.message });
   console.error(err);
   res.status(500).json({ message: "Internal server error." });
 });

@@ -6,7 +6,7 @@ import Logo from "../Logo.js";
 import Icon from "../Icon.js";
 import SoundToggle from "../SoundToggle.js";
 import { PageTransition } from "../Motion.js";
-import { Avatar } from "../manager/parts.js";
+import { Avatar } from "../ui.js";
 import { timeAgo, useApi, useDismiss } from "./parts.js";
 import "./admin.css";
 

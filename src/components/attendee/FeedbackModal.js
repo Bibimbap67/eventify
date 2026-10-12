@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Icon from "../Icon.js";
 import Spinner from "../Spinner.js";
 import { usePending } from "../Motion.js";
-import { Modal } from "../admin/ui.js";
+import { Modal } from "../Modal.js";
 
 export default function FeedbackModal({ registration, onSubmit, onClose }) {
   const [overall, setOverall] = useState(5);

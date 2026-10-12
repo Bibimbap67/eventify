@@ -1,7 +1,7 @@
 import React, { useCallback } from "react";
 import { useAdmin } from "../../context/AdminContext.js";
 import { TableSkeleton } from "../../components/Skeleton.js";
-import { Avatar, SectionHeading, StatusBadge, Table } from "../../components/manager/parts.js";
+import { Avatar, SectionHeading, StatusBadge, Table } from "../../components/ui.js";
 import {
   LoadError, Pagination, SearchFilter, formatDay, toQuery, useApi, useFilters,
 } from "../../components/admin/parts.js";

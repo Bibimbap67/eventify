@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../components/Navbar.js";
 import Icon from "../../components/Icon.js";
@@ -8,8 +8,12 @@ import CertificateModal from "../../components/attendee/CertificateModal.js";
 
 export default function CertificatesPage() {
   const entering = useEntering();
-  const { certificates, userProfile } = useEventContext();
+  const { certificates, userProfile, refresh } = useEventContext();
   const [selectedCert, setSelectedCert] = useState(null);
+  // The server issues certificates, so read the latest ones when the page opens.
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   return (
     <div className="certificates-page">

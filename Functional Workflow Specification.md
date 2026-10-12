@@ -18,10 +18,10 @@
 
    ```
    BrowserRouter
-   └─ AuthProvider        → restores the session from the saved token (GET /api/auth/me); admins also load GET /api/users
-         └─ ManagerProvider → loads manager events/registrations/sessions/announcements/feedback/notifications from /api/data/manager-*
-            └─ EventProvider → loads public events, registrations, certificates, notifications,
-                              and DERIVES public events from manager events
+   └─ AuthProvider        → restores the session from the saved token (GET /api/auth/me)
+         └─ ManagerProvider → loads every event (manager- or admin-made) and its registrations/sessions/announcements/feedback/notifications from /api/data/manager-*
+            └─ EventProvider → loads the attendee's certificates and notifications,
+                              and DERIVES the public event list from those events
                └─ App      → <Routes>
    ```
 
@@ -49,7 +49,7 @@
    | **Public** | `/` (Home), `/login`, `/events`, `/events/:id` | None |
    | **Attendee** (`role: user`) | `/my-events`, `/schedule`, `/attendance`, `/certificates`, `/notifications`, `/profile`, `/workspace` | `requiredRole="user"` |
    | **Admin** (`role: admin`) | `/admin` → Dashboard, `users`, `events`, `venues`, `reports`, `registrations`, `certificates`, `audit-logs`, `settings` (old `attendance`, `sessions`, `announcements`, `feedback` links redirect) | `requiredRole="admin"` + `AdminProvider` + `AdminLayout` (sidebar + `<Outlet/>`) |
-   | **Manager** (`role: manager`) | `/manager` → Overview, `events`, `events/:eventId[/:tab]`, `registrations`, `attendance`, `schedule`, `participants`, `announcements`, `feedback`, `reports` | `requiredRole="manager"` + `ManagerLayout` → all render sections of `ManagerScreen` |
+   | **Manager** (`role: manager`) | `/manager` → Overview, `events`, `events/:eventId[/:tab]`, `registrations`, `attendance`, `schedule`, `participants`, `announcements`, `feedback`, `reports` | `requiredRole="manager"` + `ManagerLayout` → one page file each in `src/pages/manager/` |
    | **Fallback** | `*` | Redirect → `/` |
 
    ---
@@ -76,15 +76,14 @@
       │
       ▼
    EventsPage ──► EventDetail ──► registerForEvent()
-                                    │  writes registration to EventContext
-                                    │  → syncs into ManagerContext (addAttendeeRegistration)
+                                    │  → saves the registration through ManagerContext (addAttendeeRegistration)
                                     │  → creates notification ("New registration")
                                     ▼
    MyEventsPage ──► TicketPassModal (QR pass) ──► AttendancePage (check-in)
                                                       │
                                     completeAttendance() / checkInAttendee()
                                                       ▼
-   CertificatesPage ◄── certificate issued on completion
+   CertificatesPage ◄── the server issues the certificate when the ticket is marked Attended on a completed event
       │
       ▼
    FeedbackModal ──► submitFeedback() → routed to manager's feedback list
@@ -133,11 +132,11 @@
       ├─ Platform   Users & roles ─────► GET /api/users?page&role&status&q&sort (server paging + tab counts)
       │             │                    POST / PATCH / DELETE /api/users (role, status, details, delete)
       │             Events & approvals ─► AdminContext.update() / add() / remove()
-      │             │  • Status translation layer between 3 vocabularies:
-      │             │     Admin:   Pending → Approved → Published → Completed
-      │             │     Public:  PENDING → OPENS SOON → REGISTRATION OPEN → COMPLETED
-      │             │     Manager: Pending → Approved → Published → Completed
-      │             │  • Writes flow through to EventContext AND ManagerContext
+      │             │  • Every event is saved one way; the words are translated in src/data/eventStatus.js:
+      │             │     Saved:   Pending → Registration Open → Completed
+      │             │     Admin:   Pending → Published → Completed
+      │             │     Public:  REGISTRATION OPEN → COMPLETED
+      │             │  • An admin's new event saves through ManagerContext, owned by that admin
       │             │  • Details (read-only sessions, speakers, announcements): GET /api/admin/events/:id
       │             Venues ────────────► AdminContext (venues collection)
       ├─ Oversight  Reports ───────────► GET /api/admin/reports/events (per-event totals, CSV export)
@@ -158,10 +157,10 @@
 
    | MongoDB collection | API resource(s) | Owner | Contents |
    |---|---|---|---|
-   | `users` | `/api/auth/*`, `/api/users` | AuthContext | accounts, roles, status, profile fields |
-   | `events` | `events` (scope `admin`), `manager-events` (scope `manager`) | EventContext / ManagerContext | admin-created and manager-created events |
-   | `registrations` | `registrations`, `manager-registrations` | EventContext / ManagerContext | attendee registrations, attendance, feedback answers |
-   | `certificates` | `certificates` | EventContext | issued certificates |
+   | `users` | `/api/auth/*`, `/api/users` | AuthContext (own account), Admin > Users page (`/api/users`) | accounts, roles, status, profile fields |
+   | `events` | `manager-events` | ManagerContext | every event, whether a manager or an admin made it |
+   | `registrations` | `manager-registrations` | ManagerContext | attendee registrations, attendance, feedback answers |
+   | `certificates` | `certificates` (read-only; the server issues them) | EventContext | issued certificates |
    | `notifications` | `notifications` (scope `attendee`), `manager-notifications` (scope `manager`) | EventContext / ManagerContext | attendee and manager notifications |
    | `sessions` | `manager-sessions` (the admin-scope `sessions` resource is no longer used by any screen) | ManagerContext | sessions & speakers |
    | `announcements` | `manager-announcements` (admin-scope `announcements` likewise unused) | ManagerContext | announcements |
@@ -172,7 +171,7 @@
 
    Profile fields (student ID, program, phone, ...) are stored on the user document via `PATCH /api/auth/me`.
 
-   **Cross-context sync:** The public event list is *derived* — `EventContext.events` is a `useMemo` that maps `ManagerContext` events through a status filter (`Registration Open`/`Published`/`Approved`/`Completed` only), so manager-created events automatically appear publicly once approved.
+   **Cross-context sync:** The public event list is *derived* — `EventContext.events` is a `useMemo` that maps `ManagerContext` events through a status filter (`Registration Open`/`Published`/`Approved`/`Completed` only), so every event appears publicly once approved, whoever made it.
 
    ---
 

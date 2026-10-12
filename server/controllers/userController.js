@@ -1,7 +1,9 @@
 const User = require("../models/User");
-const { audit } = require("../utils/audit");
+const { audit, diff } = require("../utils/audit");
+const {
+  EMAIL_RE, PASSWORD_MIN, PASSWORD_RULE, text, searchRegex, paging,
+} = require("../utils/input");
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ROLES = ["user", "manager", "staff", "admin"];
 const STATUSES = ["active", "inactive"];
 const ROLE_NAMES = { user: "Attendee", manager: "Event Manager", staff: "Staff", admin: "Admin" };
@@ -16,28 +18,21 @@ const SORTS = {
   "-createdAt": { createdAt: -1, _id: -1 },
 };
 
-const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const label = (user) => `${user.name} (${user.email})`;
 const countsOf = (rows) => Object.fromEntries(rows.map((row) => [row._id, row.count]));
 
-// Without ?page: every account (AuthContext loads this for admins).
-// With ?page: one page for the Users screen, plus how many accounts each role and status tab
-// holds for the current search, so the tabs can show their counts.
+// One page for the Users screen, plus how many accounts each role and status tab holds for
+// the current search, so the tabs can show their counts.
 const getUsers = async (req, res) => {
-  if (req.query.page === undefined) {
-    const users = await User.find().sort({ createdAt: -1 });
-    return res.json({ users });
-  }
-  const q = String(req.query.q || "").trim().slice(0, 100);
-  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
-  const search = q ? { $or: [{ name: new RegExp(escapeRegex(q), "i") }, { email: new RegExp(escapeRegex(q), "i") }] } : {};
+  const q = text(req.query.q);
+  const { page, limit, skip } = paging(req.query, 20);
+  const search = q ? { $or: [{ name: searchRegex(q) }, { email: searchRegex(q) }] } : {};
   const byRole = ROLES.includes(req.query.role) ? { role: req.query.role } : {};
   const byStatus = STATUSES.includes(req.query.status) ? { status: req.query.status } : {};
   const filter = { ...search, ...byRole, ...byStatus };
 
   const [users, total, [facets]] = await Promise.all([
-    User.find(filter).sort(SORTS[req.query.sort] || SORTS["-createdAt"]).skip((page - 1) * limit).limit(limit),
+    User.find(filter).sort(SORTS[req.query.sort] || SORTS["-createdAt"]).skip(skip).limit(limit),
     User.countDocuments(filter),
     User.aggregate([
       { $match: search },
@@ -65,7 +60,7 @@ function readFields(body, { creating }) {
   }
   if (creating || body.password) {
     fields.password = String(body.password || "");
-    if (fields.password.length < 6) return { error: "Use at least 6 characters for the password." };
+    if (fields.password.length < PASSWORD_MIN) return { error: PASSWORD_RULE };
   }
   if (body.role !== undefined) {
     if (!ROLES.includes(body.role)) return { error: "Choose a valid role." };
@@ -144,10 +139,7 @@ const updateUser = async (req, res) => {
     await audit(req, { ...base, action: user.status === "active" ? "Activated user" : "Deactivated user", details: { from: before.status, to: user.status } });
   }
   if (fields.password) await audit(req, { ...base, action: "Reset user password" });
-  const changes = {};
-  ["name", "email"].forEach((key) => {
-    if (before[key] !== user[key]) changes[key] = { from: before[key], to: user[key] };
-  });
+  const changes = diff({ name: before.name, email: before.email }, { name: user.name, email: user.email });
   if (Object.keys(changes).length) await audit(req, { ...base, action: "Updated user details", details: { changes } });
 
   res.json({ user });

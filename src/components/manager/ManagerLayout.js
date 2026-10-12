@@ -6,7 +6,8 @@ import Logo from "../Logo.js";
 import Icon from "../Icon.js";
 import SoundToggle from "../SoundToggle.js";
 import { PageTransition } from "../Motion.js";
-import { PAST_STATUSES, plural } from "./parts.js";
+import { plural } from "../ui.js";
+import { PAST_STATUSES } from "../../data/eventStatus.js";
 
 // Grouped by when a manager needs them: planning, the event day itself, and the follow-up.
 // `badge` names a live count shown next to the link.

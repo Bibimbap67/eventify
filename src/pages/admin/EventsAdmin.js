@@ -1,14 +1,15 @@
 import React, { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
-import { ADMIN_STATUSES, useAdmin } from "../../context/AdminContext.js";
+import { useAdmin } from "../../context/AdminContext.js";
+import { ADMIN_STATUSES } from "../../data/eventStatus.js";
 import { ORGANIZERS } from "../../data/options.js";
 import Icon from "../../components/Icon.js";
-import { ConfirmModal, Modal } from "../../components/admin/ui.js";
+import { ConfirmModal, Modal } from "../../components/Modal.js";
 import { SeatingField } from "../../components/SeatMap.js";
 import { TableSkeleton, useSkeleton } from "../../components/Skeleton.js";
 import {
   ArchiveSwitch, CapacityBar, FilterChips, SectionHeading, StatusBadge, Table, plural,
-} from "../../components/manager/parts.js";
+} from "../../components/ui.js";
 import { LoadError, SearchFilter, formatDay, useApi, useFilters } from "../../components/admin/parts.js";
 
 // Status changes the admin can make: label -> [from statuses, to status, needs confirming].
@@ -22,7 +23,7 @@ const ACTIONS = [
   ["Restore", ["Archived"], (event) => event.archivedFrom || "Completed", false],
 ];
 const CONFIRM = {
-  Reject: (event) => `${event.title} won't be published and nobody can register.${event.scope === "manager" ? " Its manager sees it as rejected in their workspace." : ""}`,
+  Reject: (event) => `${event.title} won't be published and nobody can register.${event.createdByAdmin ? "" : " Its manager sees it as rejected in their workspace."}`,
   Cancel: (event) => `${event.title} is called off. Registration closes and existing tickets stop working at the check-in desk.`,
 };
 const CLOSED = ["Rejected", "Cancelled", "Archived"];
@@ -60,7 +61,7 @@ export default function EventsAdmin() {
       render: (event) => (
         <span>
           <b>{event.title}</b>
-          <span className="admin-cell-sub">{event.organizer || "—"}{event.scope === "admin" ? " · created by an admin" : ""}</span>
+          <span className="admin-cell-sub">{event.organizer || "—"}{event.createdByAdmin ? " · created by an admin" : ""}</span>
         </span>
       ),
     },
@@ -233,7 +234,7 @@ function EventDetails({ event, onClose, onEdit }) {
     ["Venue", venueName(event.venueId, event.id)],
     ["Capacity", `${event.capacity || 0} · ${event.seating === "reserved" ? "reserved seats" : "free seating"}`],
     ["Organizer", event.organizer || "—"],
-    ["Run by", event.scope === "admin" ? "Created in the admin area (no event manager)" : "Its event manager"],
+    ["Run by", event.createdByAdmin ? "Created in the admin area (no event manager)" : "Its event manager"],
   ];
 
   return (

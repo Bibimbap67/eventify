@@ -13,8 +13,12 @@ const BLANK_PASSWORDS = { current: "", next: "", confirm: "" };
 
 // Every role edits its name, email and password here; the student details and stats are for students only.
 export default function ProfilePage() {
-  const { userProfile, updateProfile, registrations, certificates } = useEventContext();
+  const { userProfile, updateProfile, registrations, certificates, refresh } = useEventContext();
   const { user, changePassword } = useAuth();
+  // The certificate count comes from the server, which issues them; read the latest.
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
   const isStudent = user?.role === "user";
   const [passwords, setPasswords] = useState(BLANK_PASSWORDS);
   const [passwordError, setPasswordError] = useState("");

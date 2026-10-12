@@ -1,12 +1,13 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const { PASSWORD_MIN } = require("../utils/input");
 
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     // Stored as a bcrypt hash. Hidden from queries unless you call .select("+password").`
-    password: { type: String, required: true, minlength: 6, select: false },
+    password: { type: String, required: true, minlength: PASSWORD_MIN, select: false },
     // Only the server/seed script can set this. Public signup is always "user".
     role: { type: String, enum: ["user", "manager", "staff", "admin"], default: "user" },
     // Used by ManagerContext to scope events to one manager.

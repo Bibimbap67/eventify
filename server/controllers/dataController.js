@@ -13,6 +13,8 @@ const {
 const { seatId, seatIndex, onMap, firstFreeSeat } = require("../utils/seating");
 const { audit, diff } = require("../utils/audit");
 const { checkInOpensAt, opensLabel } = require("../utils/checkIn");
+const { PUBLIC_EVENT_STATUS, OPEN_EVENT_STATUS } = require("../utils/eventStatus");
+const { issueCertificates } = require("../utils/certificates");
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -25,18 +27,6 @@ const deny = (message = "You do not have permission to change this record.") => 
   throw new HttpError(403, message);
 };
 
-const PUBLIC_EVENT_STATUS = {
-  admin: ["REGISTRATION OPEN", "OPENS SOON", "COMPLETED"],
-  manager: ["Registration Open", "Published", "Approved", "Completed"],
-};
-const OPEN_EVENT_STATUS = {
-  admin: ["REGISTRATION OPEN"],
-  manager: ["Registration Open", "Published"],
-};
-const COMPLETED_EVENT_STATUS = {
-  admin: ["COMPLETED", "Completed"],
-  manager: ["Completed"],
-};
 // Eventify serves NU MOA students only, so every attendee ticket is a student ticket.
 const ATTENDEE_TYPE = "Student Attendee";
 // Status changes a manager may make on their own event without an admin.
@@ -48,12 +38,12 @@ const managerKey = (user) => user.managerId || user.id;
 
 async function ownedEventIds(user) {
   if (!isManager(user)) return [];
-  return Event.find({ scope: "manager", managerId: managerKey(user) }).distinct("_id");
+  return Event.find({ managerId: managerKey(user) }).distinct("_id");
 }
 
 async function ownsEvent(user, eventId) {
   if (!isManager(user) || !eventId) return false;
-  return Boolean(await Event.exists({ _id: eventId, scope: "manager", managerId: managerKey(user) }));
+  return Boolean(await Event.exists({ _id: eventId, managerId: managerKey(user) }));
 }
 
 // ---- seating -----------------------------------------------------------------
@@ -81,8 +71,8 @@ async function checkSeating(record, existing) {
 // Free seating clears the seat number. Reserved seating checks the seat is on the map and
 // free. An attendee's own pick must be exact (`strict`); rows saved by staff without a
 // seat, or whose old seat was taken while they were cancelled, get the first open seat.
-async function placeSeat(record, existing, scope, { strict = false } = {}) {
-  const event = await Event.findOne({ _id: record.eventId || existing?.eventId, scope });
+async function placeSeat(record, existing, { strict = false } = {}) {
+  const event = await Event.findById(record.eventId || existing?.eventId);
   if (!event) return;
   if (event.seating !== "reserved") {
     record.seating = "free";
@@ -136,172 +126,158 @@ function managerEventChild({ publicRead = false } = {}) {
   };
 }
 
-function events(scope) {
-  return {
-    model: Event,
-    scope,
-    async read(user) {
-      if (isAdmin(user)) return {};
-      const visible = { status: { $in: PUBLIC_EVENT_STATUS[scope] } };
-      if (scope === "manager" && isManager(user)) return { $or: [visible, { managerId: managerKey(user) }] };
-      return visible;
-    },
-    async save(user, record, existing) {
-      await checkSeating(record, existing);
-      if (isAdmin(user)) return;
-      if (scope !== "manager" || !isManager(user)) deny();
-      if (existing && existing.managerId !== managerKey(user)) deny();
-      record.managerId = managerKey(user);
-      // Managers pick the venue from the admin's list; an older event may keep its typed-in one.
-      if (record.venue !== existing?.venue && (typeof record.venue !== "string" || !(await Venue.exists({ name: record.venue })))) {
-        throw new HttpError(400, "Choose a venue from the list the admin set up.");
-      }
-      if (!existing) {
-        record.status = "Pending"; // new events wait for admin approval
-      } else if (record.status !== existing.status && !MANAGER_STATUS_CHANGES.includes(record.status)) {
-        // A finished event may go to the archive; restoring it is a change back to Completed or Cancelled.
-        const archiving = record.status === "Archived" && MANAGER_STATUS_CHANGES.includes(existing.status);
-        if (!archiving) deny("Only an administrator can approve or publish an event.");
-      }
-    },
-    async remove(user, existing) {
-      if (isAdmin(user)) return;
-      if (scope !== "manager" || existing.managerId !== managerKey(user)) deny();
-    },
-    async afterRemove(ids) {
-      const byEvent = { eventId: { $in: ids } };
-      await Promise.all([
-        Registration.deleteMany(byEvent),
-        Certificate.deleteMany(byEvent),
-        Notification.deleteMany(byEvent),
-        Session.deleteMany(byEvent),
-        Announcement.deleteMany(byEvent),
-        Feedback.deleteMany(byEvent),
-      ]);
-    },
-    // Attendees only see their own registrations, so the server supplies the counts, and the
-    // average rating of each completed event (feedback is public once an event is done).
-    async decorate(items) {
-      const done = items.filter((item) => COMPLETED_EVENT_STATUS[scope].includes(item.status)).map((item) => item.id);
-      const [counts, ratings] = await Promise.all([
-        Registration.aggregate([
-          { $match: { scope, status: "Confirmed", eventId: { $in: items.map((item) => item.id) } } },
-          { $group: { _id: "$eventId", count: { $sum: 1 } } },
-        ]),
-        scope === "manager"
-          ? Feedback.aggregate([
-            { $match: { scope, eventId: { $in: done }, rating: { $type: "number" } } },
-            { $group: { _id: "$eventId", count: { $sum: 1 }, average: { $avg: "$rating" } } },
-          ])
-          : Registration.aggregate([
-            { $match: { scope, eventId: { $in: done }, "feedback.overall": { $type: "number" } } },
-            { $group: { _id: "$eventId", count: { $sum: 1 }, average: { $avg: "$feedback.overall" } } },
-          ]),
-      ]);
-      const byId = new Map(counts.map((row) => [row._id, row.count]));
-      const rated = new Map(ratings.map((row) => [row._id, row]));
-      return items.map((item) => {
-        const rating = rated.get(item.id);
-        return {
-          ...item,
-          registeredCount: byId.get(item.id) || 0,
-          ...(rating && { feedbackCount: rating.count, feedbackAverage: Math.round(rating.average * 10) / 10 }),
-        };
-      });
-    },
-  };
-}
+// Every event, whether a manager or an admin made it. An admin's event belongs to that admin
+// (its managerId), so it never shows in a manager's workspace.
+const events = {
+  model: Event,
+  scope: "manager",
+  async read(user) {
+    if (isAdmin(user)) return {};
+    const visible = { status: { $in: PUBLIC_EVENT_STATUS } };
+    if (isManager(user)) return { $or: [visible, { managerId: managerKey(user) }] };
+    return visible;
+  },
+  async save(user, record, existing) {
+    await checkSeating(record, existing);
+    if (isAdmin(user)) return;
+    if (!isManager(user)) deny();
+    if (existing && existing.managerId !== managerKey(user)) deny();
+    record.managerId = managerKey(user);
+    // Managers pick the venue from the admin's list; an older event may keep its typed-in one.
+    if (record.venue !== existing?.venue && (typeof record.venue !== "string" || !(await Venue.exists({ name: record.venue })))) {
+      throw new HttpError(400, "Choose a venue from the list the admin set up.");
+    }
+    if (!existing) {
+      record.status = "Pending"; // new events wait for admin approval
+    } else if (record.status !== existing.status && !MANAGER_STATUS_CHANGES.includes(record.status)) {
+      // A finished event may go to the archive; restoring it is a change back to Completed or Cancelled.
+      const archiving = record.status === "Archived" && MANAGER_STATUS_CHANGES.includes(existing.status);
+      if (!archiving) deny("Only an administrator can approve or publish an event.");
+    }
+  },
+  async remove(user, existing) {
+    if (isAdmin(user)) return;
+    if (existing.managerId !== managerKey(user)) deny();
+  },
+  // Completing an event issues the certificates of everyone already marked Attended.
+  async afterSave(saved) {
+    await issueCertificates(saved.filter(({ before, after }) => after.status === "Completed" && before?.status !== "Completed").map(({ id }) => id));
+  },
+  async afterRemove(ids) {
+    const byEvent = { eventId: { $in: ids } };
+    await Promise.all([
+      Registration.deleteMany(byEvent),
+      Certificate.deleteMany(byEvent),
+      Notification.deleteMany(byEvent),
+      Session.deleteMany(byEvent),
+      Announcement.deleteMany(byEvent),
+      Feedback.deleteMany(byEvent),
+    ]);
+  },
+  // Attendees only see their own registrations, so the server supplies the counts, and the
+  // average rating of each completed event (feedback is public once an event is done).
+  async decorate(items) {
+    const done = items.filter((item) => item.status === "Completed").map((item) => item.id);
+    const [counts, ratings] = await Promise.all([
+      Registration.aggregate([
+        { $match: { status: "Confirmed", eventId: { $in: items.map((item) => item.id) } } },
+        { $group: { _id: "$eventId", count: { $sum: 1 } } },
+      ]),
+      Feedback.aggregate([
+        { $match: { eventId: { $in: done }, rating: { $type: "number" } } },
+        { $group: { _id: "$eventId", count: { $sum: 1 }, average: { $avg: "$rating" } } },
+      ]),
+    ]);
+    const byId = new Map(counts.map((row) => [row._id, row.count]));
+    const rated = new Map(ratings.map((row) => [row._id, row]));
+    return items.map((item) => {
+      const rating = rated.get(item.id);
+      return {
+        ...item,
+        registeredCount: byId.get(item.id) || 0,
+        ...(rating && { feedbackCount: rating.count, feedbackAverage: Math.round(rating.average * 10) / 10 }),
+      };
+    });
+  },
+};
 
-function registrations(scope) {
-  return {
-    model: Registration,
-    scope,
-    async read(user) {
-      if (!user) return null;
-      if (isAdmin(user)) return {};
-      if (isManager(user)) return scope === "manager" ? { eventId: { $in: await ownedEventIds(user) } } : null;
-      return { userId: user.id };
-    },
-    async save(user, record, existing) {
-      // The QR secret only ever comes from the server, and a stale client copy must not erase it.
-      delete record.ticketToken;
-      if (existing?.ticketToken) record.ticketToken = existing.ticketToken;
-      if (isAdmin(user)) return placeSeat(record, existing, scope);
-      if (isManager(user)) {
-        if (scope !== "manager") deny();
-        if (!(await ownsEvent(user, record.eventId))) deny();
-        if (existing && !(await ownsEvent(user, existing.eventId))) deny();
-        const checkingIn = String(record.attendanceStatus || "").toLowerCase() === "checked in" &&
-          String(existing?.attendanceStatus || "").toLowerCase() !== "checked in";
-        const opensAt = checkingIn && checkInOpensAt(await Event.findById(record.eventId));
-        if (opensAt && Date.now() < opensAt) deny(`Check-in opens when the event starts, ${opensLabel(opensAt)}.`);
-        return placeSeat(record, existing, scope);
-      }
-      // Attendee: only their own registration, and the event cannot be swapped.
-      if (existing) {
-        if (existing.userId !== user.id) deny();
-        record.userId = user.id;
-        record.eventId = existing.eventId;
-        // Check-in happens only when staff scan the ticket. The one change an attendee may make
-        // is marking a checked-in ticket "Attended" after the event is completed.
-        const checkedIn = String(existing.attendanceStatus || "").toLowerCase() === "checked in";
-        const finishing = checkedIn && record.attendanceStatus === "Attended" &&
-          await Event.exists({ _id: existing.eventId, status: { $in: COMPLETED_EVENT_STATUS[scope] } });
-        if (!finishing) record.attendanceStatus = existing.attendanceStatus;
-        record.checkedInAt = existing.checkedInAt;
-        record.checkedInBy = existing.checkedInBy;
-        // An attendee can cancel, but not revive a cancelled ticket or move to another seat.
-        if (!(existing.status === "Confirmed" && record.status === "Cancelled")) record.status = existing.status;
-        record.seat = existing.seat;
-        record.seating = existing.seating;
-        record.ticketType = existing.ticketType;
-        return;
-      }
+const registrations = {
+  model: Registration,
+  scope: "manager",
+  async read(user) {
+    if (!user) return null;
+    if (isAdmin(user)) return {};
+    if (isManager(user)) return { eventId: { $in: await ownedEventIds(user) } };
+    return { userId: user.id };
+  },
+  async save(user, record, existing) {
+    // The QR secret only ever comes from the server, and a stale client copy must not erase it.
+    delete record.ticketToken;
+    if (existing?.ticketToken) record.ticketToken = existing.ticketToken;
+    if (isAdmin(user)) return placeSeat(record, existing);
+    if (isManager(user)) {
+      if (!(await ownsEvent(user, record.eventId))) deny();
+      if (existing && !(await ownsEvent(user, existing.eventId))) deny();
+      const checkingIn = String(record.attendanceStatus || "").toLowerCase() === "checked in" &&
+        String(existing?.attendanceStatus || "").toLowerCase() !== "checked in";
+      const opensAt = checkingIn && checkInOpensAt(await Event.findById(record.eventId));
+      if (opensAt && Date.now() < opensAt) deny(`Check-in opens when the event starts, ${opensLabel(opensAt)}.`);
+      return placeSeat(record, existing);
+    }
+    // Attendee: only their own registration, and the event cannot be swapped.
+    if (existing) {
+      if (existing.userId !== user.id) deny();
       record.userId = user.id;
-      record.ticketType = ATTENDEE_TYPE;
-      record.attendanceStatus = "Not Checked In";
-      record.checkedInAt = null;
-      delete record.checkedInBy;
-      const event = await Event.findOne({ _id: record.eventId, scope });
-      if (!event) throw new HttpError(404, "Event not found.");
-      if (!OPEN_EVENT_STATUS[scope].includes(event.status)) deny("Registration is not open for this event.");
-      const query = { scope, eventId: event._id, status: "Confirmed" };
-      if (await Registration.exists({ ...query, userId: user.id })) deny("You are already registered for this event.");
-      if (event.capacity && (await Registration.countDocuments(query)) >= event.capacity) {
-        deny("Sorry, this event has reached maximum capacity.");
-      }
-      record.status = "Confirmed";
-      await placeSeat(record, null, scope, { strict: true });
-    },
-    async remove(user, existing) {
-      if (isAdmin(user)) return;
-      if (scope === "manager" && (await ownsEvent(user, existing.eventId))) return;
-      deny();
-    },
-  };
-}
+      record.eventId = existing.eventId;
+      // Check-in happens only when staff scan the ticket. The one change an attendee may make
+      // is marking a checked-in ticket "Attended" after the event is completed.
+      const checkedIn = String(existing.attendanceStatus || "").toLowerCase() === "checked in";
+      const finishing = checkedIn && record.attendanceStatus === "Attended" &&
+        await Event.exists({ _id: existing.eventId, status: "Completed" });
+      if (!finishing) record.attendanceStatus = existing.attendanceStatus;
+      record.checkedInAt = existing.checkedInAt;
+      record.checkedInBy = existing.checkedInBy;
+      // An attendee can cancel, but not revive a cancelled ticket or move to another seat.
+      if (!(existing.status === "Confirmed" && record.status === "Cancelled")) record.status = existing.status;
+      record.seat = existing.seat;
+      record.seating = existing.seating;
+      record.ticketType = existing.ticketType;
+      return;
+    }
+    record.userId = user.id;
+    record.ticketType = ATTENDEE_TYPE;
+    record.attendanceStatus = "Not Checked In";
+    record.checkedInAt = null;
+    delete record.checkedInBy;
+    const event = await Event.findById(record.eventId);
+    if (!event) throw new HttpError(404, "Event not found.");
+    if (!OPEN_EVENT_STATUS.includes(event.status)) deny("Registration is not open for this event.");
+    const query = { eventId: event._id, status: "Confirmed" };
+    if (await Registration.exists({ ...query, userId: user.id })) deny("You are already registered for this event.");
+    if (event.capacity && (await Registration.countDocuments(query)) >= event.capacity) {
+      deny("Sorry, this event has reached maximum capacity.");
+    }
+    record.status = "Confirmed";
+    await placeSeat(record, null, { strict: true });
+  },
+  async remove(user, existing) {
+    if (isAdmin(user)) return;
+    if (await ownsEvent(user, existing.eventId)) return;
+    deny();
+  },
+  // A ticket marked Attended on a completed event gets its certificate.
+  async afterSave(saved) {
+    await issueCertificates(saved.filter(({ before, after }) => after.attendanceStatus === "Attended" && before?.attendanceStatus !== "Attended").map(({ after }) => after.eventId));
+  },
+};
 
 const RESOURCES = {
-  // Admin-created events and their registrations (EventContext).
-  events: events("admin"),
-  registrations: registrations("admin"),
-
+  // Only the server issues certificates (utils/certificates.js). Attendees read their own;
+  // an admin may still correct or revoke one.
   certificates: {
     model: Certificate,
     read: (user) => (isAdmin(user) ? {} : user ? { userId: user.id } : null),
-    async save(user, record, existing) {
-      if (isAdmin(user)) return;
-      if (!user || isManager(user) || existing) deny();
-      record.userId = user.id;
-      // Attendees can only claim a certificate they earned.
-      const attended = await Registration.findOne({
-        userId: user.id, eventId: record.eventId, status: "Confirmed", attendanceStatus: "Attended",
-      });
-      const completed = attended && await Event.exists({
-        _id: record.eventId, status: { $in: COMPLETED_EVENT_STATUS[attended.scope] },
-      });
-      if (!completed) deny("You are not eligible for this certificate yet.");
-    },
+    save: adminOnly.save,
     remove: adminOnly.remove,
   },
 
@@ -319,9 +295,10 @@ const RESOURCES = {
     },
   },
 
-  // Event Manager workspace (ManagerContext).
-  "manager-events": events("manager"),
-  "manager-registrations": registrations("manager"),
+  // Every event and its records (ManagerContext). The "manager-" names are from before admins
+  // saved their events the same way as managers.
+  "manager-events": events,
+  "manager-registrations": registrations,
   "manager-sessions": { model: Session, scope: "manager", ...managerEventChild({ publicRead: true }) },
   "manager-announcements": {
     model: Announcement,
@@ -330,7 +307,7 @@ const RESOURCES = {
     // Published updates show on the public event page; drafts stay with the event's manager.
     async read(user) {
       if (isAdmin(user)) return {};
-      const visible = await Event.distinct("_id", { scope: "manager", status: { $in: PUBLIC_EVENT_STATUS.manager } });
+      const visible = await Event.distinct("_id", { status: { $in: PUBLIC_EVENT_STATUS } });
       const published = { status: "Published", eventId: { $in: visible } };
       if (isManager(user)) return { $or: [{ eventId: { $in: await ownedEventIds(user) } }, published] };
       return published;
@@ -344,7 +321,7 @@ const RESOURCES = {
       if (isAdmin(user) || (await ownsEvent(user, record.eventId))) return;
       // Attendees may leave one new feedback entry for an event they registered for.
       if (!user || existing) deny();
-      if (!(await Registration.exists({ scope: "manager", userId: user.id, eventId: record.eventId }))) deny();
+      if (!(await Registration.exists({ userId: user.id, eventId: record.eventId }))) deny();
     },
   },
   "manager-notifications": {
@@ -355,17 +332,14 @@ const RESOURCES = {
       if (isAdmin(user) || (await ownsEvent(user, record.eventId))) return;
       // Attendee actions (registering, leaving feedback) notify the event's manager.
       if (!user || existing) deny();
-      if (!(await Event.exists({ _id: record.eventId, scope: "manager" }))) deny();
+      if (!(await Event.exists({ _id: record.eventId }))) deny();
     },
   },
 
-  // Admin-only lists (AdminContext). Venues are readable by everyone.
+  // Venues: the admin keeps the list (AdminContext), everyone can read it.
   // The audit log is not here on purpose: only the server writes it (utils/audit.js), and
   // admins read it through GET /api/admin/audit-logs, so nobody can edit or delete entries.
   venues: { model: Venue, ...publicReadAdminWrite },
-  sessions: { model: Session, scope: "admin", ...adminOnly },
-  announcements: { model: Announcement, scope: "admin", ...adminOnly },
-  feedback: { model: Feedback, scope: "admin", ...adminOnly },
 };
 
 // ---- audit trail ---------------------------------------------------------------
@@ -373,16 +347,11 @@ const RESOURCES = {
 // recorded only when they are refused on records that only an admin may change (`watch`),
 // such as approving their own event; their everyday writes are not admin activity.
 const AUDITED = {
-  events: { type: "event", name: (r) => r.title, watch: true },
   "manager-events": { type: "event", name: (r) => r.title, watch: true },
   venues: { type: "venue", name: (r) => r.name, watch: true },
-  sessions: { type: "session", name: (r) => r.title, watch: true },
-  announcements: { type: "announcement", name: (r) => r.title, watch: true },
-  feedback: { type: "feedback", name: (r) => r.participant, watch: true },
   "manager-sessions": { type: "session", name: (r) => r.title },
   "manager-announcements": { type: "announcement", name: (r) => r.title },
   "manager-feedback": { type: "feedback", name: (r) => r.participant },
-  registrations: { type: "registration", name: (r) => r.name && `${r.name} · ${r.eventTitle || r.eventId}` },
   "manager-registrations": { type: "registration", name: (r) => r.name && `${r.name} · ${r.eventTitle || r.eventId}` },
   certificates: { type: "certificate", name: (r) => r.recipientName && `${r.recipientName} · ${r.eventTitle}`, created: "Issued", removed: "Revoked" },
 };
@@ -527,6 +496,11 @@ const batch = async (req, res) => {
   }
 
   if (removedIds.length && resource.afterRemove) await resource.afterRemove(removedIds);
+  if (resource.afterSave) {
+    // The records are already saved, so a failure here is logged instead of reported as a failed save.
+    await resource.afterSave(results.filter((item) => item.op === "save" && !item.error))
+      .catch((err) => console.error(`After saving ${req.params.resource}:`, err));
+  }
   await auditBatch(req, results);
 
   if (errors.length) return res.status(400).json({ message: errors[0].message, errors });
@@ -537,24 +511,12 @@ const batch = async (req, res) => {
 // attendees can judge an organizer by its past events. Names never leave the server.
 const publicFeedback = async (req, res) => {
   const event = await Event.findById(String(req.params.id)).lean();
-  if (!event || !COMPLETED_EVENT_STATUS[event.scope]?.includes(event.status)) return res.json({ items: [] });
-  const items = event.scope === "manager"
-    ? (await Feedback.find({ scope: "manager", eventId: event._id }).sort({ createdAt: -1 }).lean()).map((row) => ({
-      rating: row.rating, organizationRating: row.organizationRating, speakerRating: row.speakerRating,
-      venueRating: row.venueRating, comment: row.comment || "", date: row.date || "",
-    }))
-    // Admin-created events keep each response on the attendee's registration.
-    : (await Registration.find({ scope: "admin", eventId: event._id, "feedback.overall": { $type: "number" } }).sort({ updatedAt: -1 }).lean()).map(({ feedback }) => ({
-      rating: feedback.overall, organizationRating: feedback.organization, speakerRating: feedback.speaker,
-      venueRating: feedback.venue, comment: feedback.comment || "", date: String(feedback.submittedAt || "").slice(0, 10),
-    }));
+  if (event?.status !== "Completed") return res.json({ items: [] });
+  const items = (await Feedback.find({ eventId: event._id }).sort({ createdAt: -1 }).lean()).map((row) => ({
+    rating: row.rating, organizationRating: row.organizationRating, speakerRating: row.speakerRating,
+    venueRating: row.venueRating, comment: row.comment || "", date: row.date || "",
+  }));
   res.json({ items });
 };
 
-// Express 5 forwards rejected promises to the error handler; HttpErrors keep their status.
-const wrap = (fn) => (req, res, next) => fn(req, res, next).catch((err) => {
-  if (err.expose) return res.status(err.status).json({ message: err.message });
-  next(err);
-});
-
-module.exports = { list: wrap(list), batch: wrap(batch), publicFeedback: wrap(publicFeedback) };
+module.exports = { list, batch, publicFeedback };

@@ -9,6 +9,10 @@ function snapshot(data, keys) {
   ]));
 }
 
+// One save queue for every store: a reload waits for saves from any store, because a save can
+// change another store's records (marking a ticket Attended issues a certificate).
+let saving = Promise.resolve();
+
 function emptyData(keys) {
   return Object.fromEntries(keys.map((key) => [key, []]));
 }
@@ -30,7 +34,6 @@ export function useServerStore(resources, sessionKey) {
   const [ready, setReady] = useState(false);
   const [reloadCount, setReloadCount] = useState(0);
   const baseline = useRef(null);
-  const queue = useRef(Promise.resolve());
   const loadedSession = useRef(undefined);
 
   const reload = useCallback(() => setReloadCount((count) => count + 1), []);
@@ -47,7 +50,7 @@ export function useServerStore(resources, sessionKey) {
     }
 
     (async () => {
-      await queue.current; // let pending saves finish before reading back
+      await saving; // let pending saves finish before reading back
       const lists = await Promise.all(keys.map((key) => api(`/data/${resources[key]}`).then((res) => res.items)));
       if (cancelled) return;
       const next = Object.fromEntries(keys.map((key, index) => [key, lists[index]]));
@@ -86,7 +89,7 @@ export function useServerStore(resources, sessionKey) {
     if (!batches.length) return;
 
     // Send in order so two quick edits to one record cannot arrive out of order.
-    queue.current = queue.current
+    saving = saving
       .then(() => Promise.all(batches.map(({ resource, save, remove }) =>
         api(`/data/${resource}/batch`, { method: "POST", body: { save, remove } })
       )))

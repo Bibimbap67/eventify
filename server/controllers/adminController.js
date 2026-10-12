@@ -13,6 +13,7 @@ const {
   Event, Registration, Certificate, Session, Announcement, Feedback, Venue, AuditLog, Settings,
 } = require("../models/records");
 const { audit } = require("../utils/audit");
+const { text, searchRegex, paging } = require("../utils/input");
 
 const DAY = 86400000;
 const CHECKED_IN = /^(checked in|attended)$/i;
@@ -29,8 +30,6 @@ const REGISTRATION_TOTALS = {
 };
 const EMPTY_TOTALS = { total: 0, confirmed: 0, pending: 0, cancelled: 0, checkedIn: 0 };
 
-const text = (value, max = 100) => String(value ?? "").trim().slice(0, max);
-const search = (q) => new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
 const day = (value) => (/^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) ? String(value) : null);
 const instant = (value) => {
   const date = value ? new Date(String(value)) : null;
@@ -38,12 +37,6 @@ const instant = (value) => {
 };
 const toJSON = (doc) => doc.toJSON();
 const sorted = (values) => values.filter(Boolean).sort((a, b) => String(a).localeCompare(String(b)));
-
-function paging(query, fallback = 25) {
-  const page = Math.max(1, parseInt(query.page, 10) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(query.limit, 10) || fallback));
-  return { page, limit, skip: (page - 1) * limit };
-}
 
 // [{ _id: null, ...totals }] -> totals
 const totalsOf = (rows) => {
@@ -77,7 +70,7 @@ const overview = async (req, res) => {
   });
 };
 
-const REGISTRATION_FIELDS = "scope userId eventId eventTitle name email studentId status attendanceStatus checkedInAt checkedInBy registrationDate ticketCode ticketType seating seat createdAt";
+const REGISTRATION_FIELDS = "userId eventId eventTitle name email studentId status attendanceStatus checkedInAt checkedInBy registrationDate ticketCode ticketType seating seat createdAt";
 const REGISTRATION_SORTS = {
   "-registrationDate": { registrationDate: -1, _id: -1 },
   registrationDate: { registrationDate: 1, _id: 1 },
@@ -95,7 +88,7 @@ const registrations = async (req, res) => {
   if (req.query.attendance === "checked-in") filter.attendanceStatus = CHECKED_IN;
   else if (req.query.attendance === "not-checked-in") filter.attendanceStatus = { $not: CHECKED_IN };
   const q = text(req.query.q);
-  if (q) filter.$or = ["name", "email", "ticketCode", "studentId"].map((key) => ({ [key]: search(q) }));
+  if (q) filter.$or = ["name", "email", "ticketCode", "studentId"].map((key) => ({ [key]: searchRegex(q) }));
   const from = day(req.query.from);
   const to = day(req.query.to);
   if (from || to) filter.registrationDate = { ...(from && { $gte: from }), ...(to && { $lte: to }) };
@@ -119,19 +112,17 @@ const registrations = async (req, res) => {
 };
 
 const eventReport = async (req, res) => {
-  const [events, registrationRows, feedbackRows, venues] = await Promise.all([
+  const [events, registrationRows, feedbackRows] = await Promise.all([
     Event.find().sort({ createdAt: -1 }),
     Registration.aggregate([{ $group: { _id: "$eventId", ...REGISTRATION_TOTALS } }]),
     Feedback.aggregate([{ $group: { _id: "$eventId", responses: { $sum: 1 }, rating: { $avg: "$rating" } } }]),
-    Venue.find().select("name"),
   ]);
-  // Manager events point at their owner by managerId (seeded accounts) or by user id.
+  // Events point at their owner by managerId (seeded accounts) or by user id (an admin's own events).
   const keys = [...new Set(events.map((event) => event.managerId).filter(Boolean))];
   const managers = await User.find({
     $or: [{ managerId: { $in: keys } }, { _id: { $in: keys.filter((key) => /^[a-f0-9]{24}$/i.test(key)) } }],
   }).select("name managerId");
   const managerNames = new Map(managers.map((user) => [user.managerId || user.id, user.name]));
-  const venueNames = new Map(venues.map((venue) => [venue._id, venue.name]));
   const byEvent = new Map(registrationRows.map((row) => [row._id, row]));
   const feedbackByEvent = new Map(feedbackRows.map((row) => [row._id, row]));
 
@@ -142,12 +133,11 @@ const eventReport = async (req, res) => {
       const feedback = feedbackByEvent.get(event.id);
       return {
         id: event.id,
-        scope: event.scope,
         title: event.title,
         status: event.status,
         organizer: event.organizer || "",
-        date: (event.scope === "admin" ? event.adminDate : event.date) || "",
-        venue: event.venue || venueNames.get(event.venueId) || "",
+        date: event.date || "",
+        venue: event.venue || "",
         capacity: event.capacity || 0,
         manager: managerNames.get(event.managerId) || null,
         confirmed: totals.confirmed,
@@ -183,7 +173,7 @@ const auditLogs = async (req, res) => {
   const { page, limit, skip } = paging(req.query);
   const filter = {};
   const q = text(req.query.q);
-  if (q) filter.$or = [{ action: search(q) }, { record: search(q) }, { admin: search(q) }, { targetId: q }];
+  if (q) filter.$or = [{ action: searchRegex(q) }, { record: searchRegex(q) }, { admin: searchRegex(q) }, { targetId: q }];
   if (req.query.action) filter.action = text(req.query.action, 120);
   if (req.query.actor) filter.admin = text(req.query.actor, 120);
   if (req.query.targetType) filter.targetType = text(req.query.targetType, 40);

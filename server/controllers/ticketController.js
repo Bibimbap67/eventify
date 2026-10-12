@@ -13,12 +13,11 @@
 const crypto = require("crypto");
 const { Event, Registration, Certificate, Notification } = require("../models/records");
 const { checkInOpensAt, opensLabel } = require("../utils/checkIn");
+const { CLOSED_EVENT_STATUS, PUBLIC_EVENT_STATUS } = require("../utils/eventStatus");
 
 const QR_PREFIX = "EVENTIFY-TICKET:";
 const QR_RE = /^EVENTIFY-TICKET:([a-f0-9]{32})$/;
 const CHECKED_IN = ["checked in", "attended"];
-const CLOSED_EVENT_STATUS = ["COMPLETED", "Completed", "Cancelled", "CANCELLED", "Rejected"];
-const DESK_EVENT_STATUS = ["REGISTRATION OPEN", "OPENS SOON", "COMPLETED", "Registration Open", "Published", "Approved", "Completed"];
 
 const isCheckedIn = (registration) => CHECKED_IN.includes(String(registration.attendanceStatus || "").toLowerCase());
 
@@ -45,8 +44,8 @@ function eventView(event) {
     id: event._id,
     title: event.title,
     date: event.date,
-    time: event.startTime && event.endTime ? `${event.startTime} - ${event.endTime}` : event.time,
-    venue: event.venue || event.location,
+    time: event.startTime && event.endTime ? `${event.startTime} - ${event.endTime}` : "",
+    venue: event.venue,
     status: event.status,
     closed: CLOSED_EVENT_STATUS.includes(event.status),
   };
@@ -128,7 +127,7 @@ const checkIn = async (req, res) => {
 };
 
 const deskEvents = async (req, res) => {
-  const events = await Event.find({ status: { $in: DESK_EVENT_STATUS } }).sort({ createdAt: -1 });
+  const events = await Event.find({ status: { $in: PUBLIC_EVENT_STATUS } }).sort({ createdAt: -1 });
   const counts = await Registration.aggregate([
     { $match: { status: "Confirmed", eventId: { $in: events.map((event) => event._id) } } },
     {
@@ -174,13 +173,4 @@ const verifyCertificate = async (req, res) => {
   res.json({ certificate: { credentialId, recipientName, eventTitle, issueDate, organizer, hoursEarned } });
 };
 
-const wrap = (fn) => (req, res, next) => fn(req, res, next).catch(next);
-
-module.exports = {
-  getTicket: wrap(getTicket),
-  checkIn: wrap(checkIn),
-  deskEvents: wrap(deskEvents),
-  deskAttendees: wrap(deskAttendees),
-  verifyCertificate: wrap(verifyCertificate),
-  eventSeats: wrap(eventSeats),
-};
+module.exports = { getTicket, checkIn, deskEvents, deskAttendees, verifyCertificate, eventSeats };

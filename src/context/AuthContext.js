@@ -1,12 +1,10 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { api, getToken, setToken, clearToken } from "../api.js";
 
 const AuthContext = createContext(null);
-const EMPTY_ACCOUNTS = [];
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [accounts, setAccounts] = useState(EMPTY_ACCOUNTS);
   // Start in "initializing" only if there is a saved token to verify.
   const [initializing, setInitializing] = useState(() => Boolean(getToken()));
 
@@ -18,22 +16,6 @@ export function AuthProvider({ children }) {
       .catch(() => clearToken())
       .finally(() => setInitializing(false));
   }, []);
-
-  // Admins get the real user list for the Users page.
-  const isAdmin = user?.role === "admin";
-  const reloadAccounts = useCallback(() => {
-    if (!isAdmin) {
-      setAccounts(EMPTY_ACCOUNTS);
-      return Promise.resolve();
-    }
-    return api("/users")
-      .then((data) => setAccounts(data.users))
-      .catch(() => setAccounts(EMPTY_ACCOUNTS));
-  }, [isAdmin]);
-
-  useEffect(() => {
-    reloadAccounts();
-  }, [reloadAccounts]);
 
   async function login(email, password) {
     const data = await api("/auth/login", { method: "POST", body: { email, password } });
@@ -65,29 +47,7 @@ export function AuthProvider({ children }) {
     await api("/auth/password", { method: "POST", body: { currentPassword, newPassword } });
   }
 
-  // Admin > Users page. Each call refreshes the list afterwards.
-  async function createAccount(fields) {
-    const data = await api("/users", { method: "POST", body: fields });
-    await reloadAccounts();
-    return data.user;
-  }
-
-  async function updateAccount(id, patch) {
-    const data = await api(`/users/${id}`, { method: "PATCH", body: patch });
-    if (data.user.id === user?.id) setUser(data.user);
-    await reloadAccounts();
-    return data.user;
-  }
-
-  async function deleteAccount(id) {
-    await api(`/users/${id}`, { method: "DELETE" });
-    await reloadAccounts();
-  }
-
-  const value = {
-    user, accounts, initializing, login, signup, logout, updateProfile, changePassword,
-    reloadAccounts, createAccount, updateAccount, deleteAccount,
-  };
+  const value = { user, initializing, login, signup, logout, updateProfile, changePassword };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

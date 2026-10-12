@@ -28,7 +28,7 @@ if (process.env.NODE_ENV === "production") {
 }
 const missing = ["SEED_ADMIN_EMAIL", "SEED_ADMIN_PASSWORD", "SEED_PASSWORD_SUFFIX"].filter((key) => !process.env[key]);
 if (missing.length) {
-  console.error(`Set ${missing.join(", ")} in server/.env first (see server/.env.example).`);
+  console.error(`Set ${missing.join(", ")} in server/.env first (see the README).`);
   process.exit(1);
 }
 

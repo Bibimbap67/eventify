@@ -4,7 +4,7 @@ import { initialSettings, useAdmin } from "../../context/AdminContext.js";
 import { useAuth } from "../../context/AuthContext.js";
 import Icon from "../../components/Icon.js";
 import Spinner from "../../components/Spinner.js";
-import { PanelHeader, SectionHeading } from "../../components/manager/parts.js";
+import { PanelHeader, SectionHeading } from "../../components/ui.js";
 import { useFilters } from "../../components/admin/parts.js";
 
 const TABS = [

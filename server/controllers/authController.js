@@ -1,8 +1,9 @@
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const { audit } = require("../utils/audit");
+const { audit, diff } = require("../utils/audit");
 const { sendMail } = require("../utils/mail");
+const { EMAIL_RE, PASSWORD_MIN, PASSWORD_RULE } = require("../utils/input");
 
 const RESET_TTL_MS = 30 * 60 * 1000;
 const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
@@ -12,7 +13,6 @@ const auditAdmin = (req, entry) => (req.user.role === "admin"
   ? audit(req, { targetType: "user", targetId: req.user.id, target: `${req.user.name} (${req.user.email})`, ...entry })
   : Promise.resolve());
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Student IDs read "2024-1051423": the year the student entered NU, then 7 digits.
 // Keep in step with validStudentId in src/data/student.js.
 const STUDENT_ID_RE = /^(\d{4})-\d{7}$/;
@@ -34,7 +34,7 @@ const signup = async (req, res) => {
 
   if (!name) return res.status(400).json({ message: "Enter your full name." });
   if (!EMAIL_RE.test(email)) return res.status(400).json({ message: "Enter a valid email address." });
-  if (password.length < 6) return res.status(400).json({ message: "Use at least 6 characters for the password." });
+  if (password.length < PASSWORD_MIN) return res.status(400).json({ message: PASSWORD_RULE });
 
   if (await User.findOne({ email })) {
     return res.status(409).json({ message: "An account with this email already exists." });
@@ -93,10 +93,7 @@ const updateMe = async (req, res) => {
     if (req.body[key] !== undefined) user[key] = String(req.body[key] ?? "");
   });
   await user.save();
-  const changes = {};
-  ["name", "email"].forEach((key) => {
-    if (before[key] !== user[key]) changes[key] = { from: before[key], to: user[key] };
-  });
+  const changes = diff(before, { name: user.name, email: user.email });
   if (Object.keys(changes).length) await auditAdmin(req, { action: "Updated own profile", details: { changes } });
   res.json({ user });
 };
@@ -110,7 +107,7 @@ const changePassword = async (req, res) => {
     res.status(400).json({ message });
   };
   if (!(await user.matchPassword(current))) return refuse("Current password is incorrect.");
-  if (next.length < 6) return refuse("Use at least 6 characters for the password.");
+  if (next.length < PASSWORD_MIN) return refuse(PASSWORD_RULE);
   user.password = next; // hashed by the model before saving
   await user.save();
   await auditAdmin(req, { action: "Changed own password" });
@@ -146,7 +143,7 @@ const forgotPassword = async (req, res) => {
 const resetPassword = async (req, res) => {
   const token = String(req.body.token || "");
   const password = String(req.body.password || "");
-  if (password.length < 6) return res.status(400).json({ message: "Use at least 6 characters for the password." });
+  if (password.length < PASSWORD_MIN) return res.status(400).json({ message: PASSWORD_RULE });
 
   // The token fields are selected so that clearing them below is saved.
   const user = token && await User.findOne({ resetTokenHash: hashToken(token), resetTokenExpires: { $gt: new Date() } })

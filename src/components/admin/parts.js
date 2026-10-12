@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../../api.js";
 import Icon from "../Icon.js";
-import { SearchField, plural } from "../manager/parts.js";
+import { SearchField, plural } from "../ui.js";
 
-// Shared pieces of the admin area (pages live in pages/admin/). The visual parts come from the
-// Event Manager workspace (components/manager/parts.js) so both internal areas look the same.
+// Shared pieces of the admin area (pages live in pages/admin/). The visual parts come from
+// components/ui.js, like the Event Manager workspace, so both internal areas look the same.
 // Lists that grow without limit (users, registrations, the audit log) are read one page at a
 // time from the server instead of being loaded whole.
 

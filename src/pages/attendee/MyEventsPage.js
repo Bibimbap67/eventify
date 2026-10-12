@@ -9,6 +9,7 @@ import FeedbackModal from "../../components/attendee/FeedbackModal.js";
 import CancelModal from "../../components/attendee/CancelModal.js";
 import { notify } from "../../components/Toast.js";
 import { seatOf } from "../../data/seating.js";
+import { isCheckedIn } from "../../data/checkIn.js";
 import { ATTENDEE_TYPE } from "../../data/student.js";
 
 export default function MyEventsPage() {
@@ -112,10 +113,10 @@ export default function MyEventsPage() {
                         <span className="sbadge sbadge--confirmed">CONFIRMED TICKET</span>
                         <span
                           className={`sbadge ${
-                            reg.attendanceStatus?.toLowerCase() === "checked in" ? "sbadge--checked-in" : "sbadge--not-checked-in"
+                            isCheckedIn(reg) ? "sbadge--checked-in" : "sbadge--not-checked-in"
                           }`}
                         >
-                          {reg.attendanceStatus?.toLowerCase() === "checked in" ? <><Icon name="check" size={16} /> CHECKED IN</> : "NOT CHECKED IN"}
+                          {isCheckedIn(reg) ? <><Icon name="check" size={16} /> CHECKED IN</> : "NOT CHECKED IN"}
                         </span>
                       </div>
                       <span className="reg-card__code">#{reg.ticketCode}</span>
@@ -153,7 +154,7 @@ export default function MyEventsPage() {
                         </button>
 
                         {/* Check-in only happens when event staff scan the QR on the pass. */}
-                        {reg.attendanceStatus?.toLowerCase() !== "checked in" ? null : events.find((event) => event.id === reg.eventId)?.status === "COMPLETED" ? (
+                        {!isCheckedIn(reg) ? null : events.find((event) => event.id === reg.eventId)?.status === "COMPLETED" ? (
                           <button
                             type="button"
                             className="btn-sm btn-sm--blue"

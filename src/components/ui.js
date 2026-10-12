@@ -1,12 +1,11 @@
 import React, { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import Icon from "../Icon.js";
-import { CountUp, prefersReducedMotion, useEntering } from "../Motion.js";
-import { avatarUri } from "../avatar.js";
+import Icon from "./Icon.js";
+import { CountUp, prefersReducedMotion, useEntering } from "./Motion.js";
+import { avatarUri } from "./avatar.js";
+import { isCheckedIn } from "../data/checkIn.js";
 
-// Shared pieces of the Event Manager workspace (pages live in pages/manager/ManagerScreen.js).
-
-export const PAST_STATUSES = ["Completed", "Cancelled", "Archived"];
+// Shared screen pieces (tables, badges, metrics, filters) used by the admin, manager and public pages.
 
 // Current events or the archive, each with its count (admin Events and manager My events).
 export function ArchiveSwitch({ value, onChange, current, archived }) {
@@ -50,17 +49,6 @@ export function plural(count, word, many = `${word}s`) {
   return `${count} ${count === 1 ? word : many}`;
 }
 
-// Stored attendance values differ in case ("Not Checked In" / "Not checked in"), so compare by key.
-export function attendanceKey(status) {
-  const value = String(status || "").toLowerCase();
-  if (value === "attended") return "attended";
-  if (value === "checked in") return "checked-in";
-  return "waiting";
-}
-
-export function isCheckedIn(registration) {
-  return attendanceKey(registration.attendanceStatus) !== "waiting";
-}
 
 export function eventRegistrations(eventId, registrations) {
   return registrations.filter((item) => item.eventId === eventId && item.status !== "Cancelled");
@@ -75,6 +63,9 @@ export function getAttendance(eventId, registrations) {
   const checkedIn = confirmed.filter(isCheckedIn);
   return { confirmed, checkedIn, percentage: confirmed.length ? Math.round(checkedIn.length / confirmed.length * 100) : 0 };
 }
+
+// Sorts events by their "YYYY-MM-DD" date, soonest first.
+export const byDate = (a, b) => a.date.localeCompare(b.date);
 
 export function eventDate(date, options) {
   return new Date(`${date}T12:00:00`).toLocaleDateString("en-US", options);

@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useMemo, useState } from "react";
 import Icon from "./Icon.js";
-import { Modal } from "./admin/ui.js";
+import { Modal } from "./Modal.js";
 import { api } from "../api.js";
 import { AISLE_AFTER, SEATS_PER_ROW, seatRows } from "../data/seating.js";
 

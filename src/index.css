@@ -2476,15 +2476,6 @@ button[aria-busy="true"]:disabled { opacity: 1; }
 .shell-skeleton__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--space-4); }
 .event-hero-banner .skeleton { background: rgba(255, 255, 255, 0.55); }
 
-/* Reveal: children rise in once, 60ms apart, capped so the last starts by 240ms. */
-
-.reveal:not([data-revealed]) > * { opacity: 0; }
-.reveal[data-revealed] > * { animation: rise var(--duration-reveal) var(--ease-out) both; }
-.reveal[data-revealed] > :nth-child(2) { animation-delay: 60ms; }
-.reveal[data-revealed] > :nth-child(3) { animation-delay: 120ms; }
-.reveal[data-revealed] > :nth-child(4) { animation-delay: 180ms; }
-.reveal[data-revealed] > :nth-child(n + 5) { animation-delay: 240ms; }
-
 /* Respect reduced motion: no movement, no shimmer, no sound (see sound.js). */
 
 @media (prefers-reduced-motion: reduce) {
@@ -2495,7 +2486,6 @@ button[aria-busy="true"]:disabled { opacity: 1; }
     transition: none !important;
   }
 
-  .reveal > * { opacity: 1 !important; }
   .skeleton::after { display: none; }
   .toast__timer { display: none; }
 }

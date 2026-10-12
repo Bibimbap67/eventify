@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from "react";
 import Icon from "../../components/Icon.js";
-import { Modal } from "../../components/admin/ui.js";
+import { Modal } from "../../components/Modal.js";
 import { TableSkeleton } from "../../components/Skeleton.js";
-import { SectionHeading, Table } from "../../components/manager/parts.js";
+import { SectionHeading, Table } from "../../components/ui.js";
 import {
   LoadError, Pagination, SearchFilter, formatDateTime, roleLabel, timeAgo, toQuery, useApi, useFilters,
 } from "../../components/admin/parts.js";

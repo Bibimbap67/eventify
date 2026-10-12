@@ -5,141 +5,49 @@ import { useManager } from "./ManagerContext.js";
 import { api, newId } from "../api.js";
 import { useServerStore } from "./useServerStore.js";
 import { notify } from "../components/Toast.js";
+import { adminStatus } from "../data/eventStatus.js";
 
 const Ctx = createContext(null);
 
-// Venues are the only collection the admin area keeps in memory itself. Events, registrations
-// and certificates come from EventContext and ManagerContext. Users, reports and the audit log
+// Venues are the only collection the admin area keeps in memory itself. Events and registrations
+// come from ManagerContext, certificates from EventContext. Users, reports and the audit log
 // are read a page at a time from /api/users and /api/admin, and the server writes the audit log.
 const ADMIN_RESOURCES = { venues: "venues" };
 
-const PUBLIC_STATUS = {
-  Pending: "PENDING",
-  Approved: "OPENS SOON",
-  Published: "REGISTRATION OPEN",
-  Completed: "COMPLETED",
-  Rejected: "REJECTED",
-  Cancelled: "CANCELLED",
-  Archived: "ARCHIVED",
-};
-const ADMIN_STATUS = Object.fromEntries(Object.entries(PUBLIC_STATUS).map(([admin, attendee]) => [attendee, admin]));
-
-const MANAGER_ADMIN_STATUS = {
-  "Pending Approval": "Pending",
-  Pending: "Pending",
-  Approved: "Approved",
-  Published: "Published",
-  "Registration Open": "Published",
-  "Registration Closed": "Published",
-  Ongoing: "Published",
-  Completed: "Completed",
-  Cancelled: "Cancelled",
-};
-
-export const ADMIN_STATUSES = Object.keys(PUBLIC_STATUS);
-
-// Admin-created and manager-created events store their status in different words.
-export const adminStatus = (event) => (event.scope === "admin"
-  ? ADMIN_STATUS[event.status] || event.status
-  : MANAGER_ADMIN_STATUS[event.status] || event.status);
-
+// Every event is saved the same way, whether a manager or an admin made it. The admin screens
+// show it with their own status words and start / end fields.
 function toAdminEvent(event) {
-  return {
-    ...event,
-    date: event.adminDate || "",
-    start: event.adminStart || "",
-    end: event.adminEnd || "",
-    status: ADMIN_STATUS[event.status] || event.status,
-  };
-}
-
-function toManagerAdminEvent(event) {
   return {
     ...event,
     date: event.date || "",
     start: event.startTime || "",
     end: event.endTime || "",
-    status: MANAGER_ADMIN_STATUS[event.status] || event.status,
+    status: adminStatus(event),
   };
 }
 
-function formatEventDate(date) {
-  if (!date) return "";
-  return new Date(`${date}T12:00:00`).toLocaleDateString("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  }).toUpperCase();
-}
-
-function toPublicEventPatch(patch, venues) {
-  const result = { ...patch };
-  if (Object.hasOwn(patch, "date")) {
-    result.adminDate = patch.date;
-    result.date = formatEventDate(patch.date);
-    result.fullDate = patch.date ? new Date(`${patch.date}T12:00:00`).toLocaleDateString("en-US", {
-      weekday: "long", month: "long", day: "numeric", year: "numeric",
-    }) : "";
-  }
-  if (Object.hasOwn(patch, "start")) result.adminStart = patch.start;
-  if (Object.hasOwn(patch, "end")) result.adminEnd = patch.end;
-  if (Object.hasOwn(patch, "start") || Object.hasOwn(patch, "end")) {
-    const start = patch.start ?? "";
-    const end = patch.end ?? "";
-    result.startTime = start;
-    result.endTime = end;
-    result.time = start && end ? `${start} - ${end}` : start || end;
-  }
-  if (Object.hasOwn(patch, "venueId")) {
-    const venue = venues.find((item) => item.id === patch.venueId);
-    if (venue) {
-      result.location = venue.name.toUpperCase();
-      result.fullLocation = `${venue.name} · ${venue.location}`;
-    }
-  }
-  if (Object.hasOwn(patch, "status")) result.status = PUBLIC_STATUS[patch.status] || patch.status;
-  return result;
-}
-
-function toManagerEventPatch(patch, venues) {
-  const result = { ...patch };
-  if (Object.hasOwn(patch, "start")) result.startTime = patch.start;
-  if (Object.hasOwn(patch, "end")) result.endTime = patch.end;
+// The admin form's fields (start, end, venueId, admin status words) as the event saves them.
+function toSavedPatch(patch, venues) {
+  const { start, end, ...result } = patch;
+  if (Object.hasOwn(patch, "start")) result.startTime = start;
+  if (Object.hasOwn(patch, "end")) result.endTime = end;
   if (Object.hasOwn(patch, "venueId")) {
     const venue = venues.find((item) => item.id === patch.venueId);
     if (venue) result.venue = venue.name;
   }
+  // Approving an event opens registration straight away.
   if (Object.hasOwn(patch, "status")) result.status = ["Approved", "Published"].includes(patch.status) ? "Registration Open" : patch.status;
   return result;
 }
 
-function makePublicEvent(event, venues) {
-  const venue = venues.find((item) => item.id === event.venueId);
-  return {
-    ...toPublicEventPatch(event, venues),
-    id: event.id,
-    category: "Academic",
-    status: PUBLIC_STATUS[event.status] || "PENDING",
-    featured: false,
-    accent: "var(--color-blue)",
-    heroBg: "var(--color-yellow)",
-    image: "",
-    description: "Event details will be provided by the organizer.",
-    fullDate: event.date ? new Date(`${event.date}T12:00:00`).toLocaleDateString("en-US", {
-      weekday: "long", month: "long", day: "numeric", year: "numeric",
-    }) : "",
-    date: formatEventDate(event.date),
-    time: `${event.start || ""} - ${event.end || ""}`,
-    startTime: event.start || "",
-    endTime: event.end || "",
-    location: venue?.name.toUpperCase() || "LOCATION TO BE ANNOUNCED",
-    fullLocation: venue ? `${venue.name} · ${venue.location}` : "Location to be announced",
-    registered: 0,
-    requirements: "",
-    speakers: [],
-    agenda: [],
-  };
-}
+// What the admin's short Create event form leaves out, so the public pages have something to show.
+const ADMIN_EVENT_DEFAULTS = {
+  category: "Academic",
+  description: "Event details will be provided by the organizer.",
+  requirements: "",
+  speakers: [],
+  createdByAdmin: true,
+};
 
 // What the Settings page edits. Each one is used: the organization and term head the admin
 // sidebar, and the capacity pre-fills new events. The server refuses any other key.
@@ -152,7 +60,7 @@ export const initialSettings = {
 export function AdminProvider({ children }) {
   const { user } = useAuth();
   const manager = useManager();
-  const { allEvents, allRegistrations, allCertificates, updateEvent, addEvent, deleteEvent } = useEventContext();
+  const { allCertificates } = useEventContext();
   const { data: collections, setData: setCollections, ready: venuesReady } = useServerStore(ADMIN_RESOURCES, user?.id || "guest");
   const [settings, setSettings] = useState(initialSettings);
 
@@ -165,41 +73,40 @@ export function AdminProvider({ children }) {
 
   const db = {
     venues: collections.venues,
-    events: [...allEvents.map(toAdminEvent), ...manager.allManagerEvents.map(toManagerAdminEvent)],
-    registrations: [...allRegistrations, ...manager.allManagerRegistrations],
+    events: manager.allManagerEvents.map(toAdminEvent),
+    registrations: manager.allManagerRegistrations,
     certificates: allCertificates,
   };
 
   const update = useCallback((coll, id, patch) => {
     if (coll === "events") {
-      if (manager.allManagerEvents.some((event) => event.id === id)) manager.updateEvent(id, toManagerEventPatch(patch, collections.venues));
-      else updateEvent(id, toPublicEventPatch(patch, collections.venues));
+      manager.updateEvent(id, toSavedPatch(patch, collections.venues));
       return;
     }
     setCollections((current) => ({
       ...current,
       [coll]: (current[coll] || []).map((record) => record.id === id ? { ...record, ...patch } : record),
     }));
-  }, [collections.venues, manager, setCollections, updateEvent]);
+  }, [collections.venues, manager, setCollections]);
 
   const add = useCallback((coll, row) => {
+    // An admin's event belongs to the admin, so it never shows in a manager's workspace.
+    if (coll === "events") return manager.createEvent({ ...ADMIN_EVENT_DEFAULTS, ...toSavedPatch(row, collections.venues) });
     const record = { ...row, id: row.id || newId(coll) };
-    if (coll === "events") addEvent(makePublicEvent(record, collections.venues));
-    else setCollections((current) => ({ ...current, [coll]: [record, ...(current[coll] || [])] }));
+    setCollections((current) => ({ ...current, [coll]: [record, ...(current[coll] || [])] }));
     return record;
-  }, [addEvent, collections.venues, setCollections]);
+  }, [collections.venues, manager, setCollections]);
 
   const remove = useCallback((coll, id) => {
     if (coll === "events") {
-      if (manager.allManagerEvents.some((event) => event.id === id)) manager.deleteEvent(id);
-      deleteEvent(id);
+      manager.deleteEvent(id);
       return;
     }
     setCollections((current) => ({
       ...current,
       [coll]: (current[coll] || []).filter((record) => record.id !== id),
     }));
-  }, [deleteEvent, manager, setCollections]);
+  }, [manager, setCollections]);
 
   // Resolves with the saved settings, or rejects with the server's message (shown by the form).
   const saveSettings = useCallback(async (values) => {

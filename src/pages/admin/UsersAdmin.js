@@ -5,9 +5,9 @@ import { useAuth } from "../../context/AuthContext.js";
 import { useAdmin } from "../../context/AdminContext.js";
 import Icon from "../../components/Icon.js";
 import Spinner from "../../components/Spinner.js";
-import { ConfirmModal, Modal } from "../../components/admin/ui.js";
+import { ConfirmModal, Modal } from "../../components/Modal.js";
 import { TableSkeleton } from "../../components/Skeleton.js";
-import { Avatar, SectionHeading, StatusBadge, Table, plural } from "../../components/manager/parts.js";
+import { Avatar, SectionHeading, StatusBadge, Table, plural } from "../../components/ui.js";
 import {
   LoadError, Pagination, ROLES, SearchFilter, formatDate, formatDateTime, roleLabel, toQuery, useApi, useFilters,
 } from "../../components/admin/parts.js";

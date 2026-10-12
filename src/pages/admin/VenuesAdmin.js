@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useAdmin } from "../../context/AdminContext.js";
 import Icon from "../../components/Icon.js";
-import { ConfirmModal, Modal } from "../../components/admin/ui.js";
+import { ConfirmModal, Modal } from "../../components/Modal.js";
 import { TableSkeleton } from "../../components/Skeleton.js";
-import { SectionHeading, Table, plural } from "../../components/manager/parts.js";
+import { SectionHeading, Table, plural } from "../../components/ui.js";
 import { SearchFilter, useFilters } from "../../components/admin/parts.js";
 
 const CLOSED = ["Completed", "Rejected", "Cancelled", "Archived"];

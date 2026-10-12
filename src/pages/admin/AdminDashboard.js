@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { ADMIN_STATUSES, useAdmin } from "../../context/AdminContext.js";
+import { useAdmin } from "../../context/AdminContext.js";
+import { ADMIN_STATUSES } from "../../data/eventStatus.js";
 import Icon from "../../components/Icon.js";
 import Skeleton from "../../components/Skeleton.js";
-import { ConfirmModal } from "../../components/admin/ui.js";
-import { DateTile, EmptyState, Metric, PanelHeader, SectionHeading, plural } from "../../components/manager/parts.js";
+import { ConfirmModal } from "../../components/Modal.js";
+import { DateTile, EmptyState, Metric, PanelHeader, SectionHeading, plural } from "../../components/ui.js";
 import { LoadError, ROLES, timeAgo, useApi } from "../../components/admin/parts.js";
 
 const LIVE = ["Approved", "Published"];
@@ -167,7 +168,7 @@ export default function AdminDashboard() {
       {rejecting && (
         <ConfirmModal
           title="Reject event?"
-          message={`${rejecting.title} won't be published and nobody can register.${rejecting.scope === "manager" ? " Its manager sees it as rejected in their workspace." : ""}`}
+          message={`${rejecting.title} won't be published and nobody can register.${rejecting.createdByAdmin ? "" : " Its manager sees it as rejected in their workspace."}`}
           confirmText="Reject event"
           onCancel={() => setRejecting(null)}
           onConfirm={() => {

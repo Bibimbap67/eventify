@@ -279,7 +279,7 @@ Staff scan each ticket with the camera. The server checks the ticket and tells t
   +-------> [ "Give Feedback": 1 to 5 stars and a comment ] ---> the organizer reads it
   |
   v
-[ A certificate is made by itself ]
+[ The server makes the certificate by itself ]
   |
   v
 [ Attendee sees it on the Certificates page ]
@@ -291,7 +291,7 @@ Staff scan each ticket with the camera. The server checks the ticket and tells t
 **Good to know**
 
 - Each person gets only one certificate per event.
-- The server checks that you really attended before it saves a certificate.
+- Only the server makes certificates, using its own records, so nobody can change the name, event or hours on one.
 
 ---
 

@@ -2,9 +2,9 @@
 // MongoDB creates each collection automatically the first time a record is saved.
 //
 // The React app generates record ids (e.g. "reg-1739...") and stores them as _id.
-// `scope` separates records that the admin screens and the manager screens keep
-// apart: "admin" = created from the Admin area, "manager" = created by an Event
-// Manager. `strict: false` keeps any extra display fields the UI adds.
+// `scope` is always "manager" for events and their records, whoever made the event (admins once
+// saved theirs differently as "admin"). Notifications use it to say who they are for.
+// `strict: false` keeps any extra display fields the UI adds.
 const mongoose = require("mongoose");
 
 const { Mixed } = mongoose.Schema.Types;
@@ -30,24 +30,24 @@ function model(name, fields, extra = {}, indexes = []) {
 const scope = (values) => ({ type: String, enum: values, required: true, index: true });
 
 const Event = model("Event", {
-  scope: scope(["admin", "manager"]),
-  managerId: { type: String, default: null, index: true }, // owner, for manager events
+  scope: scope(["manager"]),
+  managerId: { type: String, default: null, index: true }, // owner: the manager, or the admin who made it
   title: { type: String, required: true },
   description: String,
   category: String,
   organizer: String,
-  status: String, // admin: "PENDING" | "OPENS SOON" | "REGISTRATION OPEN" | ...; manager: "Pending" | "Registration Open" | ...
-  date: String, // manager: "YYYY-MM-DD"; admin: display date, with the raw value in adminDate
+  status: String, // "Pending" | "Registration Open" | "Completed" | ... (utils/eventStatus.js)
+  date: String, // "YYYY-MM-DD"
   startTime: String,
   endTime: String,
-  venue: String, // manager events
-  venueId: String, // admin events
+  venue: String, // a venue name from the admin's list
+  venueId: String, // set when an admin picked the venue
   capacity: Number,
   seating: String, // "free" (first come, first served) | "reserved" (attendees pick a seat)
 });
 
 const Registration = model("Registration", {
-  scope: scope(["admin", "manager"]),
+  scope: scope(["manager"]),
   userId: { type: String, index: true },
   eventId: { type: String, required: true, index: true },
   eventTitle: String,
@@ -97,7 +97,7 @@ const Notification = model("Notification", {
 });
 
 const Session = model("Session", {
-  scope: scope(["admin", "manager"]),
+  scope: scope(["manager"]),
   eventId: { type: String, index: true },
   title: String,
   speaker: String,
@@ -108,7 +108,7 @@ const Session = model("Session", {
 });
 
 const Announcement = model("Announcement", {
-  scope: scope(["admin", "manager"]),
+  scope: scope(["manager"]),
   eventId: { type: String, index: true },
   title: String,
   message: String,
@@ -118,7 +118,7 @@ const Announcement = model("Announcement", {
 });
 
 const Feedback = model("Feedback", {
-  scope: scope(["admin", "manager"]),
+  scope: scope(["manager"]),
   eventId: { type: String, index: true },
   participant: String,
   rating: Number,

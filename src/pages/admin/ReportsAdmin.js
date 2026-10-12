@@ -1,9 +1,10 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ADMIN_STATUSES, adminStatus, useAdmin } from "../../context/AdminContext.js";
+import { useAdmin } from "../../context/AdminContext.js";
+import { ADMIN_STATUSES, adminStatus } from "../../data/eventStatus.js";
 import Icon from "../../components/Icon.js";
 import Skeleton, { TableSkeleton } from "../../components/Skeleton.js";
-import { Metric, SectionHeading, StatusBadge, Table, plural } from "../../components/manager/parts.js";
+import { Metric, SectionHeading, StatusBadge, Table, plural } from "../../components/ui.js";
 import {
   LoadError, SearchFilter, downloadCsv, formatDay, useApi, useFilters,
 } from "../../components/admin/parts.js";

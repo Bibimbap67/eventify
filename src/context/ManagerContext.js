@@ -3,9 +3,11 @@ import { useAuth } from "./AuthContext.js";
 import { api, newId } from "../api.js";
 import { useServerStore } from "./useServerStore.js";
 import { notify } from "../components/Toast.js";
+import { attendanceKey } from "../data/checkIn.js";
 
 const ManagerContext = createContext(null);
 // State key -> MongoDB-backed API resource (see server/controllers/dataController.js).
+// These hold every event and its records, whether a manager or an admin made it.
 const MANAGER_RESOURCES = {
   events: "manager-events",
   registrations: "manager-registrations",
@@ -152,7 +154,7 @@ export function ManagerProvider({ children }) {
       events: current.events.map((event) => event.id === eventId && event.managerId === managerId
         ? { ...event, status: "Completed", preparationStatus: "Closed out", completedAt: new Date().toISOString().slice(0, 10) }
         : event),
-      registrations: current.registrations.map((registration) => registration.eventId === eventId && registration.status === "Confirmed" && registration.attendanceStatus?.toLowerCase() === "checked in"
+      registrations: current.registrations.map((registration) => registration.eventId === eventId && registration.status === "Confirmed" && attendanceKey(registration.attendanceStatus) === "checked-in"
         ? { ...registration, attendanceStatus: "Attended" }
         : registration),
     }));

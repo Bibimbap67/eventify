@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Navbar from "../../components/Navbar.js";
 import Icon from "../../components/Icon.js";
-import { plural } from "../../components/manager/parts.js";
+import { plural } from "../../components/ui.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { useEventContext } from "../../context/EventContext.js";
 import { categoryColor } from "../../data/options.js";

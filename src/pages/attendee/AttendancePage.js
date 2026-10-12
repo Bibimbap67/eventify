@@ -7,6 +7,7 @@ import { useEventContext } from "../../context/EventContext.js";
 import TicketPassModal from "../../components/attendee/TicketPassModal.js";
 import { notify } from "../../components/Toast.js";
 import { seatOf } from "../../data/seating.js";
+import { attendanceKey, isCheckedIn } from "../../data/checkIn.js";
 
 export default function AttendancePage() {
   const entering = useEntering();
@@ -19,8 +20,8 @@ export default function AttendancePage() {
   };
 
   const confirmedRegs = registrations.filter((r) => r.status === "Confirmed");
-  const checkedInCount = confirmedRegs.filter((r) => ["checked in", "attended"].includes(r.attendanceStatus?.toLowerCase())).length;
-  const pendingCount = confirmedRegs.filter((r) => r.attendanceStatus === "Not Checked In").length;
+  const checkedInCount = confirmedRegs.filter(isCheckedIn).length;
+  const pendingCount = confirmedRegs.length - checkedInCount;
 
   return (
     <div className="attendance-page">
@@ -70,22 +71,16 @@ export default function AttendancePage() {
           </div>
         ) : (
           <div className={`attendance-list${entering ? " stagger" : ""}`}>
-            {confirmedRegs.map((reg) => (
+            {confirmedRegs.map((reg) => {
+              const state = attendanceKey(reg.attendanceStatus);
+              return (
               <div key={reg.id} className="attendance-card">
                 <div className="attendance-card__left">
                   <div className="attendance-card__status-line">
-                    <span
-                      className={`sbadge ${
-                        reg.attendanceStatus === "Attended"
-                          ? "sbadge--attended"
-                          : reg.attendanceStatus?.toLowerCase() === "checked in"
-                          ? "sbadge--checked-in"
-                          : "sbadge--not-checked-in"
-                      }`}
-                    >
-                      {reg.attendanceStatus === "Attended" || reg.attendanceStatus?.toLowerCase() === "checked in"
-                        ? <><Icon name="check" size={16} /> {reg.attendanceStatus.toUpperCase()}</>
-                        : "NOT CHECKED IN"}
+                    <span className={`sbadge sbadge--${state === "waiting" ? "not-checked-in" : state}`}>
+                      {state === "waiting"
+                        ? "NOT CHECKED IN"
+                        : <><Icon name="check" size={16} /> {state === "attended" ? "ATTENDED" : "CHECKED IN"}</>}
                     </span>
                     <span className="attendance-card__date">{reg.fullDate || reg.date} · {reg.time}</span>
                   </div>
@@ -116,7 +111,11 @@ export default function AttendancePage() {
                   </button>
 
                   {/* Check-in only happens when event staff scan the QR on the pass. */}
-                  {reg.attendanceStatus === "Not Checked In" ? null : reg.attendanceStatus?.toLowerCase() === "checked in" && events.find((event) => event.id === reg.eventId)?.status === "COMPLETED" ? (
+                  {state === "attended" ? (
+                    <Link to="/certificates" className="btn-sm">
+                      <Icon name="certificate" size={16} /> View Certificate
+                    </Link>
+                  ) : state === "checked-in" && events.find((event) => event.id === reg.eventId)?.status === "COMPLETED" ? (
                     <button
                       type="button"
                       className="btn-sm btn-sm--blue"
@@ -124,16 +123,13 @@ export default function AttendancePage() {
                     >
                       Mark attendance complete
                     </button>
-                  ) : reg.attendanceStatus?.toLowerCase() === "checked in" ? (
+                  ) : state === "checked-in" ? (
                     <button type="button" className="btn-sm" disabled>Awaiting event completion</button>
-                  ) : (
-                    <Link to="/certificates" className="btn-sm">
-                      <Icon name="certificate" size={16} /> View Certificate
-                    </Link>
-                  )}
+                  ) : null}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>

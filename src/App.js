@@ -24,7 +24,16 @@ import CertificatesAdmin from "./pages/admin/CertificatesAdmin.js";
 import AuditLog from "./pages/admin/AuditLog.js";
 import SettingsPage from "./pages/admin/SettingsPage.js";
 import ManagerLayout from "./components/manager/ManagerLayout.js";
-import ManagerScreen from "./pages/manager/ManagerScreen.js";
+import ManagerOverview from "./pages/manager/ManagerOverview.js";
+import ManagerEvents from "./pages/manager/ManagerEvents.js";
+import EventWorkspace from "./pages/manager/EventWorkspace.js";
+import ManagerRegistrations from "./pages/manager/ManagerRegistrations.js";
+import ManagerAttendance from "./pages/manager/ManagerAttendance.js";
+import ManagerSchedule from "./pages/manager/ManagerSchedule.js";
+import ManagerParticipants from "./pages/manager/ManagerParticipants.js";
+import ManagerAnnouncements from "./pages/manager/ManagerAnnouncements.js";
+import ManagerFeedback from "./pages/manager/ManagerFeedback.js";
+import ManagerReports from "./pages/manager/ManagerReports.js";
 import { AdminProvider } from "./context/AdminContext.js";
 import ProtectedRoute from "./components/ProtectedRoute.js";
 import ToastHost from "./components/Toast.js";
@@ -92,17 +101,17 @@ export default function App() {
         </Route>
 
         <Route path="/manager" element={<ProtectedRoute requiredRole="manager"><ManagerLayout /></ProtectedRoute>}>
-          <Route index element={<ManagerScreen section="overview" />} />
-          <Route path="events" element={<ManagerScreen section="events" />} />
-          <Route path="events/:eventId" element={<ManagerScreen section="event" />} />
-          <Route path="events/:eventId/:tab" element={<ManagerScreen section="event" />} />
-          <Route path="registrations" element={<ManagerScreen section="registrations" />} />
-          <Route path="attendance" element={<ManagerScreen section="attendance" />} />
-          <Route path="schedule" element={<ManagerScreen section="schedule" />} />
-          <Route path="participants" element={<ManagerScreen section="participants" />} />
-          <Route path="announcements" element={<ManagerScreen section="announcements" />} />
-          <Route path="feedback" element={<ManagerScreen section="feedback" />} />
-          <Route path="reports" element={<ManagerScreen section="reports" />} />
+          <Route index element={<ManagerOverview />} />
+          <Route path="events" element={<ManagerEvents />} />
+          <Route path="events/:eventId" element={<EventWorkspace />} />
+          <Route path="events/:eventId/:tab" element={<EventWorkspace />} />
+          <Route path="registrations" element={<ManagerRegistrations />} />
+          <Route path="attendance" element={<ManagerAttendance />} />
+          <Route path="schedule" element={<ManagerSchedule />} />
+          <Route path="participants" element={<ManagerParticipants />} />
+          <Route path="announcements" element={<ManagerAnnouncements />} />
+          <Route path="feedback" element={<ManagerFeedback />} />
+          <Route path="reports" element={<ManagerReports />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

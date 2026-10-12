@@ -1,16 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
 import Icon from "../Icon.js";
-import { Modal } from "../admin/ui.js";
+import { Modal } from "../Modal.js";
 import { api } from "../../api.js";
 import { useEventContext } from "../../context/EventContext.js";
 import { eventBanner } from "../../data/options.js";
 import { seatOf } from "../../data/seating.js";
+import { attendanceKey, isCheckedIn } from "../../data/checkIn.js";
 import { ATTENDEE_TYPE } from "../../data/student.js";
 import { DocPreview, fileSafe, printNode, savePng, useQrCode } from "../DocExport.js";
 
 const TICKET_WIDTH = 440;
 const POLL_MS = 4000;
-const isCheckedIn = (status) => ["checked in", "attended"].includes(String(status || "").toLowerCase());
 
 export default function TicketPassModal({ registration, onClose }) {
   const { events, refresh } = useEventContext();
@@ -31,7 +31,7 @@ export default function TicketPassModal({ registration, onClose }) {
       .then((data) => {
         if (stopped) return;
         setTicket(data);
-        const nowIn = isCheckedIn(data.attendanceStatus);
+        const nowIn = isCheckedIn(data);
         if (wasIn === false && nowIn) refresh();
         wasIn = nowIn;
         if (!nowIn) timer = setTimeout(load, POLL_MS);
@@ -52,7 +52,7 @@ export default function TicketPassModal({ registration, onClose }) {
   const event = events.find((item) => item.id === registration.eventId) || { id: registration.eventId };
   const status = ticket?.attendanceStatus || registration.attendanceStatus || "Not Checked In";
   const checkedInAt = ticket?.checkedInAt || registration.checkedInAt;
-  const checkedIn = isCheckedIn(status);
+  const checkedIn = attendanceKey(status) !== "waiting";
   const name = `ticket-${fileSafe(registration.eventTitle)}-${fileSafe(registration.ticketCode)}`;
 
   const run = (action) => async () => {
