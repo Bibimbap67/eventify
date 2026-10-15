@@ -5207,6 +5207,10 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
 .verify-card__facts { display: grid; gap: 10px; margin: 0; }
 .verify-card__facts dt { font: 700 var(--text-xs) var(--font-mono); text-transform: uppercase; }
 .verify-card__facts dd { margin: 2px 0 0; font-size: 16px; font-weight: 700; }
+.verify-form { display: grid; gap: 10px; }
+.verify-form__label { font: 800 var(--text-xs) var(--font-mono); }
+.verify-form__actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.verify-form__actions .btn-sm { display: inline-flex; align-items: center; gap: 6px; }
 
 @media (max-width: 899px) {
   .staff-grid { grid-template-columns: 1fr; }

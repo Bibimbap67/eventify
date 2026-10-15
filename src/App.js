@@ -61,6 +61,7 @@ export default function App() {
         <Route path="/events" element={<EventsPage />} />
         <Route path="/events/:id" element={<EventDetail />} />
         <Route path="/calendar" element={<CalendarPage />} />
+        <Route path="/verify" element={<VerifyPage />} />
         <Route path="/verify/:credentialId" element={<VerifyPage />} />
         <Route path="/my-events" element={<ProtectedRoute requiredRole="user"><MyEventsPage /></ProtectedRoute>} />
         <Route path="/schedule" element={<ProtectedRoute requiredRole="user"><SchedulePage /></ProtectedRoute>} />

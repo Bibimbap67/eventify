@@ -79,6 +79,14 @@ export default function Navbar() {
           Calendar
         </NavLink>
 
+        <NavLink
+          to="/verify"
+          className={({ isActive }) => `navbar__link ${isActive ? "navbar__link--active" : ""}`}
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          Verify
+        </NavLink>
+
         {user?.role === "user" && <>
           <NavLink
             to="/my-events"
