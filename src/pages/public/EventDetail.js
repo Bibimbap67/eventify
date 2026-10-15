@@ -94,8 +94,6 @@ export default function EventDetail() {
   const existingReg = event && event.status !== "CANCELLED" ? isEventRegistered(event.id) : null;
 
   const [isRegistering, setIsRegistering] = useState(false);
-  const [formName, setFormName] = useState(userProfile?.name || "");
-  const [formEmail, setFormEmail] = useState(userProfile?.email || "");
   const [formStudentId, setFormStudentId] = useState(userProfile?.studentId || "");
   const [formSeat, setFormSeat] = useState("");
   const [pickingSeat, setPickingSeat] = useState(false);
@@ -172,8 +170,6 @@ export default function EventDetail() {
 
   // The profile may still be loading when the page first renders, so fill the form on open.
   const startRegistering = () => {
-    setFormName(userProfile.name);
-    setFormEmail(userProfile.email);
     setFormStudentId(userProfile.studentId);
     setIsRegistering(true);
   };
@@ -183,10 +179,6 @@ export default function EventDetail() {
     e.preventDefault();
     setRegError("");
 
-    if (!formName.trim() || !formEmail.trim()) {
-      setRegError("Please fill in your name and email.");
-      return;
-    }
     // Like the server's profile check, only an ID the student typed here is checked.
     if (formStudentId && formStudentId !== userProfile.studentId && !validStudentId(formStudentId)) {
       setRegError(`Enter your student ID like ${STUDENT_ID_EXAMPLE}.`);
@@ -200,8 +192,6 @@ export default function EventDetail() {
     runRegister(() => {
       try {
         const res = registerForEvent(event.id, {
-          name: formName.trim(),
-          email: formEmail.trim(),
           studentId: formStudentId.trim(),
           seat: formSeat,
         });
@@ -499,26 +489,13 @@ export default function EventDetail() {
                     <form className="ticket-form" onSubmit={handleRegister}>
                       <div className="ticket-form__field">
                         <label>YOUR FULL NAME</label>
-                        <input
-                          type="text"
-                          required
-                          className="input"
-                          placeholder="Your full name"
-                          value={formName}
-                          onChange={(e) => setFormName(e.target.value)}
-                        />
+                        {/* From the account: it prints on the certificate. Change it on the Profile page. */}
+                        <input type="text" readOnly className="input" value={userProfile.name} />
                       </div>
 
                       <div className="ticket-form__field">
                         <label>EMAIL ADDRESS</label>
-                        <input
-                          type="email"
-                          required
-                          className="input"
-                          placeholder="student@nu-moa.edu.ph"
-                          value={formEmail}
-                          onChange={(e) => setFormEmail(e.target.value)}
-                        />
+                        <input type="email" readOnly className="input" value={userProfile.email} />
                       </div>
 
                       <div className="ticket-form__field">

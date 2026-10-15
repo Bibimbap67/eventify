@@ -280,7 +280,7 @@ async function run() {
       if (gaveFeedback) {
         const sent = day(row[4] + between(0, 3));
         rows.feedback.push({
-          _id: `mf-${registration._id}`, scope: "manager", eventId: event._id, participant: student.name,
+          _id: `mf-${registration._id}`, scope: "manager", eventId: event._id, userId: student.id, participant: student.name,
           rating: response.overall, organizationRating: response.organization, speakerRating: response.speaker,
           venueRating: response.venue, comment: response.comment, date: iso(sent), ...stamps(sent),
         });

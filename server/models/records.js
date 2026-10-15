@@ -135,11 +135,15 @@ const Announcement = model("Announcement", {
 const Feedback = model("Feedback", {
   scope: scope(["manager"]),
   eventId: { type: String, index: true },
+  userId: String, // the attendee who sent it (entries from before this was kept have none)
   participant: String,
   rating: Number,
   comment: String,
   date: String,
-}, { collection: "feedback" });
+}, { collection: "feedback" }, [
+  // One entry per attendee per event, even when two sends arrive at the same moment.
+  [{ eventId: 1, userId: 1 }, { unique: true, partialFilterExpression: { userId: { $type: "string" } } }],
+]);
 
 const Venue = model("Venue", {
   name: { type: String, required: true },

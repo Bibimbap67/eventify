@@ -305,6 +305,10 @@ const registrations = {
       if (existing.userId !== user.id) deny();
       record.userId = user.id;
       record.eventId = existing.eventId;
+      // The name prints on the certificate (utils/certificates.js): set from the account when the ticket is made, then fixed.
+      record.name = existing.name;
+      record.email = existing.email;
+      record.studentId = existing.studentId;
       // Check-in and exit happen only by scanning (the ticket at the door, the exit QR on the way out).
       record.attendanceStatus = existing.attendanceStatus;
       EXIT_FIELDS.forEach((key) => { if (existing[key] != null) record[key] = existing[key]; });
@@ -318,6 +322,10 @@ const registrations = {
       return;
     }
     record.userId = user.id;
+    record.name = user.name;
+    record.email = user.email;
+    // A student ID on the profile wins; without one, the ID typed on the form is kept.
+    record.studentId = user.studentId || String(record.studentId || "").trim().slice(0, 20);
     record.ticketType = ATTENDEE_TYPE;
     record.attendanceStatus = "Not Checked In";
     record.checkedInAt = null;
@@ -393,10 +401,18 @@ const RESOURCES = {
     scope: "manager",
     ...managerEventChild(),
     async save(user, record, existing) {
+      // Ratings feed the public average on event cards, so only whole stars 1 to 5 count.
+      if (["rating", "organizationRating", "speakerRating", "venueRating"].some((key) => record[key] != null && ![1, 2, 3, 4, 5].includes(record[key]))) {
+        throw new HttpError(400, "Ratings go from 1 to 5 stars.");
+      }
       if (isAdmin(user) || (await ownsEvent(user, record.eventId))) return;
-      // Attendees may leave one new feedback entry for an event they registered for.
+      // Attendees may leave one feedback entry for an event they registered for.
       if (!user || existing) deny();
-      if (!(await Registration.exists({ userId: user.id, eventId: record.eventId }))) deny();
+      const ticket = await Registration.findOne({ userId: user.id, eventId: record.eventId });
+      if (!ticket) deny();
+      if (await Feedback.exists({ userId: user.id, eventId: record.eventId })) deny("You already left feedback for this event.");
+      record.userId = user.id;
+      record.participant = ticket.name;
     },
   },
   "manager-notifications": {

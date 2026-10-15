@@ -36,6 +36,17 @@ function blankProfile(user) {
   };
 }
 
+// When and where an event happens, as attendee pages and tickets show it.
+function eventWhenWhere(event) {
+  const date = new Date(`${event.date}T12:00:00`);
+  return {
+    date: date.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }).toUpperCase(),
+    fullDate: date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }),
+    time: timeRange(event.startTime, event.endTime),
+    location: (event.venue || "").toUpperCase(),
+  };
+}
+
 function belongsToUser(record, user) {
   return record.userId ? record.userId === user?.id : Boolean(user?.email && record.email === user.email);
 }
@@ -61,9 +72,16 @@ export function EventProvider({ children }) {
   })), [setData]);
   const userProfile = useMemo(() => blankProfile(user), [user]);
 
+  // A ticket keeps a copy of its event's date, time and venue from the day it was made. The live
+  // event wins, so a moved event shows its new details; the copy stays for events attendees can't load.
   const registrations = useMemo(
-    () => allRegistrations.filter((registration) => belongsToUser(registration, user)),
-    [allRegistrations, user]
+    () => allRegistrations
+      .filter((registration) => belongsToUser(registration, user))
+      .map((registration) => {
+        const event = allEvents.find((item) => item.id === registration.eventId);
+        return event ? { ...registration, ...eventWhenWhere(event) } : registration;
+      }),
+    [allEvents, allRegistrations, user]
   );
   const events = useMemo(() => {
     return allEvents
@@ -80,15 +98,11 @@ export function EventProvider({ children }) {
           const session = sessions.find((item) => item.speaker?.trim().toLowerCase() === speaker.name.trim().toLowerCase());
           return { id: `${event.id}-speaker-${index}`, ...speaker, topic: session?.title, time: session?.startTime && formatTime(session.startTime), room: session?.room };
         });
-        const date = new Date(`${event.date}T12:00:00`);
         return {
           ...event,
           status: SAVED_TO_PUBLIC[event.status],
           isoDate: event.date,
-          date: date.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }).toUpperCase(),
-          fullDate: date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }),
-          time: timeRange(event.startTime, event.endTime),
-          location: event.venue.toUpperCase(),
+          ...eventWhenWhere(event),
           fullLocation: event.venue,
           registered: liveRegisteredCount(event, loadedRegistrations, allRegistrations),
           speakers,
@@ -193,8 +207,8 @@ export function EventProvider({ children }) {
         seating: reserved ? "reserved" : "free",
         seat: reserved ? formData.seat : null,
         ticketType: ATTENDEE_TYPE,
-        name: formData.name || userProfile.name,
-        email: formData.email || userProfile.email,
+        name: userProfile.name,
+        email: userProfile.email,
         studentId: formData.studentId || userProfile.studentId,
         feedback: null,
       };
