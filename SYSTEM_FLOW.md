@@ -1,8 +1,8 @@
 # How Eventify Works
 
-Eventify is a website for school events. People find an event, sign up for it, get a ticket with a QR code, scan in at the door, and get a certificate when the event is over.
+Eventify is a website for school events. People find an event, sign up for it, get a ticket with a QR code, scan in at the door, scan the exit QR on the way out, and get a certificate.
 
-**Main path:** Find event → Join it → Get QR ticket → Check in at the door → Give feedback → Get certificate
+**Main path:** Find event → Join it → Get QR ticket → Check in at the door → Scan the exit QR when leaving → Get certificate → Give feedback
 
 ---
 
@@ -15,8 +15,10 @@ Eventify is a website for school events. People find an event, sign up for it, g
 5. [Flow 3: Life of an event](#flow-3-life-of-an-event)
 6. [Flow 4: Join an event](#flow-4-join-an-event)
 7. [Flow 5: Check in at the door](#flow-5-check-in-at-the-door)
-8. [Flow 6: After the event](#flow-6-after-the-event)
-9. [Flow 7: How the parts talk](#flow-7-how-the-parts-talk)
+8. [Flow 6: Leave the event (exit QR)](#flow-6-leave-the-event-exit-qr)
+9. [Flow 7: After the event](#flow-7-after-the-event)
+10. [Flow 8: Check a certificate is real](#flow-8-check-a-certificate-is-real)
+11. [Flow 9: How the parts talk](#flow-9-how-the-parts-talk)
 
 ---
 
@@ -26,13 +28,14 @@ Every account has one role. The role decides which pages a person can open.
 
 | Role | What they can do |
 |---|---|
-| **Attendee** | Find and join events, pick a seat, show a QR ticket, give feedback, get certificates |
-| **Event Manager** | Make events, plan sessions, post announcements, see who joined, read feedback and reports |
-| **Staff** | Open the check-in desk and scan QR tickets at the door |
-| **Admin** | Approve events, manage users, venues, and settings, and see everything |
+| **Attendee** | Find and join events, pick a seat, show a QR ticket, scan the exit QR when leaving, give feedback, get certificates |
+| **Event Manager** | Make events, plan sessions, post announcements, see who joined, mark someone as exited if they couldn't scan, read feedback and reports |
+| **Staff** | Open the check-in desk, scan QR tickets at the door, and show the exit QR when the event ends |
+| **Admin** | Approve or reject events (and undo a rejection), manage users, venues, and settings, and see everything |
 
 > Anyone can sign up, but a new account is always an **Attendee**.
 > Only the Admin can make Event Manager, Staff, or Admin accounts.
+> Anyone, even without an account, can check that a certificate is real on the **Verify** page.
 
 ---
 
@@ -58,7 +61,7 @@ Anyone can look at events without an account. You only need to log in when you w
 [ Home page ]
   |
   v
-[ Look at events and the calendar ]
+[ Look at events and the calendar, or verify a certificate ]
   |
   v
 < Want to join an event? > --No--> keep looking
@@ -75,6 +78,11 @@ Anyone can look at events without an account. You only need to log in when you w
   +-- Staff ----------> (OK) Check-in desk
   +-- Admin ----------> (OK) Admin area (the whole system)
 ```
+
+**Good to know**
+
+- Explore Events shows events you can still go to first, soonest first by date and then start time. Finished events come after them.
+- Long lists show one page at a time (for example 20 events on Explore Events, 10 tickets per tab on My Events). The page buttons only appear when a list is longer than one page.
 
 ---
 
@@ -139,7 +147,7 @@ An event moves through these steps. Attendees can only join when it is **Publish
   v
 < PENDING: the Admin checks it >
   |
-  +-- Admin says no --> (STOP) REJECTED
+  +-- Admin says no --> REJECTED --(Admin clicks Undo)--> back to PENDING, and the Manager is told
   |
   | Admin says yes
   v
@@ -149,7 +157,7 @@ An event moves through these steps. Attendees can only join when it is **Publish
   v
 [ PUBLISHED: "Registration Open", people can join ]
   |
-  | The event is over
+  | The end time passes (or it is marked completed)
   v
 (OK) COMPLETED
 ```
@@ -159,9 +167,9 @@ An event moves through these steps. Attendees can only join when it is **Publish
 | Pending | Waiting for the Admin | Set by itself when a Manager makes an event |
 | Approved | Allowed, but not open to join yet | Admin |
 | Published | Open, people can join | Admin |
-| Completed | The event is over | Admin, or the event's own Manager |
+| Completed | The event is over | Set by itself when the end time passes, or by the Admin or the event's own Manager |
 | Cancelled | The event will not happen | Admin, or the event's own Manager |
-| Rejected | The Admin said no | Admin |
+| Rejected | The Admin said no. The Admin can undo it: the event goes back to Pending and its Manager gets a notice | Admin |
 | Archived | Old event, put away | Admin |
 
 **Good to know**
@@ -192,6 +200,12 @@ Before a ticket is made, the server checks a few things. An event has either:
 < Already joined this event? > --Yes--> (STOP) "You are already registered for this event."
   | No
   v
+< Do you already have a ticket to another event at the same time (same day, any venue)? >
+  |
+  +-- Yes --> (STOP) "This clashes with <event> (<time>). Cancel that registration to register here."
+  |             The page shows a "Cancel that registration" button
+  | No
+  v
 < Any space left? > --No--> (STOP) "Sorry, this event has reached maximum capacity."
   | Yes
   v
@@ -213,6 +227,7 @@ Before a ticket is made, the server checks a few things. An event has either:
 - The QR code holds a secret code made by the server. It cannot be guessed.
 - Two people can never get the same seat, even if they click at the same time.
 - An Attendee can cancel their ticket. A cancelled ticket cannot be used again, and its seat opens up for others.
+- Two events clash only when their times overlap. An event ending at 11:00 and another starting at 11:00 do not clash. The server checks this too, so it cannot be skipped.
 
 ---
 
@@ -265,37 +280,123 @@ Staff scan each ticket with the camera. The server checks the ticket and tells t
 
 ---
 
-## Flow 6: After the event
+## Flow 6: Leave the event (exit QR)
+
+A certificate needs proof that the person stayed, so attendees scan an exit QR on the way out. Exit verification runs from **15 minutes before the event ends until 2 hours after**.
 
 ```
-[ The event is marked COMPLETED ]
+[ Staff picks the event on the check-in desk ]
   |
   v
-< Was the attendee checked in at the door? > --No--> (STOP) No certificate
+[ Staff clicks "Start Exit Verification" ]
+  |
+  v
+[ The screen shows an exit QR. A new one appears every 30 seconds ]
+  |
+  v
+[ Attendee scans it: with the phone camera, or "Scan exit QR" in My Events ]
+  |
+  v
+< Logged in as an Attendee? > --No--> [ Log in, then scan again ]
   | Yes
   v
-[ Attendee clicks "Complete attendance" in My Events ]
-  |
-  +-------> [ "Give Feedback": 1 to 5 stars and a comment ] ---> the organizer reads it
+< Is exit verification running for this event? > --No--> (STOP) "Exit verification isn't running right now."
+  | Yes
+  v
+< Does the attendee have a ticket to this event? > --No--> (STOP) "You don't have a ticket to this event."
+  | Yes
+  v
+< Already exited? > --Yes--> (STOP) "Your exit is already verified."
+  | No
+  v
+< Was the ticket checked in at the door? > --No--> (STOP) "Your ticket was never checked in."
+  | Yes
+  v
+< Is this the code on screen right now, and not too old? > --No--> (STOP) "This code has expired or was already used."
+  | Yes
+  v
+[ The code is used up and the screen shows a new one ]
   |
   v
-[ The server makes the certificate by itself ]
+[ Save "Attended" and the exit time ]
   |
   v
-[ Attendee sees it on the Certificates page ]
-  |
-  v
-(OK) Anyone can check that it is real on the Verify page, using its Credential ID
+(OK) Attendee gets a notice, and the certificate is made
 ```
 
 **Good to know**
 
-- Each person gets only one certificate per event.
-- Only the server makes certificates, using its own records, so nobody can change the name, event or hours on one.
+- Each exit code works for **one** scan only, and only for 30 seconds, so a screenshot is not much use.
+- If two people scan the same code at the same moment, only one gets through. The other scans the new code.
+- A failed scan does **not** use up the code on screen.
+- The staff screen shows how many people have exited, and the last few names.
+- If someone could not scan (for example, their phone died), the event's **Manager** can click **Mark exited** on a checked-in person. It is saved in the activity log with the Manager's name.
+- Someone who checks in but never exits stays "Checked in" and gets **no certificate**.
 
 ---
 
-## Flow 7: How the parts talk
+## Flow 7: After the event
+
+```
+[ The end time passes, so the event becomes COMPLETED ]
+  |
+  v
+< Did the attendee check in AND scan the exit QR? > --No--> (STOP) No certificate
+  | Yes
+  v
+[ The server makes the certificate by itself ]
+  |
+  +-------> [ "Give Feedback": 1 to 5 stars and a comment ] ---> the organizer reads it
+  |
+  v
+(OK) Attendee sees it on the Certificates page
+```
+
+**Good to know**
+
+- If the attendee exits after the event is already completed, the certificate is made right away. Otherwise it is made when the event completes.
+- Each person gets only one certificate per event.
+- Only the server makes certificates, using its own records, so nobody can change the name, event or hours on one.
+- The Certificates page has a search (event name, organizer, or credential ID) and shows 10 at a time.
+
+---
+
+## Flow 8: Check a certificate is real
+
+Anyone can do this, with or without an account. Open the profile menu (top right) and click **Verify a Certificate**.
+
+```
+[ Open the Verify page ]
+  |
+  v
+< Type the credential ID, or scan the certificate's QR? >
+  |
+  +-- Type --> [ Type it, e.g. CERT-NU-2026-AB12CD34, and click Verify ]
+  |
+  +-- Scan --> [ Click "Scan QR": use the camera, or upload a photo of the QR ]
+  |              |
+  |              v
+  |            < Is it an Eventify certificate QR? > --No--> (STOP) "This isn't an Eventify certificate QR."
+  |              | Yes
+  |<-------------+
+  v
+< Does a certificate have this ID? > --No--> (STOP) "Not verified: no certificate has this credential ID."
+  | Yes
+  v
+(OK) "Valid certificate": who it was awarded to, the event, the date, and the hours
+  |
+  v
+[ "Verify another certificate" goes back to an empty box ]
+```
+
+**Good to know**
+
+- Small mistakes are fixed by themselves: lowercase letters, spaces, or a missing "CERT-NU-" at the start.
+- The QR printed on a certificate opens its result straight away.
+
+---
+
+## Flow 9: How the parts talk
 
 Eventify has three parts:
 
@@ -333,4 +434,4 @@ The website never touches the database directly. It always goes through the serv
 - An **Event Manager** gets only the events they made, and the people who joined them.
 - An **Admin** gets everything.
 
-**What the database keeps:** Users, Events, Registrations (tickets), Certificates, Notifications, Sessions, Announcements, Feedback, Venues, Activity log.
+**What the database keeps:** Users, Events, Registrations (tickets, check-in and exit), Exit codes (the current exit QR of each event), Certificates, Notifications, Sessions, Announcements, Feedback, Venues, Activity log.

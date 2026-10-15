@@ -38,7 +38,7 @@
    ProtectedRoute check
       ├─ initializing? ────────► render nothing (wait for session restore)
       ├─ no user? ─────────────► redirect → /login
-      ├─ wrong role? ──────────► admin → /admin, others → /events
+      ├─ wrong role? ──────────► admin → /admin, staff → /staff, others → /events
       └─ OK ───────────────────► render page
    ```
 
@@ -46,8 +46,9 @@
 
    | Zone | Routes | Guard |
    |---|---|---|
-   | **Public** | `/` (Home), `/login`, `/events`, `/events/:id` | None |
-   | **Attendee** (`role: user`) | `/my-events`, `/schedule`, `/attendance`, `/certificates`, `/notifications`, `/profile`, `/workspace` | `requiredRole="user"` |
+   | **Public** | `/` (Home), `/login`, `/events`, `/events/:id`, `/calendar`, `/verify`, `/verify/:credentialId` | None |
+   | **Attendee** (`role: user`) | `/my-events`, `/schedule`, `/attendance`, `/certificates`, `/notifications`, `/profile`, `/workspace`, `/exit/:eventId` (where the exit QR leads) | `requiredRole="user"` |
+   | **Staff** (`role: staff`) | `/staff` (check-in desk + exit QR) | `requiredRole="staff"` |
    | **Admin** (`role: admin`) | `/admin` → Dashboard, `users`, `events`, `venues`, `reports`, `registrations`, `certificates`, `audit-logs`, `settings` (old `attendance`, `sessions`, `announcements`, `feedback` links redirect) | `requiredRole="admin"` + `AdminProvider` + `AdminLayout` (sidebar + `<Outlet/>`) |
    | **Manager** (`role: manager`) | `/manager` → Overview, `events`, `events/:eventId[/:tab]`, `registrations`, `attendance`, `schedule`, `participants`, `announcements`, `feedback`, `reports` | `requiredRole="manager"` + `ManagerLayout` → one page file each in `src/pages/manager/` |
    | **Fallback** | `*` | Redirect → `/` |
@@ -75,15 +76,24 @@
    HomePage (search / categories / featured events)
       │
       ▼
-   EventsPage ──► EventDetail ──► registerForEvent()
-                                    │  → saves the registration through ManagerContext (addAttendeeRegistration)
-                                    │  → creates notification ("New registration")
-                                    ▼
-   MyEventsPage ──► TicketPassModal (QR pass) ──► AttendancePage (check-in)
-                                                      │
-                                    completeAttendance() / checkInAttendee()
-                                                      ▼
-   CertificatesPage ◄── the server issues the certificate when the ticket is marked Attended on a completed event
+   EventsPage (upcoming first, by date then start time; 20 a page)
+      │
+      ▼
+   EventDetail ──► clashingRegistrations() ── a ticket overlaps this event's time? ──► blocked,
+      │                                         with a "Cancel that registration" button
+      ▼
+   registerForEvent()
+      │  → saves the registration through ManagerContext (addAttendeeRegistration)
+      │  → server re-checks the clash (checkAttendeeSchedule) and capacity
+      │  → creates notification ("New registration")
+      ▼
+   MyEventsPage (10 per tab) ──► TicketPassModal (QR pass) ── staff scan it at the door ──► "Checked in"
+      │
+      ▼
+   ExitScanButton ("Scan exit QR", or the phone camera opens /exit/:eventId?code=…)
+      │  POST /api/exit → ticket becomes "Attended" (exit verified)
+      ▼
+   CertificatesPage (search, 10 a page) ◄── the server issues the certificate for an Attended ticket on a completed event
       │
       ▼
    FeedbackModal ──► submitFeedback() → routed to manager's feedback list
@@ -91,6 +101,8 @@
       ▼
    NotificationsPage / ProfilePage (mark read, update profile)
    ```
+
+   Attendees can no longer mark themselves Attended: the server keeps attendance as it was on any attendee save. Only the exit scan (or a manager's Mark exited) sets it.
 
    ---
 
@@ -109,19 +121,44 @@
       │     ├─ Sessions (saveSession / deleteSession)
       │     ├─ Announcements (addAnnouncement → auto-generates notification when Published)
       │     ├─ Registrations (updateRegistration: confirm/cancel)
-      │     ├─ Attendance (check-in management)
+      │     ├─ Attendance (check-in management; "Mark exited" → POST /api/registrations/:id/exit, audited)
       │     ├─ Participants / Feedback (attendee submissions)
       │     └─ Reports
       │
       └─ completeEvent() → status "Completed"
-            └─ checked-in "Confirmed" registrations auto-become "Attended"
+            └─ attendance is not changed: only exit-verified ("Attended") tickets get certificates
    ```
+
+   Lists: Registrations and Participants show 25 a page, past and archived events 12, feedback comments and announcements 10. The event-day check-in roster is never paged.
+
+   ---
+
+   ## 🚪 6. Staff Workflow (`/staff`, `StaffPage` + `ExitQrPanel`)
+
+   ```
+   Check-in desk
+      ├─ Scan ticket QR ──► POST /api/staff/checkin → "Checked in" (from the event's start time)
+      │
+      └─ Exit verification (15 min before the end → 2 h after; ExitPass collection, one row per event)
+            ├─ Start Exit Verification ──► POST   /api/staff/events/:id/exit
+            ├─ screen polls every 2 s ───► GET    /api/staff/events/:id/exit  (replaces a code older than 30 s)
+            └─ Stop ─────────────────────► DELETE /api/staff/events/:id/exit
+
+   Attendee scan ──► POST /api/exit { eventId, code }
+      checks, in order: exit running · has a Confirmed ticket · not already exited · checked in · code current
+      ├─ any check fails → refused with a reason, the code on screen is NOT used up
+      └─ all pass → code consumed and replaced in one atomic update (one winner per code)
+                    → ticket "Attended" + exitedAt / exitVerifiedAt / exitMethod "scan"
+                    → notification + issueCertificates() (issued now if the event is Completed, else on completion)
+   ```
+
+   The QR holds a link (`/exit/:eventId?code=…`), so a phone camera opens `ExitPage`; the in-app scanner reads the same link. Exit fields on a registration are written only by the server.
 
    **Key behavior:** All manager data is saved to MongoDB automatically after every state change (see the Data / Persistence Layer section). Deleting an event also deletes its registrations, sessions, announcements, feedback, notifications and certificates on the server.
 
    ---
 
-   ## 🛡️ 6. Admin Workflow (platform-wide jobs only)
+   ## 🛡️ 7. Admin Workflow (platform-wide jobs only)
 
    Running a single event (registrations, check-in, sessions, announcements) belongs to its Event Manager; the admin oversees it read-only.
 
@@ -137,6 +174,9 @@
       │             │     Admin:   Pending → Published → Completed
       │             │     Public:  REGISTRATION OPEN → COMPLETED
       │             │  • An admin's new event saves through ManagerContext, owned by that admin
+      │             │  • Reject has an Undo (toast button, and "Undo rejection" on rejected rows):
+      │             │    Rejected → Pending, and the server notifies the event's manager
+      │             │  • 25 events a page (Reports too; its totals and CSV cover every event)
       │             │  • Details (read-only sessions, speakers, announcements): GET /api/admin/events/:id
       │             Venues ────────────► AdminContext (venues collection)
       ├─ Oversight  Reports ───────────► GET /api/admin/reports/events (per-event totals, CSV export)
@@ -151,7 +191,7 @@
 
    ---
 
-   ## 💾 7. Data / Persistence Layer
+   ## 💾 8. Data / Persistence Layer
 
    Each context uses `useServerStore` (`src/context/useServerStore.js`): it loads its collections from `GET /api/data/:resource`, and after every state change sends only the added/edited/removed records to `POST /api/data/:resource/batch`. The server (`server/controllers/dataController.js`) checks who may read and write each record.
 
@@ -159,8 +199,9 @@
    |---|---|---|---|
    | `users` | `/api/auth/*`, `/api/users` | AuthContext (own account), Admin > Users page (`/api/users`) | accounts, roles, status, profile fields |
    | `events` | `manager-events` | ManagerContext | every event, whether a manager or an admin made it |
-   | `registrations` | `manager-registrations` | ManagerContext | attendee registrations, attendance, feedback answers |
-   | `certificates` | `certificates` (read-only; the server issues them) | EventContext | issued certificates |
+   | `registrations` | `manager-registrations` | ManagerContext | attendee registrations, attendance, exit (`exitedAt`, `exitVerifiedAt`, `exitMethod`, `exitedBy`; server-only), feedback answers |
+   | `exitpasses` | `/api/staff/events/:id/exit` (staff only) | server | the current exit QR code of each event, its expiry, and whether exit is running |
+   | `certificates` | `certificates` (read-only; the server issues them); public check `GET /api/certificates/verify/:credentialId` | EventContext | issued certificates |
    | `notifications` | `notifications` (scope `attendee`), `manager-notifications` (scope `manager`) | EventContext / ManagerContext | attendee and manager notifications |
    | `sessions` | `manager-sessions` (the admin-scope `sessions` resource is no longer used by any screen) | ManagerContext | sessions & speakers |
    | `announcements` | `manager-announcements` (admin-scope `announcements` likewise unused) | ManagerContext | announcements |
@@ -170,6 +211,8 @@
    | `settings` | `/api/settings` | AdminContext | one document (`_id: "global"`): organization name, academic term, default capacity |
 
    Profile fields (student ID, program, phone, ...) are stored on the user document via `PATCH /api/auth/me`.
+
+   **Paging:** lists already in memory use `usePaged` + `Pagination` (`src/components/admin/parts.js`); the bar only shows when a list is longer than one page, and a new search, filter or tab goes back to page 1. Users, Registrations and the Audit log are paged by the server.
 
    **Cross-context sync:** The public event list is *derived* — `EventContext.events` is a `useMemo` that maps `ManagerContext` events through a status filter (`Registration Open`/`Published`/`Approved`/`Completed` only), so every event appears publicly once approved, whoever made it.
 
@@ -181,22 +224,25 @@
    Manager creates event (Pending)
          │
          ▼
-   Admin reviews → approves/publishes
+   Admin reviews → approves/publishes (or rejects; a rejection can be undone → Pending, manager notified)
          │                    └─► audit log entry written
          ▼
    Appears on public HomePage / EventsPage
          │
          ▼
-   Attendee registers → notification to manager → registration confirmed
+   Attendee registers (no time clash with their other tickets) → notification to manager
          │
          ▼
-   Event day: QR check-in → attendance marked
+   Event day: QR check-in at the door → "Checked in"
          │
          ▼
-   Manager completes event → checked-in attendees become "Attended"
+   Event ends: staff show the rotating exit QR → attendee scans → "Attended"
+         │                                       (or the manager marks them exited)
+         ▼
+   End time passes → event "Completed" → certificates issued to Attended tickets only
          │
          ▼
-   Certificates issued → attendee submits feedback → reports generated
+   Attendee submits feedback → reports generated → anyone verifies the certificate at /verify
    ```
 
    ---
@@ -213,4 +259,4 @@
 
    ## 📌 Key Architectural Takeaway
 
-   This is a classic **3-role SPA** (Admin → Manager → Attendee) where event and admin state lives in nested React Contexts backed by MongoDB through the Express API, with `AdminContext` acting as the coordination layer that translates data between the manager, public, and admin views.
+   This is a **4-role SPA** (Admin → Manager → Staff → Attendee) where event and admin state lives in nested React Contexts backed by MongoDB through the Express API, with `AdminContext` acting as the coordination layer that translates data between the manager, public, and admin views.

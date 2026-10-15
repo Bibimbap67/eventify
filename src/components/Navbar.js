@@ -79,14 +79,6 @@ export default function Navbar() {
           Calendar
         </NavLink>
 
-        <NavLink
-          to="/verify"
-          className={({ isActive }) => `navbar__link ${isActive ? "navbar__link--active" : ""}`}
-          onClick={() => setMobileMenuOpen(false)}
-        >
-          Verify
-        </NavLink>
-
         {user?.role === "user" && <>
           <NavLink
             to="/my-events"
@@ -195,6 +187,13 @@ export default function Navbar() {
                 <Icon name="certificate" size={17} /> My Certificates
               </Link>
               </>}
+              <Link
+                to="/verify"
+                onClick={() => setProfileOpen(false)}
+                className="profile-dropdown__link"
+              >
+                <Icon name="shield" size={17} /> Verify a Certificate
+              </Link>
               <Link
                 to="/profile"
                 onClick={() => setProfileOpen(false)}
