@@ -21,6 +21,8 @@ const ACTIONS = [
   ["Approve", ["Pending"], "Approved", false],
   ["Publish", ["Approved"], "Published", false],
   ["Reject", ["Pending"], "Rejected", true],
+  // A rejection made by mistake: the event goes back to Pending and its manager is told (the server notifies).
+  ["Undo rejection", ["Rejected"], "Pending", false],
   ["Cancel", ["Approved", "Published"], "Cancelled", true],
   ["Archive", ["Completed", "Rejected", "Cancelled"], "Archived", false],
   // Back to the status it was archived from (older archives didn't record one: Completed).
@@ -56,7 +58,12 @@ export default function EventsAdmin() {
     // Archiving remembers the status it came from, so Restore can put the event back exactly.
     const archiving = to === "Archived" ? { archivedFrom: event.status, archivedAt: new Date().toISOString().slice(0, 10) } : {};
     update("events", event.id, { status: to, ...archiving });
-    toast(`${event.title}: ${label === "Restore" ? "restored" : to.toLowerCase()}.`, CLOSED.includes(to) ? "warning" : "success");
+    if (to === "Rejected") {
+      toast(`${event.title}: rejected.`, "warning", undefined, { label: "Undo", onClick: () => changeStatus(event, "Undo rejection", "Pending") });
+      return;
+    }
+    const done = { Restore: "restored", "Undo rejection": "rejection undone, back to pending" }[label] || to.toLowerCase();
+    toast(`${event.title}: ${done}.`, CLOSED.includes(to) ? "warning" : "success");
   }
 
   const columns = [

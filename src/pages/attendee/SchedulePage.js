@@ -6,7 +6,7 @@ import { useEventContext } from "../../context/EventContext.js";
 import TicketPassModal from "../../components/attendee/TicketPassModal.js";
 import { eventBanner } from "../../data/options.js";
 import { seatOf } from "../../data/seating.js";
-import { formatTimesIn } from "../../data/time.js";
+import { eventsClash, formatTimesIn, startSortKey } from "../../data/time.js";
 
 export default function SchedulePage() {
   const { registrations, events } = useEventContext();
@@ -35,26 +35,20 @@ export default function SchedulePage() {
           speakers: ev?.speakers || [],
         };
       })
-      .sort((a, b) => (a.event?.date || "").localeCompare(b.event?.date || ""));
+      .sort((a, b) => startSortKey(a.event?.isoDate, a.event?.startTime).localeCompare(startSortKey(b.event?.isoDate, b.event?.startTime)));
   }, [activeRegs, events]);
 
-  // Conflict detection: Detect if two events share the same date
+  // Conflict detection: two events on the same day whose times overlap (any venue).
   const conflicts = useMemo(() => {
-    const dateMap = {};
     const clashList = [];
+    const saved = (ev) => ev && { date: ev.isoDate, startTime: ev.startTime, endTime: ev.endTime };
 
-    scheduledItems.forEach((item) => {
-      const d = item.event?.date;
-      if (!d) return;
-      if (dateMap[d]) {
-        clashList.push({
-          date: item.date,
-          event1: dateMap[d].event?.title,
-          event2: item.event?.title,
-        });
-      } else {
-        dateMap[d] = item;
-      }
+    scheduledItems.forEach((item, index) => {
+      scheduledItems.slice(index + 1).forEach((other) => {
+        if (eventsClash(saved(item.event), saved(other.event))) {
+          clashList.push({ date: item.date, event1: item.event.title, event2: other.event.title });
+        }
+      });
     });
 
     return clashList;
@@ -114,7 +108,7 @@ export default function SchedulePage() {
               <strong>SCHEDULE OVERLAP WARNING:</strong>
               {conflicts.map((c, i) => (
                 <span key={i} className="conflict-detail">
-                  {" "}You are registered for both <b>{c.event1}</b> and <b>{c.event2}</b> on <u>{c.date}</u>. Please plan your attendance, or cancel one registration if you cannot attend both.
+                  {" "}You are registered for both <b>{c.event1}</b> and <b>{c.event2}</b> at the same time on <u>{c.date}</u>. Cancel one of them, since you can only attend one.
                 </span>
               ))}
             </div>

@@ -24,6 +24,19 @@ export const timeRange = (start, end, separator = " – ") => [start, end].filte
 // Older tickets saved their time as text, e.g. "14:00 - 16:00": shows each 24-hour time in it on the 12-hour clock.
 export const formatTimesIn = (text) => String(text || "").replace(/\b\d{1,2}:\d{2}\b(?!\s*[AP]M)/gi, (time) => formatTime(time));
 
+// Sorts events by day, then start time: "2026-10-13" at 7:00 AM comes before 1:00 PM that day.
+// Compare two keys with localeCompare.
+export const startSortKey = (isoDate, startTime) => `${isoDate || ""}T${String(toMinutes(startTime) ?? 0).padStart(4, "0")}`;
+
+// Two events clash when they are on the same day and their times overlap. One ending at 11:00
+// and the next starting at 11:00 do not clash. server/controllers/dataController.js checks the same.
+export function eventsClash(a, b) {
+  if (!a?.date || a.date !== b?.date) return false;
+  const [aStart, aEnd, bStart, bEnd] = [a.startTime, a.endTime, b.startTime, b.endTime].map(toMinutes);
+  if ([aStart, aEnd, bStart, bEnd].includes(null)) return false;
+  return aStart < bEnd && bStart < aEnd;
+}
+
 // A saved time moved by some minutes, as "HH:MM", never past 11:59 PM.
 export function addMinutes(value, add) {
   const minutes = Math.min(toMinutes(value) + add, 23 * 60 + 59);

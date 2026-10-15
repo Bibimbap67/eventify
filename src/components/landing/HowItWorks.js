@@ -7,7 +7,7 @@ const STEPS = [
   { icon: "user-plus", color: "var(--blue)", title: "Register", text: "Pick an event and confirm your seat in one step." },
   { icon: "ticket", color: "var(--violet)", title: "Get your ticket", text: "Your ticket pass and its own QR code appear under My Events." },
   { icon: "scan", color: "var(--mint)", title: "Check in", text: "Show the QR on your pass at the door. Event staff scan it and you are checked in." },
-  { icon: "certificate", color: "var(--yellow)", title: "Get your certificate", text: "After you attend and leave feedback, your certificate is ready to view." },
+  { icon: "certificate", color: "var(--yellow)", title: "Get your certificate", text: "Scan the exit QR on your way out and your certificate is ready to view." },
 ];
 
 // Four steps that light up one by one as they cross the middle of the screen. On wide

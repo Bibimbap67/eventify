@@ -5,6 +5,7 @@ import Icon from "../../components/Icon.js";
 import { useEntering } from "../../components/Motion.js";
 import { useEventContext } from "../../context/EventContext.js";
 import TicketPassModal from "../../components/attendee/TicketPassModal.js";
+import { ExitScanButton } from "../../components/attendee/ExitScan.js";
 import FeedbackModal from "../../components/attendee/FeedbackModal.js";
 import CancelModal from "../../components/attendee/CancelModal.js";
 import { notify } from "../../components/Toast.js";
@@ -15,7 +16,7 @@ import { formatTimesIn } from "../../data/time.js";
 
 export default function MyEventsPage() {
   const entering = useEntering();
-  const { events, registrations, cancelRegistration, completeAttendance, submitFeedback } = useEventContext();
+  const { events, registrations, cancelRegistration, submitFeedback } = useEventContext();
   const [activeTab, setActiveTab] = useState("upcoming");
 
   // Modals state
@@ -34,11 +35,6 @@ export default function MyEventsPage() {
   const cancelledRegs = registrations.filter((r) => r.status === "Cancelled" || calledOff(r));
 
   // Handlers
-  const handleCompleteAttendance = (reg) => {
-    completeAttendance(reg.id);
-    notify(`${reg.eventTitle} is marked as attended. Feedback is now open in Past & Attended.`, "success", "Attendance complete");
-  };
-
   const handleCancelConfirm = (regId) => {
     cancelRegistration(regId);
     setCancelModalTarget(null);
@@ -155,18 +151,8 @@ export default function MyEventsPage() {
                           <Icon name="ticket" size={16} /> View Digital Pass
                         </button>
 
-                        {/* Check-in only happens when event staff scan the QR on the pass. */}
-                        {!isCheckedIn(reg) ? null : events.find((event) => event.id === reg.eventId)?.status === "COMPLETED" ? (
-                          <button
-                            type="button"
-                            className="btn-sm btn-sm--blue"
-                            onClick={() => handleCompleteAttendance(reg)}
-                          >
-                            Complete attendance
-                          </button>
-                        ) : (
-                          <button type="button" className="btn-sm" disabled>Awaiting event completion</button>
-                        )}
+                        {/* Staff scan the pass to check in; the attendee scans the exit QR on the way out. */}
+                        {isCheckedIn(reg) && <ExitScanButton event={events.find((event) => event.id === reg.eventId)} />}
 
                         <Link to={`/events/${reg.eventId}`} className="btn-sm">
                           Event Info

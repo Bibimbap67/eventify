@@ -55,9 +55,14 @@ const Registration = model("Registration", {
   email: String,
   studentId: String,
   status: String, // "Confirmed" | "Pending" | "Cancelled"
-  attendanceStatus: String, // "Not Checked In" | "Checked in" | "Attended"
+  attendanceStatus: String, // "Not Checked In" | "Checked in" | "Attended" (Attended = exit verified)
   checkedInAt: String,
   checkedInBy: String,
+  // Set by the server only, when the attendee leaves (controllers/ticketController.js).
+  exitedAt: String, // shown time, e.g. "4:52 PM"
+  exitVerifiedAt: Date,
+  exitMethod: String, // "scan" (the exit QR) | "manual" (marked by the event's manager)
+  exitedBy: String, // the manager's name, for a manual exit
   registrationDate: String,
   ticketCode: String,
   // Secret behind the ticket's QR code. Issued by the server (GET /api/tickets/:id), never by a client.
@@ -94,6 +99,16 @@ const Notification = model("Notification", {
   title: String,
   message: String,
   read: { type: Boolean, default: false },
+});
+
+// The exit QR an event's staff screen shows while exit verification runs. One row per event
+// (_id is the event's id), kept apart from the event so a manager saving the event can't erase
+// the code mid-scan. Each code works once and only until expiresAt.
+const ExitPass = model("ExitPass", {
+  active: { type: Boolean, default: false },
+  token: { type: String, default: null },
+  expiresAt: { type: Date, default: null },
+  startedBy: String,
 });
 
 const Session = model("Session", {
@@ -151,4 +166,4 @@ const AuditLog = model("AuditLog", {
 // A single document with _id "global" holds the admin Settings page values.
 const Settings = model("Settings", {}, { collection: "settings" });
 
-module.exports = { Event, Registration, Certificate, Notification, Session, Announcement, Feedback, Venue, AuditLog, Settings };
+module.exports = { Event, Registration, Certificate, Notification, ExitPass, Session, Announcement, Feedback, Venue, AuditLog, Settings };

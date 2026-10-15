@@ -5,11 +5,13 @@ import { newId } from "../api.js";
 import { useServerStore, liveRegisteredCount } from "./useServerStore.js";
 import { isReserved, seatOf } from "../data/seating.js";
 import { ATTENDEE_TYPE } from "../data/student.js";
-import { attendanceKey } from "../data/checkIn.js";
 import { SAVED_TO_PUBLIC } from "../data/eventStatus.js";
-import { formatTime, timeRange } from "../data/time.js";
+import { eventsClash, formatTime, timeRange } from "../data/time.js";
 
 const EventContext = createContext(null);
+
+// Saved statuses of events that no longer take anyone's time.
+const FINISHED_STATUSES = ["Completed", "Cancelled", "Rejected", "Archived"];
 
 // State key -> MongoDB-backed API resource (see server/controllers/dataController.js).
 // Events and registrations live in ManagerContext; this adds the attendee's own records.
@@ -119,6 +121,20 @@ export function EventProvider({ children }) {
     [registrations]
   );
 
+  // The attendee's tickets to other events whose time overlaps this one's (same day, any
+  // venue), as [{ registration, event }]. They must cancel those before registering here.
+  const clashingRegistrations = useCallback(
+    (eventId) => {
+      const target = allEvents.find((event) => event.id === eventId);
+      if (!target) return [];
+      return registrations
+        .filter((registration) => registration.status === "Confirmed" && registration.eventId !== eventId)
+        .map((registration) => ({ registration, event: allEvents.find((event) => event.id === registration.eventId) }))
+        .filter(({ event }) => event && !FINISHED_STATUSES.includes(event.status) && eventsClash(target, event));
+    },
+    [allEvents, registrations]
+  );
+
   // Register for an event
   const registerForEvent = useCallback(
     (eventId, formData = {}) => {
@@ -141,6 +157,11 @@ export function EventProvider({ children }) {
               ? "This event was cancelled."
               : "Registration is not open for this event yet.",
         };
+      }
+
+      const [clash] = clashingRegistrations(eventId);
+      if (clash) {
+        return { success: false, message: `This clashes with ${clash.event.title} (${timeRange(clash.event.startTime, clash.event.endTime)}). Cancel that registration to register here.` };
       }
 
       // targetEvent.registered counts every attendee (from the server), not only this user.
@@ -197,7 +218,7 @@ export function EventProvider({ children }) {
 
       return { success: true, registration: newRegistration };
     },
-    [addAttendeeRegistration, events, registrations, setNotifications, userProfile, user]
+    [addAttendeeRegistration, clashingRegistrations, events, registrations, setNotifications, userProfile, user]
   );
 
   // Cancel an existing registration
@@ -229,20 +250,6 @@ export function EventProvider({ children }) {
       return true;
     },
     [registrations, setNotifications, updateRegistration, user]
-  );
-
-  const completeAttendance = useCallback(
-    (registrationId) => {
-      const reg = registrations.find((r) => r.id === registrationId);
-      const eventCompleted = allEvents.some((event) => event.id === reg?.eventId && event.status === "Completed");
-      if (!reg || reg.status !== "Confirmed" || attendanceKey(reg.attendanceStatus) !== "checked-in" || !eventCompleted) return false;
-
-      // The server issues the certificate once this is saved.
-      updateRegistration(registrationId, { attendanceStatus: "Attended" });
-
-      return true;
-    },
-    [allEvents, registrations, updateRegistration]
   );
 
   // Submit post-event feedback
@@ -304,9 +311,9 @@ export function EventProvider({ children }) {
         notifications,
         userProfile,
         isEventRegistered,
+        clashingRegistrations,
         registerForEvent,
         cancelRegistration,
-        completeAttendance,
         submitFeedback,
         refresh,
         markNotificationRead,

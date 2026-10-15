@@ -31,6 +31,20 @@ const checkInOpensAt = (event) => eventTime(event, "startTime");
 // When the event ends and is marked Completed on its own (utils/autoComplete.js).
 const eventEndsAt = (event) => eventTime(event, "endTime");
 
+// Exit verification (the rotating exit QR) runs from 15 minutes before the event ends until
+// 2 hours after. Overtime moves the end, so it moves this too. Mirrored in src/data/checkIn.js.
+const EXIT_OPENS_BEFORE_MS = 15 * 60 * 1000;
+const EXIT_CLOSES_AFTER_MS = 2 * 60 * 60 * 1000;
+function exitWindow(event) {
+  const end = eventEndsAt(event);
+  if (!end) return null;
+  return { opensAt: new Date(end.getTime() - EXIT_OPENS_BEFORE_MS), closesAt: new Date(end.getTime() + EXIT_CLOSES_AFTER_MS) };
+}
+const exitIsOpen = (event, now = Date.now()) => {
+  const window = exitWindow(event);
+  return Boolean(window) && now >= window.opensAt.getTime() && now < window.closesAt.getTime();
+};
+
 const opensLabel = (opensAt) => opensAt.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
 
-module.exports = { checkInOpensAt, eventEndsAt, opensLabel, toMinutes, formatTime };
+module.exports = { checkInOpensAt, eventEndsAt, exitWindow, exitIsOpen, opensLabel, toMinutes, formatTime };

@@ -8,6 +8,7 @@ import EventDetail from "./pages/public/EventDetail.js";
 import MyEventsPage from "./pages/attendee/MyEventsPage.js";
 import SchedulePage from "./pages/attendee/SchedulePage.js";
 import AttendancePage from "./pages/attendee/AttendancePage.js";
+import ExitPage from "./pages/attendee/ExitPage.js";
 import CertificatesPage from "./pages/attendee/CertificatesPage.js";
 import NotificationsPage from "./pages/attendee/NotificationsPage.js";
 import ProfilePage from "./pages/ProfilePage.js";
@@ -64,6 +65,7 @@ export default function App() {
         <Route path="/my-events" element={<ProtectedRoute requiredRole="user"><MyEventsPage /></ProtectedRoute>} />
         <Route path="/schedule" element={<ProtectedRoute requiredRole="user"><SchedulePage /></ProtectedRoute>} />
         <Route path="/attendance" element={<ProtectedRoute requiredRole="user"><AttendancePage /></ProtectedRoute>} />
+        <Route path="/exit/:eventId" element={<ProtectedRoute requiredRole="user"><ExitPage /></ProtectedRoute>} />
         <Route path="/certificates" element={<ProtectedRoute requiredRole="user"><CertificatesPage /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute requiredRole="user"><NotificationsPage /></ProtectedRoute>} />
         {/* Every role keeps its own name, email and password here. */}

@@ -3,7 +3,7 @@ import { useAuth } from "./AuthContext.js";
 import { api, newId } from "../api.js";
 import { useServerStore } from "./useServerStore.js";
 import { notify } from "../components/Toast.js";
-import { attendanceKey, eventEndsAt } from "../data/checkIn.js";
+import { eventEndsAt } from "../data/checkIn.js";
 
 const ManagerContext = createContext(null);
 // State key -> MongoDB-backed API resource (see server/controllers/dataController.js).
@@ -160,15 +160,14 @@ export function ManagerProvider({ children }) {
     setData((current) => ({ ...current, announcements: current.announcements.map((item) => item.id === announcementId && eventIds.has(item.eventId) ? { ...item, ...patch, publishedAt: patch.status === "Published" ? new Date().toISOString() : item.publishedAt } : item) }));
   }, [eventIds, setData]);
 
+  // Attendance isn't touched: only a verified exit (the exit QR, or Mark exited) makes a ticket
+  // Attended, and the server issues those certificates as the event completes.
   const completeEvent = useCallback((eventId) => {
     setData((current) => ({
       ...current,
       events: current.events.map((event) => event.id === eventId && event.managerId === managerId
         ? { ...event, status: "Completed", preparationStatus: "Closed out", completedAt: new Date().toISOString().slice(0, 10) }
         : event),
-      registrations: current.registrations.map((registration) => registration.eventId === eventId && registration.status === "Confirmed" && attendanceKey(registration.attendanceStatus) === "checked-in"
-        ? { ...registration, attendanceStatus: "Attended" }
-        : registration),
     }));
     notify("Event marked completed.", "success");
   }, [managerId, setData]);

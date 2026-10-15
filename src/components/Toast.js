@@ -16,9 +16,10 @@ const TONES = {
 // so a missing tone is guessed from the wording. Callers that know the tone pass it.
 const FAILURE_WORDS = /\b(cannot|can't|could not|couldn't|failed|error|not available|invalid|unable)\b/i;
 
-// Shows a toast from anywhere, e.g. notify("Session removed.", "warning").
-export function notify(message, tone, title) {
-  window.dispatchEvent(new CustomEvent(TOAST_EVENT, { detail: { message, tone, title } }));
+// Shows a toast from anywhere, e.g. notify("Session removed.", "warning"). An optional action
+// adds a button, e.g. { label: "Undo", onClick: () => ... }; clicking it also closes the toast.
+export function notify(message, tone, title, action) {
+  window.dispatchEvent(new CustomEvent(TOAST_EVENT, { detail: { message, tone, title, action } }));
 }
 
 // The one toast on screen, mounted once in App. It stays mounted so it can slide out as well
@@ -36,10 +37,10 @@ export default function ToastHost() {
 
   useEffect(() => {
     const show = (event) => {
-      const { message, title } = event.detail;
+      const { message, title, action } = event.detail;
       if (!message) return;
       const tone = TONES[event.detail.tone] ? event.detail.tone : FAILURE_WORDS.test(message) ? "error" : "success";
-      setToast({ id: Date.now(), message, title, tone });
+      setToast({ id: Date.now(), message, title, tone, action });
       setOpen(true);
       // The same message twice in a row (e.g. three stores failing to load) sounds once.
       const key = `${tone}|${message}`;
@@ -81,6 +82,18 @@ export default function ToastHost() {
           <>
             <strong className="toast__title">{toast.title || label}</strong>
             <span className="toast__message">{toast.message}</span>
+            {toast.action && (
+              <button
+                type="button"
+                className="toast__action"
+                onClick={() => {
+                  toast.action.onClick();
+                  setOpen(false);
+                }}
+              >
+                {toast.action.label}
+              </button>
+            )}
           </>
         )}
       </div>

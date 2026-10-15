@@ -41,7 +41,7 @@ export default function CertificatesPage() {
             <span className="empty-box__icon"><Icon name="certificate" size={28} /></span>
             <h3>No certificates earned yet</h3>
             <p>
-              Certificates of participation are automatically generated and issued once you attend and complete your registered campus events.
+              Your certificate is issued once your ticket is checked in at the entrance and you scan the exit QR when the event ends.
             </p>
             <Link to="/events" className="btn-sm btn-sm--yellow">
               Browse Upcoming Events <Icon name="arrow-right" size={16} />

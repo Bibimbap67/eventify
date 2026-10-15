@@ -2185,6 +2185,19 @@ textarea.input {
   height: 36px;
   margin: 8px 8px 0 0;
   color: inherit;
+.toast__action {
+  justify-self: start;
+  margin-top: 6px;
+  padding: 6px 12px;
+  color: var(--tone-ink, var(--ink));
+  background: var(--tone);
+  border: 2px solid var(--line);
+  font: 700 13px var(--font-body);
+  cursor: pointer;
+}
+
+.toast__action:hover { box-shadow: 2px 2px 0 var(--line); transform: translate(-1px, -1px); }
+
   background: transparent;
   border: 2px solid transparent;
   cursor: pointer;
@@ -5158,6 +5171,28 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
 .staff-log__item--warn { border-left-color: var(--color-yellow); }
 .staff-log__item--bad { border-left-color: var(--red); }
 .staff-log__time { color: var(--ink-2); font: 11px var(--font-mono); }
+/* Exit verification: the rotating exit QR staff turn toward the door, with a bar that runs out
+   as the code expires (it restarts for each new code). */
+.exit-panel { margin-bottom: 24px; }
+.exit-panel__start { justify-self: start; display: inline-flex; align-items: center; gap: 6px; }
+.exit-qr { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); align-items: start; gap: 24px; }
+.exit-qr__code { display: grid; place-items: center; width: min(420px, 100%); min-height: 200px; padding: 12px; background: #ffffff; border: var(--border-w) solid var(--color-black); }
+.exit-qr__code img { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+.exit-qr__timer { justify-self: stretch; height: 8px; margin-top: 10px; background: var(--capacity-low); transform-origin: left; animation: exit-timer var(--exit-ms, 30s) linear both; }
+@keyframes exit-timer {
+  from { transform: scaleX(var(--exit-start, 1)); }
+  to { transform: scaleX(0); }
+}
+.exit-qr__side { display: grid; gap: 12px; align-content: start; }
+.exit-qr__side .btn-sm { justify-self: start; display: inline-flex; align-items: center; gap: 6px; }
+.exit-qr__count { margin: 0; font-size: 15px; }
+.exit-qr__count b { font: 34px/1 var(--font-display); }
+.exit-scan { display: grid; gap: 12px; }
+.exit-result__link { justify-self: start; display: inline-flex; align-items: center; gap: 6px; }
+.exit-page { display: grid; gap: 16px; max-width: 560px; margin: 0 auto; padding: 40px 16px; }
+.exit-page__actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.exit-page__actions .btn-sm { display: inline-flex; align-items: center; gap: 6px; }
+
 .staff-log__name { overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .staff-log__result { font: 700 11px var(--font-mono); text-transform: uppercase; }
 
@@ -5171,6 +5206,8 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
 .verify-card--bad { color: var(--on-red); background: var(--red); }
 .verify-card__head { display: flex; align-items: center; gap: 10px; }
 .verify-card__head strong { font: 22px var(--font-display); text-transform: uppercase; }
+  .exit-qr { grid-template-columns: 1fr; }
+  .exit-qr__code { justify-self: center; }
 .verify-card__facts { display: grid; gap: 10px; margin: 0; }
 .verify-card__facts dt { font: 700 var(--text-xs) var(--font-mono); text-transform: uppercase; }
 .verify-card__facts dd { margin: 2px 0 0; font-size: 16px; font-weight: 700; }
@@ -5217,6 +5254,15 @@ button.seatmap__seat:active:not(:disabled) { transform: scale(0.92); }
 /* Seat picker (attendee registration) */
 .modal.seat-modal { max-width: 520px; }
 .seat-modal__loading { margin: 0; padding: 40px 0; color: var(--ink-2); font: 700 12px var(--font-mono); text-align: center; }
+/* Registering is blocked while the attendee holds a ticket to an event at the same time. */
+.ticket-clash { display: grid; gap: 8px; margin: 0 0 14px; padding: 12px; color: #0a0a0a; background: var(--tone-warning); border: 2px solid var(--color-black); font-size: 13px; line-height: 1.45; }
+.ticket-clash p { margin: 0; }
+.ticket-clash__title { display: flex; align-items: center; gap: 6px; font: 800 var(--text-xs) var(--font-mono); letter-spacing: 0.03em; }
+.ticket-clash__list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.ticket-clash__list li { display: grid; gap: 4px; padding: 8px 10px; background: var(--color-white); border: 2px solid var(--color-black); }
+.ticket-clash__list a { color: inherit; }
+.ticket-clash__list small { font: var(--text-xs) var(--font-mono); }
+.ticket-clash__list .btn-sm { justify-self: start; }
 .seat-modal__ticket { display: grid; gap: 4px; margin-top: 16px; padding: 12px; border: 3px dashed var(--color-black); }
 .seat-modal__ticket small { font: 700 11px var(--font-mono); letter-spacing: 0.08em; }
 .seat-modal__ticket b { font: 26px/1 var(--font-display); }

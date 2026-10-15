@@ -5,20 +5,15 @@ import Icon from "../../components/Icon.js";
 import { useEntering } from "../../components/Motion.js";
 import { useEventContext } from "../../context/EventContext.js";
 import TicketPassModal from "../../components/attendee/TicketPassModal.js";
-import { notify } from "../../components/Toast.js";
+import { ExitScanButton } from "../../components/attendee/ExitScan.js";
 import { seatOf } from "../../data/seating.js";
 import { attendanceKey, isCheckedIn } from "../../data/checkIn.js";
 import { formatTimesIn } from "../../data/time.js";
 
 export default function AttendancePage() {
   const entering = useEntering();
-  const { events, registrations, completeAttendance } = useEventContext();
+  const { events, registrations } = useEventContext();
   const [selectedPass, setSelectedPass] = useState(null);
-
-  const handleCompleteAttendance = (reg) => {
-    completeAttendance(reg.id);
-    notify(`${reg.eventTitle} is marked as attended. You can now leave feedback from My Events.`, "success", "Attendance complete");
-  };
 
   const confirmedRegs = registrations.filter((r) => r.status === "Confirmed" && events.find((event) => event.id === r.eventId)?.status !== "CANCELLED");
   const checkedInCount = confirmedRegs.filter(isCheckedIn).length;
@@ -99,6 +94,11 @@ export default function AttendancePage() {
                         Check-in Time: <b>{reg.checkedInAt}</b>
                       </span>
                     )}
+                    {reg.exitedAt && (
+                      <span className="checkedin-time-text">
+                        Exit Time: <b>{reg.exitedAt}</b>
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -111,21 +111,13 @@ export default function AttendancePage() {
                     <Icon name="qr" size={16} /> Digital Pass & QR
                   </button>
 
-                  {/* Check-in only happens when event staff scan the QR on the pass. */}
+                  {/* Staff scan the pass to check in; the attendee scans the exit QR on the way out. */}
                   {state === "attended" ? (
                     <Link to="/certificates" className="btn-sm">
                       <Icon name="certificate" size={16} /> View Certificate
                     </Link>
-                  ) : state === "checked-in" && events.find((event) => event.id === reg.eventId)?.status === "COMPLETED" ? (
-                    <button
-                      type="button"
-                      className="btn-sm btn-sm--blue"
-                      onClick={() => handleCompleteAttendance(reg)}
-                    >
-                      Mark attendance complete
-                    </button>
                   ) : state === "checked-in" ? (
-                    <button type="button" className="btn-sm" disabled>Awaiting event completion</button>
+                    <ExitScanButton event={events.find((event) => event.id === reg.eventId)} />
                   ) : null}
                 </div>
               </div>

@@ -7,6 +7,10 @@ import { useEntering } from "../../components/Motion.js";
 import { EventCardSkeleton, useSkeleton } from "../../components/Skeleton.js";
 import { useEventContext } from "../../context/EventContext.js";
 import { EVENT_CATEGORIES } from "../../data/options.js";
+import { startSortKey } from "../../data/time.js";
+
+// Finished events sink below the ones attendees can still go to.
+const FINISHED = ["COMPLETED", "CANCELLED"];
 
 export default function EventsPage() {
   const entering = useEntering();
@@ -73,8 +77,13 @@ export default function EventsPage() {
         return matchesQuery && matchesCategory && matchesStatus && matchesVenue;
       })
       .sort((a, b) => {
+        // Events still to come (or happening now) always go above finished ones, whatever the sort.
+        const finished = Number(FINISHED.includes(a.status)) - Number(FINISHED.includes(b.status));
+        if (finished) return finished;
         if (sortBy === "date-asc") {
-          return a.date.localeCompare(b.date);
+          // Soonest first by day, then start time. Finished events: most recent first.
+          const order = startSortKey(a.isoDate, a.startTime).localeCompare(startSortKey(b.isoDate, b.startTime));
+          return FINISHED.includes(a.status) ? -order : order;
         }
         if (sortBy === "popularity") {
           const pctA = a.registered / a.capacity;

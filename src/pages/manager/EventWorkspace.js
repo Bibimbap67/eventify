@@ -205,7 +205,7 @@ function EventWorkspace({ event, tab }) {
                   className="manager-button manager-button--complete"
                   onClick={() => confirm({
                     title: "Mark event completed?",
-                    message: "Checked-in participants become Attended and the event moves to your past events.",
+                    message: "The event moves to your past events. Participants whose exit was verified get their certificates; the rest can still scan the exit QR until 2 hours after the scheduled end.",
                     confirmText: "Mark completed",
                     confirmVariant: "primary",
                     onConfirm: () => completeEvent(event.id),

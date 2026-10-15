@@ -3,7 +3,8 @@ import Icon from "../Icon.js";
 import { useConfirm } from "../Modal.js";
 import { CapacityBar, EmptyState, FilterChips, PersonCell, SearchField, StatusBadge, Table } from "../ui.js";
 import { useManager } from "../../context/ManagerContext.js";
-import { attendanceKey, checkInOpensAt, isCheckedIn, opensLabel } from "../../data/checkIn.js";
+import { attendanceKey, checkInOpensAt, exitPhase, isCheckedIn, opensLabel } from "../../data/checkIn.js";
+import { api } from "../../api.js";
 import { seatOf } from "../../data/seating.js";
 
 // The registration desk (confirm / cancel / check in) and the event-day attendance desk.
@@ -51,6 +52,48 @@ function useCheckIn(onToggle) {
   return [toggle, flashId];
 }
 
+// The manager's override when an attendee couldn't scan the exit QR (dead phone, left early with
+// staff's OK). The server checks the ticket was checked in, records who did it in the audit log,
+// and issues the certificate like a scan would.
+function MarkExitedButton({ item }) {
+  const { reloadManagerData, toast } = useManager();
+  const [dialog, confirm] = useConfirm();
+  const [busy, setBusy] = useState(false);
+
+  const markExited = async () => {
+    setBusy(true);
+    try {
+      const res = await api(`/registrations/${encodeURIComponent(item.id)}/exit`, { method: "POST" });
+      toast(res.message, "success");
+      reloadManagerData();
+    } catch (err) {
+      toast(err.message, "error");
+    }
+    setBusy(false);
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        className="manager-button manager-button--small"
+        disabled={busy}
+        onClick={() => confirm({
+          title: "Mark as exited?",
+          message: `Use this only if ${item.name} really attended and couldn't scan the exit QR. They get their certificate, and your name is recorded in the audit log.`,
+          confirmText: "Mark exited",
+          confirmVariant: "primary",
+          onConfirm: markExited,
+        })}
+        aria-label={`Mark ${item.name} as exited`}
+      >
+        <Icon name="logout" size={16} /> Mark exited
+      </button>
+      {dialog}
+    </>
+  );
+}
+
 function CheckInControl({ item, event, onToggle }) {
   const state = attendanceKey(item.attendanceStatus);
   const opensAt = checkInOpensAt(event);
@@ -72,9 +115,12 @@ function CheckInControl({ item, event, onToggle }) {
   if (state === "attended") return <span className="manager-checkin__done"><Icon name="check" size={16} /> Attended</span>;
   if (state === "checked-in") {
     return (
-      <button type="button" className="manager-button manager-button--small" onClick={() => onToggle(item)} aria-label={`Undo check-in for ${item.name}`}>
-        <Icon name="undo" size={16} /> Undo
-      </button>
+      <span className="manager-row-buttons">
+        <button type="button" className="manager-button manager-button--small" onClick={() => onToggle(item)} aria-label={`Undo check-in for ${item.name}`}>
+          <Icon name="undo" size={16} /> Undo
+        </button>
+        {exitPhase(event) !== "before" && <MarkExitedButton item={item} />}
+      </span>
     );
   }
   return (
@@ -207,7 +253,7 @@ export function AttendanceDesk({ rows, showEvent }) {
             <li key={item.id} className={`manager-checkin${flashId === item.id ? " is-flash" : ""}`} data-state={attendanceKey(item.attendanceStatus)}>
               <PersonCell name={item.name} detail={showEvent ? `${eventMap.get(item.eventId)?.title || "Assigned event"} · ${item.email}` : item.email} seed={item.userId} />
               <StatusBadge value={item.attendanceStatus} />
-              <span className="manager-checkin__time">{item.checkedInAt ? <><Icon name="clock" size={16} /> {item.checkedInAt}</> : "—"}</span>
+              <span className="manager-checkin__time">{item.checkedInAt ? <><Icon name="clock" size={16} /> {item.checkedInAt}{item.exitedAt && ` · out ${item.exitedAt}`}</> : "—"}</span>
               <CheckInControl item={item} event={eventMap.get(item.eventId)} onToggle={toggle} />
             </li>
           ))}

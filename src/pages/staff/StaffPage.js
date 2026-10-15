@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Navbar from "../../components/Navbar.js";
 import Icon from "../../components/Icon.js";
 import QrScanner from "../../components/staff/QrScanner.js";
+import ExitQrPanel from "../../components/staff/ExitQrPanel.js";
 import { playSound } from "../../components/sound.js";
 import { api } from "../../api.js";
 import { isCheckedIn } from "../../data/checkIn.js";
@@ -14,7 +15,8 @@ const RESULTS = {
   invalid: { tone: "bad", icon: "close", title: "Not a valid ticket" },
 };
 
-// The door: staff pick the event they are working, scan tickets, and see who has arrived.
+// The door: staff pick the event they are working, scan tickets, and see who has arrived. As
+// the event ends they show the exit QR (ExitQrPanel), which attendees scan to get certificates.
 // Every scan is checked by the server against the database; there is no manual check-in here.
 export default function StaffPage() {
   const [events, setEvents] = useState([]);
@@ -28,7 +30,8 @@ export default function StaffPage() {
 
   const loadEvents = useCallback(() => {
     api("/staff/events")
-      .then((data) => setEvents(data.events.filter((event) => !event.closed)))
+      // A finished event stays while its exit QR may still run.
+      .then((data) => setEvents(data.events.filter((event) => !event.closed || event.exitOpen)))
       .catch((err) => setLoadError(err.message));
   }, []);
 
@@ -87,7 +90,7 @@ export default function StaffPage() {
             <h1 className="staff-title">CHECK-IN DESK</h1>
             <p className="staff-subtitle">
               Scan the QR on an attendee's ticket pass. Valid tickets are checked in at once; fake, cancelled
-              and already-used tickets are refused.
+              and already-used tickets are refused. When the event ends, pick it and start exit verification.
             </p>
           </div>
           <label className="staff-event-picker">
@@ -117,6 +120,8 @@ export default function StaffPage() {
             <dd>{Math.max(0, counts.registered - counts.checkedIn)}</dd>
           </div>
         </dl>
+
+        {selected && <ExitQrPanel key={selected.id} event={selected} onExit={loadAttendees} />}
 
         <div className="staff-grid">
           <section className="staff-panel" aria-labelledby="scanner-title">
@@ -201,8 +206,8 @@ export default function StaffPage() {
                       <td>#{attendee.ticketCode}</td>
                       <td>{attendee.seat || "Free"}</td>
                       <td>
-                        <span className={`sbadge ${isCheckedIn(attendee) ? "sbadge--checked-in" : "sbadge--not-checked-in"}`}>
-                          {isCheckedIn(attendee) ? `In · ${attendee.checkedInAt || ""}` : "Not yet"}
+                        <span className={`sbadge ${attendee.exitedAt ? "sbadge--attended" : isCheckedIn(attendee) ? "sbadge--checked-in" : "sbadge--not-checked-in"}`}>
+                          {attendee.exitedAt ? `Out · ${attendee.exitedAt}` : isCheckedIn(attendee) ? `In · ${attendee.checkedInAt || ""}` : "Not yet"}
                         </span>
                       </td>
                     </tr>

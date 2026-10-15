@@ -102,6 +102,27 @@ async function checkVenue(record, existing) {
   }
 }
 
+// ---- attendee schedule ----------------------------------------------------------
+// An attendee can't hold tickets to two events whose times overlap on the same day, at any
+// venue. They cancel the other ticket first (src/data/time.js eventsClash checks the same).
+const FINISHED_EVENT_STATUS = ["Completed", ...FREED_EVENT_STATUS];
+
+async function checkAttendeeSchedule(userId, event) {
+  const start = toMinutes(event.startTime);
+  const end = toMinutes(event.endTime);
+  if (!event.date || start === null || end === null) return;
+  const held = await Registration.distinct("eventId", { userId, status: "Confirmed", eventId: { $ne: event._id } });
+  if (!held.length) return;
+  const sameDay = await Event.find({ _id: { $in: held }, date: event.date, status: { $nin: FINISHED_EVENT_STATUS } });
+  const clash = sameDay.find((other) => {
+    const [otherStart, otherEnd] = [toMinutes(other.startTime), toMinutes(other.endTime)];
+    return otherStart !== null && otherEnd !== null && otherStart < end && start < otherEnd;
+  });
+  if (clash) {
+    throw new HttpError(409, `This clashes with ${clash.title} (${formatTime(clash.startTime)} to ${formatTime(clash.endTime)}). Cancel that registration to register here.`);
+  }
+}
+
 // Free seating clears the seat number. Reserved seating checks the seat is on the map and
 // free. An attendee's own pick must be exact (`strict`); rows saved by staff without a
 // seat, or whose old seat was taken while they were cancelled, get the first open seat.
@@ -200,6 +221,7 @@ const events = {
   // Completing an event issues the certificates of everyone already marked Attended.
   async afterSave(saved) {
     await issueCertificates(saved.filter(({ before, after }) => after.status === "Completed" && before?.status !== "Completed").map(({ id }) => id));
+    await notifyRejectionUndone(saved);
   },
   async afterRemove(ids) {
     const byEvent = { eventId: { $in: ids } };
@@ -239,6 +261,10 @@ const events = {
   },
 };
 
+// Saved only by the server when an attendee leaves (see Registration in models/records.js).
+const EXIT_FIELDS = ["exitedAt", "exitVerifiedAt", "exitMethod", "exitedBy"];
+const attended = (registration) => String(registration?.attendanceStatus || "").toLowerCase() === "attended";
+
 const registrations = {
   model: Registration,
   scope: "manager",
@@ -252,10 +278,22 @@ const registrations = {
     // The QR secret only ever comes from the server, and a stale client copy must not erase it.
     delete record.ticketToken;
     if (existing?.ticketToken) record.ticketToken = existing.ticketToken;
+    // Exit details come only from the exit QR scan or a manager's Mark exited (ticketController.js).
+    EXIT_FIELDS.forEach((key) => {
+      delete record[key];
+      if (existing?.[key] != null && attended(record)) record[key] = existing[key];
+    });
     if (isAdmin(user)) return placeSeat(record, existing);
     if (isManager(user)) {
       if (!(await ownsEvent(user, record.eventId))) deny();
       if (existing && !(await ownsEvent(user, existing.eventId))) deny();
+      // Attended means the exit was verified, which managers record with Mark exited, not here.
+      if (attended(existing)) {
+        record.attendanceStatus = existing.attendanceStatus;
+        EXIT_FIELDS.forEach((key) => { if (existing[key] != null) record[key] = existing[key]; });
+      } else if (attended(record)) {
+        deny("Attendance completes when the attendee scans the exit QR. Use Mark exited for a checked-in participant.");
+      }
       const checkingIn = String(record.attendanceStatus || "").toLowerCase() === "checked in" &&
         String(existing?.attendanceStatus || "").toLowerCase() !== "checked in";
       const opensAt = checkingIn && checkInOpensAt(await Event.findById(record.eventId));
@@ -267,12 +305,9 @@ const registrations = {
       if (existing.userId !== user.id) deny();
       record.userId = user.id;
       record.eventId = existing.eventId;
-      // Check-in happens only when staff scan the ticket. The one change an attendee may make
-      // is marking a checked-in ticket "Attended" after the event is completed.
-      const checkedIn = String(existing.attendanceStatus || "").toLowerCase() === "checked in";
-      const finishing = checkedIn && record.attendanceStatus === "Attended" &&
-        await Event.exists({ _id: existing.eventId, status: "Completed" });
-      if (!finishing) record.attendanceStatus = existing.attendanceStatus;
+      // Check-in and exit happen only by scanning (the ticket at the door, the exit QR on the way out).
+      record.attendanceStatus = existing.attendanceStatus;
+      EXIT_FIELDS.forEach((key) => { if (existing[key] != null) record[key] = existing[key]; });
       record.checkedInAt = existing.checkedInAt;
       record.checkedInBy = existing.checkedInBy;
       // An attendee can cancel, but not revive a cancelled ticket or move to another seat.
@@ -292,6 +327,7 @@ const registrations = {
     if (!OPEN_EVENT_STATUS.includes(event.status)) deny("Registration is not open for this event.");
     const query = { eventId: event._id, status: "Confirmed" };
     if (await Registration.exists({ ...query, userId: user.id })) deny("You are already registered for this event.");
+    await checkAttendeeSchedule(user.id, event);
     if (event.capacity && (await Registration.countDocuments(query)) >= event.capacity) {
       deny("Sorry, this event has reached maximum capacity.");
     }
@@ -380,6 +416,23 @@ const RESOURCES = {
   // admins read it through GET /api/admin/audit-logs, so nobody can edit or delete entries.
   venues: { model: Venue, ...publicReadAdminWrite },
 };
+
+// An admin undid a rejection made by mistake (Rejected -> Pending): the event's manager sees it
+// in their workspace's Event updates. Events an admin made have no manager to tell.
+async function notifyRejectionUndone(saved) {
+  const undone = saved.filter(({ before, after }) => before?.status === "Rejected" && after.status === "Pending" && !after.createdByAdmin);
+  if (!undone.length) return;
+  const now = new Date();
+  await Notification.insertMany(undone.map(({ id, after }) => ({
+    _id: `mn-undo-${id}-${now.getTime()}`,
+    scope: "manager",
+    eventId: id,
+    type: "rejection-undone",
+    message: `${after.title} was rejected by mistake. The admin undid it, and it's back to pending review.`,
+    date: now.toISOString().slice(0, 10),
+    read: false,
+  })));
+}
 
 // A newly published announcement goes to everyone holding a ticket to its event: an inbox
 // notification, and an email. Emails are not awaited, so a slow mail server never holds up saving.

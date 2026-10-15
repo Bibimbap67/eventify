@@ -14,8 +14,34 @@ export const checkInOpensAt = (event) => eventTime(event, "startTime");
 // When the server marks the event Completed, unless the manager adds overtime first.
 export const eventEndsAt = (event) => eventTime(event, "endTime");
 
-// Attendance is saved as "Not Checked In", "Checked in" or "Attended". Older records differ in
-// capital letters, so always read it through here: "waiting" | "checked-in" | "attended".
+// Exit verification (the staff screen's exit QR) runs from 15 minutes before the event ends until
+// 2 hours after. Mirrors server/utils/checkIn.js. "before" | "open" | "closed", or null without an end time.
+export function exitPhase(event, now = Date.now()) {
+  const end = eventEndsAt(event);
+  if (!end) return null;
+  if (now < end.getTime() - 15 * 60 * 1000) return "before";
+  return now < end.getTime() + 2 * 60 * 60 * 1000 ? "open" : "closed";
+}
+export const exitOpensAt = (event) => eventEndsAt(event) && new Date(eventEndsAt(event).getTime() - 15 * 60 * 1000);
+
+// The exit QR on the staff screen holds a link to /exit/<eventId>?code=<code>, so a phone's own
+// camera app opens it (ExitPage); the in-app scanner (ExitScan.js) reads the same link.
+export const exitLink = (eventId, code) => `${window.location.origin}/exit/${encodeURIComponent(eventId)}?code=${code}`;
+
+export function parseExitLink(text) {
+  try {
+    const url = new URL(text);
+    const match = /^\/exit\/([^/]+)\/?$/.exec(url.pathname);
+    const code = url.searchParams.get("code");
+    return match && code ? { eventId: decodeURIComponent(match[1]), code } : null;
+  } catch {
+    return null;
+  }
+}
+
+// Attendance is saved as "Not Checked In", "Checked in" or "Attended" (exit verified, which earns
+// the certificate). Older records differ in capital letters, so always read it through here:
+// "waiting" | "checked-in" | "attended".
 export function attendanceKey(status) {
   const value = String(status || "").toLowerCase();
   if (value === "attended") return "attended";

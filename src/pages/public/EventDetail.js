@@ -12,6 +12,8 @@ import { useManager } from "../../context/ManagerContext.js";
 import { categoryColor, eventBanner } from "../../data/options.js";
 import { isReserved, seatOf } from "../../data/seating.js";
 import { SeatPickerModal } from "../../components/SeatMap.js";
+import { ConfirmModal } from "../../components/Modal.js";
+import { timeRange } from "../../data/time.js";
 import { notify } from "../../components/Toast.js";
 import { avatarUri } from "../../components/avatar.js";
 import FeedbackSummary, { Stars } from "../../components/FeedbackSummary.js";
@@ -83,7 +85,7 @@ function PublicFeedback({ eventId }) {
 export default function EventDetail() {
   const { id } = useParams();
   const { user } = useAuth();
-  const { events, registerForEvent, isEventRegistered, userProfile } = useEventContext();
+  const { events, registerForEvent, isEventRegistered, clashingRegistrations, cancelRegistration, userProfile } = useEventContext();
   const { allAnnouncements } = useManager();
 
   const event = events.find((e) => e.id === id);
@@ -98,6 +100,7 @@ export default function EventDetail() {
   const [formSeat, setFormSeat] = useState("");
   const [pickingSeat, setPickingSeat] = useState(false);
   const [regError, setRegError] = useState("");
+  const [cancellingClash, setCancellingClash] = useState(null); // { registration, event }
   const [registering, runRegister] = usePending();
   // Only while the event list itself hasn't arrived; a missing event in a loaded list shows "not found" at once.
   const loadingEvent = useSkeleton(!event && events.length === 0, id);
@@ -133,6 +136,8 @@ export default function EventDetail() {
   const spotsRemaining = Math.max(0, capacity - currentCount);
   const record = organizerRecord(event, events);
   const registrationOpen = event.status === "REGISTRATION OPEN";
+  // Tickets to other events at the same time block registering here until they are cancelled.
+  const clashes = !existingReg && registrationOpen && user?.role === "user" ? clashingRegistrations(event.id) : [];
   const registrationUnavailableLabel =
     event.status === "COMPLETED"
       ? "Event completed"
@@ -449,6 +454,27 @@ export default function EventDetail() {
                     : "Free seating: first come, first served. Tickets carry no seat number."}
                 </p>
 
+                {clashes.length > 0 && (
+                  <div className="ticket-clash" role="alert">
+                    <p className="ticket-clash__title"><Icon name="alert" size={16} /> SCHEDULE CLASH</p>
+                    <p>
+                      You're registered for {clashes.length === 1 ? "an event" : "events"} at the same time as this one.
+                      Cancel {clashes.length === 1 ? "that registration" : "those registrations"} to register here.
+                    </p>
+                    <ul className="ticket-clash__list">
+                      {clashes.map(({ registration, event: other }) => (
+                        <li key={registration.id}>
+                          <Link to={`/events/${other.id}`}><b>{other.title}</b></Link>
+                          <small>{timeRange(other.startTime, other.endTime)} · {other.venue}</small>
+                          <button type="button" className="btn-sm btn-sm--danger" onClick={() => setCancellingClash({ registration, event: other })}>
+                            Cancel that registration
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 {!existingReg ? (
                   user?.role !== "user" ? (
                     <p className="ticket-registration-note">Registration is available to attendee accounts.</p>
@@ -458,10 +484,12 @@ export default function EventDetail() {
                       type="button"
                       className="btn-ticket-register"
                       onClick={startRegistering}
-                      disabled={!registrationOpen || spotsRemaining <= 0}
+                      disabled={!registrationOpen || spotsRemaining <= 0 || clashes.length > 0}
                     >
                       {!registrationOpen
                         ? registrationUnavailableLabel
+                        : clashes.length > 0
+                        ? "Schedule clash"
                         : spotsRemaining > 0
                         ? "Register now"
                         : "Event full"}
@@ -577,6 +605,20 @@ export default function EventDetail() {
           </div>
         </div>
       </main>
+
+      {cancellingClash && (
+        <ConfirmModal
+          title="Cancel this registration?"
+          message={`Your ticket to ${cancellingClash.event.title} (${timeRange(cancellingClash.event.startTime, cancellingClash.event.endTime)}) is cancelled and your spot goes to someone else. Then you can register for ${event.title}.`}
+          confirmText="Cancel registration"
+          onCancel={() => setCancellingClash(null)}
+          onConfirm={() => {
+            cancelRegistration(cancellingClash.registration.id);
+            notify(`You can now register for ${event.title}.`, "warning", "Registration cancelled");
+            setCancellingClash(null);
+          }}
+        />
+      )}
 
       {pickingSeat && (
         <SeatPickerModal event={event} initial={formSeat} onPick={setFormSeat} onClose={() => setPickingSeat(false)} />
