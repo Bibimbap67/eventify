@@ -1,4 +1,3 @@
-/* Pasted code.css */
 :root {
   --color-blue: #0a0a0a;
   --color-yellow: #ffd93d;
@@ -13,10 +12,8 @@
   --font-display: "Archivo Black", "Arial Black", sans-serif;
   --font-mono: "Space Mono", "Courier New", monospace;
   --font-body: "Inter", system-ui, sans-serif;
-  /* Condensed Archivo for the landing posters: the same family as the headings, set like a gig poster. */
   --font-poster: "Archivo", "Archivo Black", "Arial Narrow", sans-serif;
 
-  /* Design system tokens. Old --color-* names stay; --color-blue is really ink, so new code uses --ink. */
   --bg: #fffdf5;
   --bg-2: #fff6d8;
   --surface: #ffffff;
@@ -24,10 +21,6 @@
   --ink-2: #45413a;
   --line: #0a0a0a;
   --shadow-ink: #0a0a0a;
-
-  /* Palette. Brand blue is neobrutalism.dev's main color (MIT); ink on it is 6.6:1.
-     Roles: blue = brand surfaces, yellow = calls to action and highlights, pink (coral) = emphasis,
-     violet/mint = quiet supporting fills, the *-tint values = section grounds. */
   --yellow: #ffd93d; --pink: #ff6b6b; --violet: #c4b5fd; --sky: #5294ff; --mint: #86efac;
   --blue: #5294ff; --coral: #ff6b6b;
   /* Text never sits on coral: red fills that carry text use this darker red with white text (5.9:1). */
@@ -2185,6 +2178,13 @@ textarea.input {
   height: 36px;
   margin: 8px 8px 0 0;
   color: inherit;
+  background: transparent;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.toast__close:hover { border-color: var(--line); background: var(--bg-2); }
+
 .toast__action {
   justify-self: start;
   margin-top: 6px;
@@ -2197,13 +2197,6 @@ textarea.input {
 }
 
 .toast__action:hover { box-shadow: 2px 2px 0 var(--line); transform: translate(-1px, -1px); }
-
-  background: transparent;
-  border: 2px solid transparent;
-  cursor: pointer;
-}
-
-.toast__close:hover { border-color: var(--line); background: var(--bg-2); }
 
 /* Shrinks over the toast's time on screen; pointing at the toast pauses it (Toast.js holds the timer too). */
 .toast__timer {
@@ -5132,6 +5125,7 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
 .qr-scanner__view { position: relative; display: grid; place-items: center; aspect-ratio: 4 / 3; overflow: hidden; color: var(--color-cream); background: var(--color-black); border: var(--border-w) solid var(--color-black); }
 .qr-scanner__view video { width: 100%; height: 100%; object-fit: cover; }
 .qr-scanner__view:not(.is-live) video { display: none; }
+.qr-scanner__view.is-mirrored video { transform: scaleX(-1); }
 .qr-scanner__idle { display: grid; justify-items: center; gap: 8px; font: 700 12px var(--font-mono); text-transform: uppercase; }
 /* Aiming square: four corner brackets */
 .qr-scanner__frame {
@@ -5171,6 +5165,12 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
 .staff-log__item--warn { border-left-color: var(--color-yellow); }
 .staff-log__item--bad { border-left-color: var(--red); }
 .staff-log__time { color: var(--ink-2); font: 11px var(--font-mono); }
+.staff-log__name { overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.staff-log__result { font: 700 11px var(--font-mono); text-transform: uppercase; }
+
+.staff-attendees__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.staff-attendees__search { min-height: 40px; min-width: min(100%, 300px); padding: 0 12px; border: 2px solid var(--color-black); font-size: 14px; }
+
 /* Exit verification: the rotating exit QR staff turn toward the door, with a bar that runs out
    as the code expires (it restarts for each new code). */
 .exit-panel { margin-bottom: 24px; }
@@ -5193,12 +5193,6 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
 .exit-page__actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .exit-page__actions .btn-sm { display: inline-flex; align-items: center; gap: 6px; }
 
-.staff-log__name { overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.staff-log__result { font: 700 11px var(--font-mono); text-transform: uppercase; }
-
-.staff-attendees__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-.staff-attendees__search { min-height: 40px; min-width: min(100%, 300px); padding: 0 12px; border: 2px solid var(--color-black); font-size: 14px; }
-
 .verify-title { margin-bottom: 20px; overflow-wrap: anywhere; }
 .verify-card { display: grid; gap: 14px; max-width: 640px; margin-bottom: 24px; padding: 22px; border: var(--border-w) solid var(--color-black); background: var(--color-white); box-shadow: var(--shadow); }
 .verify-card p { margin: 0; line-height: 1.5; }
@@ -5206,14 +5200,14 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
 .verify-card--bad { color: var(--on-red); background: var(--red); }
 .verify-card__head { display: flex; align-items: center; gap: 10px; }
 .verify-card__head strong { font: 22px var(--font-display); text-transform: uppercase; }
-  .exit-qr { grid-template-columns: 1fr; }
-  .exit-qr__code { justify-self: center; }
 .verify-card__facts { display: grid; gap: 10px; margin: 0; }
 .verify-card__facts dt { font: 700 var(--text-xs) var(--font-mono); text-transform: uppercase; }
 .verify-card__facts dd { margin: 2px 0 0; font-size: 16px; font-weight: 700; }
 
 @media (max-width: 899px) {
   .staff-grid { grid-template-columns: 1fr; }
+  .exit-qr { grid-template-columns: 1fr; }
+  .exit-qr__code { justify-self: center; }
 }
 
 @media (max-width: 560px) {
@@ -5254,6 +5248,12 @@ button.seatmap__seat:active:not(:disabled) { transform: scale(0.92); }
 /* Seat picker (attendee registration) */
 .modal.seat-modal { max-width: 520px; }
 .seat-modal__loading { margin: 0; padding: 40px 0; color: var(--ink-2); font: 700 12px var(--font-mono); text-align: center; }
+.seat-modal__ticket { display: grid; gap: 4px; margin-top: 16px; padding: 12px; border: 3px dashed var(--color-black); }
+.seat-modal__ticket small { font: 700 11px var(--font-mono); letter-spacing: 0.08em; }
+.seat-modal__ticket b { font: 26px/1 var(--font-display); }
+.seat-modal__ticket span { color: var(--ink-2); font-size: 13px; }
+.ticket-seating-note { display: flex; align-items: flex-start; gap: 8px; margin: -6px 0 18px; color: var(--ink-2); font-size: 12px; line-height: 1.45; }
+.ticket-seating-note .ui-icon { margin-top: 1px; }
 /* Registering is blocked while the attendee holds a ticket to an event at the same time. */
 .ticket-clash { display: grid; gap: 8px; margin: 0 0 14px; padding: 12px; color: #0a0a0a; background: var(--tone-warning); border: 2px solid var(--color-black); font-size: 13px; line-height: 1.45; }
 .ticket-clash p { margin: 0; }
@@ -5263,12 +5263,6 @@ button.seatmap__seat:active:not(:disabled) { transform: scale(0.92); }
 .ticket-clash__list a { color: inherit; }
 .ticket-clash__list small { font: var(--text-xs) var(--font-mono); }
 .ticket-clash__list .btn-sm { justify-self: start; }
-.seat-modal__ticket { display: grid; gap: 4px; margin-top: 16px; padding: 12px; border: 3px dashed var(--color-black); }
-.seat-modal__ticket small { font: 700 11px var(--font-mono); letter-spacing: 0.08em; }
-.seat-modal__ticket b { font: 26px/1 var(--font-display); }
-.seat-modal__ticket span { color: var(--ink-2); font-size: 13px; }
-.ticket-seating-note { display: flex; align-items: flex-start; gap: 8px; margin: -6px 0 18px; color: var(--ink-2); font-size: 12px; line-height: 1.45; }
-.ticket-seating-note .ui-icon { margin-top: 1px; }
 .ticket-form__label { display: block; margin-bottom: 4px; font: 800 var(--text-xs) var(--font-mono); }
 .seat-choice { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: var(--color-white); border: 2px solid var(--color-black); }
 .seat-choice b { font: 15px var(--font-display); text-transform: uppercase; }

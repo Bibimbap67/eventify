@@ -27,6 +27,7 @@ export default function QrScanner({ onScan, paused = false }) {
   const lastRef = useRef({ code: "", at: 0 });
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
+  const [mirrored, setMirrored] = useState(false);
   onScanRef.current = onScan;
   pausedRef.current = paused;
 
@@ -49,6 +50,8 @@ export default function QrScanner({ onScan, paused = false }) {
         if (!navigator.mediaDevices?.getUserMedia) throw new Error("unsupported");
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
         if (stopped) return;
+        // Front/laptop webcams feel backwards unflipped; rear cameras report "environment" and stay as-is.
+        setMirrored(stream.getVideoTracks()[0]?.getSettings().facingMode !== "environment");
         const video = videoRef.current;
         video.srcObject = stream;
         await video.play();
@@ -95,7 +98,7 @@ export default function QrScanner({ onScan, paused = false }) {
 
   return (
     <div className="qr-scanner">
-      <div className={`qr-scanner__view${running ? " is-live" : ""}`}>
+      <div className={`qr-scanner__view${running ? " is-live" : ""}${mirrored ? " is-mirrored" : ""}`}>
         <video ref={videoRef} muted playsInline aria-label="Camera preview" />
         {!running && (
           <div className="qr-scanner__idle">
