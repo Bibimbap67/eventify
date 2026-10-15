@@ -6,6 +6,7 @@ import { useEntering } from "../../components/Motion.js";
 import { useEventContext } from "../../context/EventContext.js";
 import TicketPassModal from "../../components/attendee/TicketPassModal.js";
 import { ExitScanButton } from "../../components/attendee/ExitScan.js";
+import { Pagination, usePaged } from "../../components/admin/parts.js";
 import FeedbackModal from "../../components/attendee/FeedbackModal.js";
 import CancelModal from "../../components/attendee/CancelModal.js";
 import { notify } from "../../components/Toast.js";
@@ -13,6 +14,8 @@ import { seatOf } from "../../data/seating.js";
 import { isCheckedIn } from "../../data/checkIn.js";
 import { ATTENDEE_TYPE } from "../../data/student.js";
 import { formatTimesIn } from "../../data/time.js";
+
+const PAGE_SIZE = 10;
 
 export default function MyEventsPage() {
   const entering = useEntering();
@@ -33,6 +36,8 @@ export default function MyEventsPage() {
     (r) => r.status === "Confirmed" && r.attendanceStatus === "Attended"
   );
   const cancelledRegs = registrations.filter((r) => r.status === "Cancelled" || calledOff(r));
+  const tabRegs = { upcoming: upcomingRegs, past: pastRegs, cancelled: cancelledRegs }[activeTab];
+  const { page, setPage, shown } = usePaged(tabRegs, PAGE_SIZE, activeTab);
 
   // Handlers
   const handleCancelConfirm = (regId) => {
@@ -104,7 +109,7 @@ export default function MyEventsPage() {
               </div>
             ) : (
               <div className={`registrations-list${entering ? " stagger" : ""}`}>
-                {upcomingRegs.map((reg) => (
+                {shown.map((reg) => (
                   <article key={reg.id} className="registration-card">
                     <div className="reg-card__top">
                       <div className="reg-card__badges">
@@ -185,7 +190,7 @@ export default function MyEventsPage() {
               </div>
             ) : (
               <div className={`registrations-list${entering ? " stagger" : ""}`}>
-                {pastRegs.map((reg) => (
+                {shown.map((reg) => (
                   <article key={reg.id} className="registration-card registration-card--past">
                     <div className="reg-card__top">
                       <div className="reg-card__badges">
@@ -261,7 +266,7 @@ export default function MyEventsPage() {
               </div>
             ) : (
               <div className={`registrations-list${entering ? " stagger" : ""}`}>
-                {cancelledRegs.map((reg) => (
+                {shown.map((reg) => (
                   <article key={reg.id} className="registration-card registration-card--cancelled">
                     <div className="reg-card__top">
                       <span className="sbadge sbadge--cancelled">CANCELLED</span>
@@ -284,6 +289,7 @@ export default function MyEventsPage() {
             )}
           </div>
         )}
+        <Pagination page={page} limit={PAGE_SIZE} total={tabRegs.length} noun="ticket" onPage={setPage} buttonClass="btn-sm" />
       </main>
 
       {/* Ticket Pass Modal */}

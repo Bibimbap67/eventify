@@ -4,6 +4,7 @@ import { usePending } from "../Motion.js";
 import { EmptyState, PanelHeader, StatusBadge } from "../ui.js";
 import { SaveButton } from "./EventFields.js";
 import { useManager } from "../../context/ManagerContext.js";
+import { Pagination, usePaged } from "../admin/parts.js";
 
 // Publish now or keep as a draft. `events` adds an event picker (the all-events page).
 export function AnnouncementComposer({ eventId, events }) {
@@ -50,29 +51,35 @@ export function AnnouncementComposer({ eventId, events }) {
   );
 }
 
+const ANNOUNCEMENT_PAGE = 10;
+
 export function AnnouncementList({ items, showEvent }) {
   const { events, updateAnnouncement, toast } = useManager();
+  const { page, setPage, shown } = usePaged(items, ANNOUNCEMENT_PAGE);
   if (!items.length) return <EmptyState icon="megaphone" title="No announcements yet">Published updates show here and on the event page.</EmptyState>;
   return (
-    <div className="manager-announcement-list">
-      {items.map((item) => (
-        <article key={item.id} data-status={item.status === "Draft" ? "draft" : "published"}>
-          <div>
-            <StatusBadge value={item.status} />
-            <span className="manager-mono">
-              {showEvent && <>{events.find((event) => event.id === item.eventId)?.title} · </>}
-              {item.publishedAt ? new Date(item.publishedAt).toLocaleDateString() : "Not published"}
-            </span>
-          </div>
-          <h3>{item.title}</h3>
-          <p>{item.message}</p>
-          {item.status === "Draft" && (
-            <button type="button" className="manager-button manager-button--small manager-button--go" onClick={() => { updateAnnouncement(item.id, { status: "Published" }); toast("Announcement published."); }}>
-              <Icon name="send" size={16} /> Publish draft
-            </button>
-          )}
-        </article>
-      ))}
-    </div>
+    <>
+      <div className="manager-announcement-list">
+        {shown.map((item) => (
+          <article key={item.id} data-status={item.status === "Draft" ? "draft" : "published"}>
+            <div>
+              <StatusBadge value={item.status} />
+              <span className="manager-mono">
+                {showEvent && <>{events.find((event) => event.id === item.eventId)?.title} · </>}
+                {item.publishedAt ? new Date(item.publishedAt).toLocaleDateString() : "Not published"}
+              </span>
+            </div>
+            <h3>{item.title}</h3>
+            <p>{item.message}</p>
+            {item.status === "Draft" && (
+              <button type="button" className="manager-button manager-button--small manager-button--go" onClick={() => { updateAnnouncement(item.id, { status: "Published" }); toast("Announcement published."); }}>
+                <Icon name="send" size={16} /> Publish draft
+              </button>
+            )}
+          </article>
+        ))}
+      </div>
+      <Pagination page={page} limit={ANNOUNCEMENT_PAGE} total={items.length} noun="announcement" onPage={setPage} />
+    </>
   );
 }

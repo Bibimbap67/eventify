@@ -3,11 +3,13 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../../api.js";
 import Icon from "../Icon.js";
 import { SearchField, plural } from "../ui.js";
+import { prefersReducedMotion } from "../Motion.js";
 
 // Shared pieces of the admin area (pages live in pages/admin/). The visual parts come from
 // components/ui.js, like the Event Manager workspace, so both internal areas look the same.
 // Lists that grow without limit (users, registrations, the audit log) are read one page at a
-// time from the server instead of being loaded whole.
+// time from the server instead of being loaded whole. Pagination and usePaged are also used by
+// the manager and attendee pages for lists already in memory.
 
 export const ROLES = [
   { value: "admin", label: "Admin", many: "Admins", text: "Full access: users, events, venues, settings and the audit log." },
@@ -80,33 +82,59 @@ export function SearchFilter({ label, placeholder, value, onSearch }) {
   return <SearchField label={label} placeholder={placeholder} value={text} onChange={setText} />;
 }
 
-export function Pagination({ page, limit, total, noun, onPage, busy = false }) {
+// Page bar under a list. Hidden while everything fits on one page. Changing page brings the
+// top of the list (the element just before the bar) back into view. Attendee pages pass
+// buttonClass="btn-sm" to match their buttons.
+export function Pagination({ page, limit, total, noun, onPage, busy = false, buttonClass = "manager-button manager-button--small" }) {
   const pages = Math.max(1, Math.ceil(total / limit));
+  const navRef = useRef(null);
   // Deleting the last row of the last page leaves the page empty: step back one.
   useEffect(() => {
     if (total > 0 && page > pages) onPage(pages);
   }, [onPage, page, pages, total]);
-  if (!total) return null;
+  if (pages <= 1) return null;
   const first = (page - 1) * limit + 1;
   const last = Math.min(total, page * limit);
+  const go = (next) => {
+    onPage(next);
+    navRef.current?.previousElementSibling?.scrollIntoView({ block: "start", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+  };
   return (
-    <nav className="admin-pager" aria-label="Pages">
-      <span className="admin-pager__count">
-        {pages > 1 ? `${first}–${last} of ${plural(total, noun)}` : plural(total, noun)}
+    <nav className="admin-pager" aria-label="Pages" ref={navRef}>
+      <span className="admin-pager__count">{first}–{last} of {plural(total, noun)}</span>
+      <span className="admin-pager__buttons">
+        <button type="button" className={buttonClass} disabled={busy || page <= 1} onClick={() => go(page - 1)}>
+          <Icon name="chevron-left" size={16} /> Previous
+        </button>
+        <span className="admin-pager__page">Page {page} of {pages}</span>
+        <button type="button" className={buttonClass} disabled={busy || page >= pages} onClick={() => go(page + 1)}>
+          Next <Icon name="chevron-right" size={16} />
+        </button>
       </span>
-      {pages > 1 && (
-        <span className="admin-pager__buttons">
-          <button type="button" className="manager-button manager-button--small" disabled={busy || page <= 1} onClick={() => onPage(page - 1)}>
-            <Icon name="chevron-left" size={16} /> Previous
-          </button>
-          <span className="admin-pager__page">Page {page} of {pages}</span>
-          <button type="button" className="manager-button manager-button--small" disabled={busy || page >= pages} onClick={() => onPage(page + 1)}>
-            Next <Icon name="chevron-right" size={16} />
-          </button>
-        </span>
-      )}
     </nav>
   );
+}
+
+// One page of a list that is already in memory, for <Pagination>. A new `resetKey` (the
+// search, filters or tab) starts again at page 1. With `param`, the page is also written to
+// the URL (?page=2) and read back when the list opens, so going back returns to the same page.
+// ponytail: after a filter change the URL keeps the old page until the next page change; it
+// is only read when the list opens, and Pagination steps back if that page no longer exists.
+export function usePaged(items, size, resetKey = "", param = null) {
+  const [params, setParams] = useSearchParams();
+  const [state, setState] = useState(() => ({ key: resetKey, page: Math.max(1, Number(param && params.get(param)) || 1) }));
+  const page = state.key === resetKey ? state.page : 1;
+  const setPage = useCallback((value) => {
+    setState({ key: resetKey, page: value });
+    if (!param) return;
+    setParams((current) => {
+      const next = new URLSearchParams(current);
+      if (value > 1) next.set(param, value);
+      else next.delete(param);
+      return next;
+    }, { replace: true });
+  }, [param, resetKey, setParams]);
+  return { page, setPage, shown: items.slice((page - 1) * size, page * size) };
 }
 
 // A failed request, with a way to try again. Never shown as an empty list.

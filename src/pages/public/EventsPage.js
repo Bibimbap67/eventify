@@ -8,9 +8,11 @@ import { EventCardSkeleton, useSkeleton } from "../../components/Skeleton.js";
 import { useEventContext } from "../../context/EventContext.js";
 import { EVENT_CATEGORIES } from "../../data/options.js";
 import { startSortKey } from "../../data/time.js";
+import { Pagination, usePaged } from "../../components/admin/parts.js";
 
 // Finished events sink below the ones attendees can still go to.
 const FINISHED = ["COMPLETED", "CANCELLED"];
+const PAGE_SIZE = 20;
 
 export default function EventsPage() {
   const entering = useEntering();
@@ -96,6 +98,8 @@ export default function EventsPage() {
         return 0;
       });
   }, [events, query, category, statusFilter, venueFilter, sortBy, isEventRegistered]);
+
+  const { page, setPage, shown } = usePaged(filteredEvents, PAGE_SIZE, [query, category, statusFilter, venueFilter, sortBy].join("|"), "page");
 
   const activeFiltersCount =
     (query ? 1 : 0) +
@@ -244,11 +248,14 @@ export default function EventsPage() {
               </button>
             </div>
           ) : (
-            <div className={`events-grid${entering ? " stagger" : ""}`}>
-              {filteredEvents.map((event, index) => (
-                <EventCard key={event.id} event={event} />
-              ))}
-            </div>
+            <>
+              <div className={`events-grid${entering ? " stagger" : ""}`}>
+                {shown.map((event) => (
+                  <EventCard key={event.id} event={event} />
+                ))}
+              </div>
+              <Pagination page={page} limit={PAGE_SIZE} total={filteredEvents.length} noun="event" onPage={setPage} buttonClass="btn-sm" />
+            </>
           )}
         </section>
       </main>

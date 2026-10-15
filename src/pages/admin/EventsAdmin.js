@@ -10,7 +10,7 @@ import { TableSkeleton, useSkeleton } from "../../components/Skeleton.js";
 import {
   ArchiveSwitch, CapacityBar, FilterChips, SectionHeading, StatusBadge, Table, plural,
 } from "../../components/ui.js";
-import { LoadError, SearchFilter, formatDay, useApi, useFilters } from "../../components/admin/parts.js";
+import { LoadError, Pagination, SearchFilter, formatDay, useApi, useFilters } from "../../components/admin/parts.js";
 import { formatTime, timeRange } from "../../data/time.js";
 import { useManager } from "../../context/ManagerContext.js";
 import { OvertimeButtons } from "../../components/manager/EventFields.js";
@@ -33,7 +33,8 @@ const CONFIRM = {
   Cancel: (event) => `${event.title} is called off. Registration closes and existing tickets stop working at the check-in desk.`,
 };
 const CLOSED = ["Rejected", "Cancelled", "Archived"];
-const DEFAULTS = { view: "current", status: "", q: "", sort: "soonest" };
+const DEFAULTS = { view: "current", status: "", q: "", sort: "soonest", page: "1" };
+const PAGE_SIZE = 25;
 const COLUMNS = ["Event", "Date", "Venue", "Registered", "Status", "Actions"];
 
 export default function EventsAdmin() {
@@ -50,6 +51,8 @@ export default function EventsAdmin() {
   const rows = inView
     .filter((event) => (!filters.status || event.status === filters.status) && `${event.title} ${event.organizer || ""}`.toLowerCase().includes(q))
     .sort((a, b) => (filters.sort === "latest" ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)));
+  const page = Math.max(1, Number(filters.page) || 1);
+  const onPage = useCallback((value) => setFilters({ page: value }), [setFilters]);
   const statusOptions = [{ value: "", label: "All", count: inView.length }, ...ADMIN_STATUSES.filter((status) => status !== "Archived").map((status) => ({
     value: status, label: status, count: inView.filter((event) => event.status === status).length,
   }))].filter((option) => !option.value || option.count > 0 || option.value === filters.status);
@@ -167,14 +170,14 @@ export default function EventsAdmin() {
       ) : (
         <Table
           columns={columns}
-          rows={rows}
+          rows={rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)}
           empty={filters.view === "archive" && !archived.length
             ? "Nothing archived yet. Archive a completed, rejected or cancelled event to keep it here with its records."
             : db.events.length ? "No events match these filters." : "No events yet."}
           emptyIcon="calendar-days"
         />
       )}
-      {!loading && rows.length > 0 && <p className="admin-pager__count">{plural(rows.length, "event")}</p>}
+      {!loading && <Pagination page={page} limit={PAGE_SIZE} total={rows.length} noun="event" onPage={onPage} />}
 
       {viewing && (
         <EventDetails

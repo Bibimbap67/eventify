@@ -1,4 +1,5 @@
 import React from "react";
+import { Pagination, usePaged } from "../admin/parts.js";
 import Icon from "../Icon.js";
 import FeedbackSummary, { Stars } from "../FeedbackSummary.js";
 import { EmptyState, Metric, PersonCell, SectionHeading, StatusBadge, countRegistrations, getAttendance, plural } from "../ui.js";
@@ -6,17 +7,21 @@ import { summarizeFeedback } from "../../data/feedback.js";
 
 // After the event: what participants said, and the numbers for one event.
 
+const FEEDBACK_PAGE = 10;
+
 export function FeedbackPanel({ feedback, eyebrow = "Participant feedback", title = "What participants said" }) {
   const summary = summarizeFeedback(feedback);
   // Low ratings first: they are what to fix before the next event.
   const ordered = [...summary.concerns, ...feedback.filter((item) => !summary.concerns.includes(item))];
+  // 10 comments at a time; the summary above still counts them all.
+  const { page, setPage, shown } = usePaged(ordered, FEEDBACK_PAGE);
   return (
     <section className="manager-panel">
       <SectionHeading eyebrow={eyebrow} title={title} detail="Use these responses to improve event execution and future programming." />
       <FeedbackSummary summary={summary} />
       {feedback.length ? (
         <div className="manager-feedback-list">
-          {ordered.map((item) => (
+          {shown.map((item) => (
             <article key={item.id} className={summary.concerns.includes(item) ? "is-concern" : undefined}>
               <div>
                 <PersonCell name={item.participant} detail={item.date} />
@@ -37,6 +42,7 @@ export function FeedbackPanel({ feedback, eyebrow = "Participant feedback", titl
       ) : (
         <EmptyState icon="message" title="No feedback yet">Feedback is available after participants attend the event.</EmptyState>
       )}
+      <Pagination page={page} limit={FEEDBACK_PAGE} total={ordered.length} noun="comment" onPage={setPage} />
     </section>
   );
 }

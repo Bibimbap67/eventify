@@ -5,6 +5,7 @@ import { CapacityBar, EmptyState, FilterChips, PersonCell, SearchField, StatusBa
 import { useManager } from "../../context/ManagerContext.js";
 import { attendanceKey, checkInOpensAt, exitPhase, isCheckedIn, opensLabel } from "../../data/checkIn.js";
 import { api } from "../../api.js";
+import { Pagination, usePaged } from "../admin/parts.js";
 import { seatOf } from "../../data/seating.js";
 
 // The registration desk (confirm / cancel / check in) and the event-day attendance desk.
@@ -16,6 +17,7 @@ const ATTENDANCE_FILTERS = [
   { value: "attended", label: "Attended" },
 ];
 
+const PAGE_SIZE = 25;
 const timeNow = () => new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 const matchesQuery = (item, query) => `${item.name} ${item.email}`.toLowerCase().includes(query.toLowerCase());
 
@@ -143,8 +145,9 @@ function CheckInSummary({ checked, total }) {
   );
 }
 
-// Registrations with search, status chips and the confirm / cancel actions.
-// `withCheckIn` (an event's Participants tab) adds the check-in button, so one roster does both jobs.
+// Registrations with search, status chips and the confirm / cancel actions, 25 a page.
+// `withCheckIn` (an event's Participants tab) adds the check-in button, so one roster does both
+// jobs; that roster is never paged, since on event day staff search it while people wait.
 export function RegistrationDesk({ rows, showEvent, initialStatus = "All", withCheckIn = false }) {
   const { events, updateRegistration, toast } = useManager();
   const [query, setQuery] = useState("");
@@ -155,6 +158,7 @@ export function RegistrationDesk({ rows, showEvent, initialStatus = "All", withC
   const eventMap = new Map(events.map((event) => [event.id, event]));
   const visible = rows.filter((item) => kept.has(item.id) || ((status === "All" || item.status === status) && matchesQuery(item, query)));
   const confirmed = rows.filter((item) => item.status === "Confirmed");
+  const { page, setPage, shown } = usePaged(visible, PAGE_SIZE, `${query}|${status}`, withCheckIn ? null : "page");
   const options = ["All", "Pending", "Confirmed", "Cancelled"]
     .map((value) => ({ value, label: value, count: value === "All" ? rows.length : rows.filter((item) => item.status === value).length }))
     .filter((option) => option.value === "All" || option.count > 0 || option.value === status);
@@ -218,9 +222,10 @@ export function RegistrationDesk({ rows, showEvent, initialStatus = "All", withC
         empty="No registrations match these filters."
         emptyIcon="clipboard-check"
         columns={columns}
-        rows={visible}
+        rows={withCheckIn ? visible : shown}
         rowClass={(row) => (row.id === flashId ? "is-flash" : "")}
       />
+      {!withCheckIn && <Pagination page={page} limit={PAGE_SIZE} total={visible.length} noun="registration" onPage={setPage} />}
       {dialog}
     </div>
   );

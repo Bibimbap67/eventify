@@ -5,11 +5,18 @@ import Icon from "../../components/Icon.js";
 import { useEntering } from "../../components/Motion.js";
 import { useEventContext } from "../../context/EventContext.js";
 import CertificateModal from "../../components/attendee/CertificateModal.js";
+import { Pagination, usePaged } from "../../components/admin/parts.js";
+
+const PAGE_SIZE = 10;
 
 export default function CertificatesPage() {
   const entering = useEntering();
   const { certificates, userProfile, refresh } = useEventContext();
   const [selectedCert, setSelectedCert] = useState(null);
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const matches = certificates.filter((cert) => `${cert.eventTitle} ${cert.organizer} ${cert.credentialId}`.toLowerCase().includes(q));
+  const { page, setPage, shown } = usePaged(matches, PAGE_SIZE, q);
   // The server issues certificates, so read the latest ones when the page opens.
   useEffect(() => {
     refresh();
@@ -48,46 +55,73 @@ export default function CertificatesPage() {
             </Link>
           </div>
         ) : (
-          <div className={`certificates-grid${entering ? " stagger" : ""}`}>
-            {certificates.map((cert) => (
-              <article key={cert.id} className="certificate-card">
-                <div className="cert-card__top">
-                  <span className="sbadge sbadge--issued"><Icon name="check" size={16} /> VERIFIED PARTICIPATION</span>
-                  <span className="cert-card__id">{cert.credentialId}</span>
-                </div>
-
-                <h3 className="cert-card__title">{cert.eventTitle}</h3>
-                <p className="cert-card__organizer">{cert.organizer}</p>
-
-                <div className="cert-card__details">
-                  <div>
-                    <small>RECIPIENT</small>
-                    <strong>{cert.recipientName}</strong>
+          <>
+            <div className="explore-search-wrap certificates-search">
+              <Icon name="search" size={16} />
+              <input
+                type="search"
+                placeholder="Search by event, organizer or credential ID..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Search certificates"
+              />
+              {query && (
+                <button type="button" className="explore-search-clear" onClick={() => setQuery("")} aria-label="Clear search">
+                  <Icon name="close" size={16} />
+                </button>
+              )}
+            </div>
+            {matches.length === 0 ? (
+              <div className="empty-events-box">
+                <span className="empty-box__icon"><Icon name="search" size={28} /></span>
+                <h3>No certificate matches</h3>
+                <p>Nothing matches “{query}”. Try the event's name, its organizer, or a credential ID like CERT-NU-2026.</p>
+                <button type="button" className="btn-sm btn-sm--yellow" onClick={() => setQuery("")}>Clear search</button>
+              </div>
+            ) : (
+            <div className={`certificates-grid${entering ? " stagger" : ""}`}>
+              {shown.map((cert) => (
+                <article key={cert.id} className="certificate-card">
+                  <div className="cert-card__top">
+                    <span className="sbadge sbadge--issued"><Icon name="check" size={16} /> VERIFIED PARTICIPATION</span>
+                    <span className="cert-card__id">{cert.credentialId}</span>
                   </div>
-                  <div>
-                    <small>DATE ISSUED</small>
-                    <strong>{cert.issueDate}</strong>
-                  </div>
-                </div>
 
-                {cert.hoursEarned && (
-                  <div className="cert-card__hours">
-                    <span><Icon name="clock" size={15} /> {cert.hoursEarned}</span>
-                  </div>
-                )}
+                  <h3 className="cert-card__title">{cert.eventTitle}</h3>
+                  <p className="cert-card__organizer">{cert.organizer}</p>
 
-                <div className="cert-card__footer">
-                  <button
-                    type="button"
-                    className="btn-sm btn-sm--yellow btn-block"
-                    onClick={() => setSelectedCert(cert)}
-                  >
-                    <Icon name="certificate" size={16} /> View & Print Certificate
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
+                  <div className="cert-card__details">
+                    <div>
+                      <small>RECIPIENT</small>
+                      <strong>{cert.recipientName}</strong>
+                    </div>
+                    <div>
+                      <small>DATE ISSUED</small>
+                      <strong>{cert.issueDate}</strong>
+                    </div>
+                  </div>
+
+                  {cert.hoursEarned && (
+                    <div className="cert-card__hours">
+                      <span><Icon name="clock" size={15} /> {cert.hoursEarned}</span>
+                    </div>
+                  )}
+
+                  <div className="cert-card__footer">
+                    <button
+                      type="button"
+                      className="btn-sm btn-sm--yellow btn-block"
+                      onClick={() => setSelectedCert(cert)}
+                    >
+                      <Icon name="certificate" size={16} /> View & Print Certificate
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+            )}
+            <Pagination page={page} limit={PAGE_SIZE} total={matches.length} noun="certificate" onPage={setPage} buttonClass="btn-sm" />
+          </>
         )}
       </main>
 

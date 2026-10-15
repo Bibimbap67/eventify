@@ -4,9 +4,12 @@ import Navbar from "../../components/Navbar.js";
 import Icon from "../../components/Icon.js";
 import { useEventContext } from "../../context/EventContext.js";
 import TicketPassModal from "../../components/attendee/TicketPassModal.js";
+import { Pagination, usePaged } from "../../components/admin/parts.js";
 import { eventBanner } from "../../data/options.js";
 import { seatOf } from "../../data/seating.js";
 import { eventsClash, formatTimesIn, startSortKey } from "../../data/time.js";
+
+const PAGE_SIZE = 10;
 
 export default function SchedulePage() {
   const { registrations, events } = useEventContext();
@@ -53,6 +56,9 @@ export default function SchedulePage() {
 
     return clashList;
   }, [scheduledItems]);
+
+  // The timeline shows 10 events a page; the clash check above still covers all of them.
+  const { page, setPage, shown } = usePaged(scheduledItems, PAGE_SIZE);
 
   // Unique days for Day view
   const daysList = useMemo(() => {
@@ -129,8 +135,8 @@ export default function SchedulePage() {
             {/* TIMELINE VIEW */}
             {viewMode === "timeline" && (
               <div className="schedule-timeline-view">
-                {scheduledItems.map((item, idx) => (
-                  <section key={idx} className="schedule-event-block" style={{ "--banner": eventBanner(item.event || { id: item.registration.eventId }) }}>
+                {shown.map((item, idx) => (
+                  <section key={item.registration.id} className="schedule-event-block" style={{ "--banner": eventBanner(item.event || { id: item.registration.eventId }) }}>
                     {/* Event Banner */}
                     <div className="schedule-event-banner">
                       <div className="schedule-event-banner__left">
@@ -179,6 +185,9 @@ export default function SchedulePage() {
                   </section>
                 ))}
               </div>
+            )}
+            {viewMode === "timeline" && (
+              <Pagination page={page} limit={PAGE_SIZE} total={scheduledItems.length} noun="event" onPage={setPage} buttonClass="btn-sm" />
             )}
 
             {/* DAY-BY-DAY VIEW */}

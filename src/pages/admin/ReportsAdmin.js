@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAdmin } from "../../context/AdminContext.js";
 import { ADMIN_STATUSES, adminStatus } from "../../data/eventStatus.js";
@@ -6,10 +6,11 @@ import Icon from "../../components/Icon.js";
 import Skeleton, { TableSkeleton } from "../../components/Skeleton.js";
 import { Metric, SectionHeading, StatusBadge, Table, plural } from "../../components/ui.js";
 import {
-  LoadError, SearchFilter, downloadCsv, formatDay, useApi, useFilters,
+  LoadError, Pagination, SearchFilter, downloadCsv, formatDay, useApi, useFilters,
 } from "../../components/admin/parts.js";
 
-const DEFAULTS = { q: "", status: "", sort: "date" };
+const DEFAULTS = { q: "", status: "", sort: "date", page: "1" };
+const PAGE_SIZE = 25;
 const SORTS = {
   date: (a, b) => (b.date || "").localeCompare(a.date || ""),
   registrations: (a, b) => b.confirmed - a.confirmed,
@@ -30,6 +31,9 @@ export default function ReportsAdmin() {
   const rows = all
     .filter((event) => (!filters.status || event.status === filters.status) && `${event.title} ${event.organizer} ${event.manager || ""}`.toLowerCase().includes(q))
     .sort(SORTS[filters.sort] || SORTS.date);
+  // The table shows one page; the totals and the CSV export cover every matching event.
+  const page = Math.max(1, Number(filters.page) || 1);
+  const onPage = useCallback((value) => setFilters({ page: value }), [setFilters]);
   const total = (key) => rows.reduce((sum, event) => sum + event[key], 0);
   const responses = total("responses");
   const average = responses ? rows.reduce((sum, event) => sum + (event.rating || 0) * event.responses, 0) / responses : null;
@@ -122,7 +126,8 @@ export default function ReportsAdmin() {
       {!data && loading && <TableSkeleton columns={COLUMNS} rows={6} />}
       {data && (
         <div className={loading ? "admin-busy" : undefined} aria-busy={loading || undefined}>
-          <Table columns={columns} rows={rows} empty={all.length ? "No events match these filters." : "No events yet."} emptyIcon="chart" />
+          <Table columns={columns} rows={rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)} empty={all.length ? "No events match these filters." : "No events yet."} emptyIcon="chart" />
+          <Pagination page={page} limit={PAGE_SIZE} total={rows.length} noun="event" onPage={onPage} busy={loading} />
         </div>
       )}
     </div>

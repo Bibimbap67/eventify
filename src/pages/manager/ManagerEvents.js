@@ -13,6 +13,10 @@ import {
   BookedTimes, CATEGORIES, EMPTY_EVENT, SaveButton, SpeakersField, VenueField, cleanSpeakers, clashOf, useVenueDay,
 } from "../../components/manager/EventFields.js";
 import { timeRange } from "../../data/time.js";
+import { Pagination, usePaged } from "../../components/admin/parts.js";
+
+// Past and archived events pile up over the terms; upcoming ones always show in full.
+const PAGE_SIZE = 12;
 
 // The event's listed speakers; older events only named speakers on their sessions.
 function speakerNames(event, sessions) {
@@ -47,6 +51,9 @@ export default function ManagerEvents() {
   [dateFilter, dateOrder, inView, query, status]);
   const active = rows.filter((event) => !PAST_STATUSES.includes(event.status));
   const past = rows.filter((event) => PAST_STATUSES.includes(event.status));
+  const pagedList = view === "archive" ? rows : past;
+  const { page, setPage, shown } = usePaged(pagedList, PAGE_SIZE, [view, query, status, dateFilter, dateOrder].join("|"), "page");
+  const pager = <Pagination page={page} limit={PAGE_SIZE} total={pagedList.length} noun="event" onPage={setPage} />;
   const statusOptions = ["All", ...new Set(inView.map((event) => event.status))].map((value) => ({
     value,
     label: value,
@@ -151,13 +158,14 @@ export default function ManagerEvents() {
         {view === "current" && <FilterChips label="Filter by event status" options={statusOptions} value={status} onChange={setStatus} />}
       </div>
 
-      {view === "archive" ? rows.length > 0 && renderCards(rows) : (
+      {view === "archive" ? rows.length > 0 && <>{renderCards(shown)}{pager}</> : (
         <>
           {active.length > 0 && renderCards(active)}
           {past.length > 0 && (
             <>
               <h3 className="manager-subheading">Past & cancelled <span>{past.length}</span></h3>
-              {renderCards(past)}
+              {renderCards(shown)}
+              {pager}
             </>
           )}
         </>
