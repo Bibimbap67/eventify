@@ -34,5 +34,12 @@ export const ADMIN_STATUSES = ["Pending", "Approved", "Published", "Completed", 
 // Finished events, which leave the "current" lists.
 export const PAST_STATUSES = ["Completed", "Cancelled", "Archived"];
 
+// Approved events still running or about to (saved words). Same list as server/utils/eventStatus.js.
+export const LIVE_STATUSES = ["Registration Open", "Published", "Approved", "Registration Closed", "Ongoing"];
+
+// An event as EventContext lists it (public words) that is still to come or running. Finished,
+// cancelled and archived events (no longer listed) are not.
+export const eventStillOn = (event) => Boolean(event) && !["COMPLETED", "CANCELLED"].includes(event.status);
+
 // An event's status as the admin screens show it.
 export const adminStatus = (event) => SAVED_TO_ADMIN[event.status] || event.status;

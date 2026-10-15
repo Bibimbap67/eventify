@@ -4,6 +4,7 @@ import { api, newId } from "../api.js";
 import { useServerStore } from "./useServerStore.js";
 import { notify } from "../components/Toast.js";
 import { eventEndsAt } from "../data/checkIn.js";
+import { LIVE_STATUSES } from "../data/eventStatus.js";
 
 const ManagerContext = createContext(null);
 // State key -> MongoDB-backed API resource (see server/controllers/dataController.js).
@@ -42,7 +43,7 @@ export function ManagerProvider({ children }) {
   // Reload just after the next one ends, so open screens show it without a page refresh.
   useEffect(() => {
     const ends = data.events
-      .filter((event) => !["Pending", "Completed", "Cancelled", "Rejected", "Archived"].includes(event.status))
+      .filter((event) => LIVE_STATUSES.includes(event.status))
       .map((event) => eventEndsAt(event)?.getTime())
       .filter((end) => end > Date.now());
     if (!ends.length) return undefined;
@@ -81,16 +82,10 @@ export function ManagerProvider({ children }) {
     return newEvent;
   }, [managerId, setData]);
 
+  // The server deletes the event's registrations, sessions and the rest with it (afterRemove in
+  // dataController.js); screens only list records of events that still exist.
   const deleteEvent = useCallback((eventId) => {
-    setData((current) => ({
-      ...current,
-      events: current.events.filter((event) => event.id !== eventId),
-      registrations: current.registrations.filter((registration) => registration.eventId !== eventId),
-      sessions: current.sessions.filter((session) => session.eventId !== eventId),
-      announcements: current.announcements.filter((announcement) => announcement.eventId !== eventId),
-      feedback: current.feedback.filter((item) => item.eventId !== eventId),
-      notifications: current.notifications.filter((notification) => notification.eventId !== eventId),
-    }));
+    setData((current) => ({ ...current, events: current.events.filter((event) => event.id !== eventId) }));
   }, [setData]);
 
   const updateRegistration = useCallback((registrationId, patch) => {

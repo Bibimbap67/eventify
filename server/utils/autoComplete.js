@@ -7,9 +7,7 @@
 const { Event } = require("../models/records");
 const { eventEndsAt } = require("./checkIn");
 const { issueCertificates } = require("./certificates");
-
-// Statuses of an event that is still running or about to.
-const LIVE_EVENT_STATUS = ["Registration Open", "Published", "Approved", "Registration Closed", "Ongoing"];
+const { LIVE_EVENT_STATUS } = require("./eventStatus");
 
 const localDate = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
@@ -25,4 +23,4 @@ async function completeEndedEvents() {
   await issueCertificates(ids);
 }
 
-module.exports = { completeEndedEvents, LIVE_EVENT_STATUS };
+module.exports = { completeEndedEvents };

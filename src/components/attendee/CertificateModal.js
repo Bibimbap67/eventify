@@ -52,7 +52,7 @@ export default function CertificateModal({ certificate, onClose }) {
 
               <p className="ecert__desc">
                 This is to certify that the above-named participant has actively participated in and
-                successfully completed the technical conference session on
+                successfully completed the event
               </p>
 
               <div className="ecert__event">

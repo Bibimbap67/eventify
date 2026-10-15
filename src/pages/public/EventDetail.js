@@ -155,7 +155,7 @@ export default function EventDetail() {
     capacityColor = "var(--capacity-high)";
     capacityLevel = "full";
     capacityBadgeText = "CAPACITY REACHED";
-    urgencyText = "This event is fully booked. Additional registrations are placed on standby.";
+    urgencyText = "This event is fully booked. A spot opens only if someone cancels.";
   } else if (percentFilled >= 85) {
     capacityColor = "var(--capacity-high)";
     capacityLevel = "urgent";

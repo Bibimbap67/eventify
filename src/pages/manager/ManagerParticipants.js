@@ -24,7 +24,6 @@ export default function ManagerParticipants() {
         columns={[
           { label: "Name", render: (row) => <PersonCell name={row.name} detail={row.email} seed={row.userId} /> },
           { label: "Event", render: (row) => events.find((event) => event.id === row.eventId)?.title },
-          { label: "Phone", render: (row) => row.phone || <span className="manager-muted">Not provided</span> },
           { label: "Registration", render: (row) => <StatusBadge value={row.status} /> },
           { label: "Attendance", render: (row) => <StatusBadge value={row.attendanceStatus} /> },
         ]}

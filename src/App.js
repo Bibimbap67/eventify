@@ -12,7 +12,6 @@ import ExitPage from "./pages/attendee/ExitPage.js";
 import CertificatesPage from "./pages/attendee/CertificatesPage.js";
 import NotificationsPage from "./pages/attendee/NotificationsPage.js";
 import ProfilePage from "./pages/ProfilePage.js";
-import Dashboard from "./pages/attendee/Dashboard.js";
 import VerifyPage from "./pages/public/VerifyPage.js";
 import CalendarPage from "./pages/public/CalendarPage.js";
 import AdminLayout from "./components/admin/AdminLayout.js";
@@ -71,16 +70,6 @@ export default function App() {
         <Route path="/notifications" element={<ProtectedRoute requiredRole="user"><NotificationsPage /></ProtectedRoute>} />
         {/* Every role keeps its own name, email and password here. */}
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-
-        {/* Internal / authenticated area, reached via the "Workspace" nav button */}
-        <Route
-          path="/workspace"
-          element={
-            <ProtectedRoute requiredRole="user">
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
 
         {/* Event staff: the check-in desk */}
         <Route path="/staff" element={<ProtectedRoute requiredRole="staff"><Suspense fallback={<ShellSkeleton />}><StaffPage /></Suspense></ProtectedRoute>} />

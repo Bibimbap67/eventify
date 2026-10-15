@@ -6,6 +6,7 @@ import Icon from "../../components/Icon.js";
 import Spinner from "../../components/Spinner.js";
 import { PanelHeader, SectionHeading } from "../../components/ui.js";
 import { useFilters } from "../../components/admin/parts.js";
+import { EMAIL_RE } from "../../data/options.js";
 
 const TABS = [
   { id: "platform", label: "Platform", icon: "graduation" },
@@ -14,7 +15,6 @@ const TABS = [
   { id: "data", label: "Data export", icon: "download" },
 ];
 const DEFAULTS = { tab: "platform" };
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const KEYS = Object.keys(initialSettings);
 const BLANK_PASSWORDS = { current: "", next: "", confirm: "" };
 

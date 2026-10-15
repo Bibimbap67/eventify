@@ -9,9 +9,10 @@ import { adminStatus } from "../data/eventStatus.js";
 
 const Ctx = createContext(null);
 
-// Venues are the only collection the admin area keeps in memory itself. Events and registrations
-// come from ManagerContext, certificates from EventContext. Users, reports and the audit log
-// are read a page at a time from /api/users and /api/admin, and the server writes the audit log.
+// Venues are the only collection the admin area keeps in memory itself. Events come from
+// ManagerContext (each with the server's registeredCount), certificates from EventContext. Users,
+// registrations, reports and the audit log are read a page at a time from /api/users and
+// /api/admin, and the server writes the audit log.
 const ADMIN_RESOURCES = { venues: "venues" };
 
 // Every event is saved the same way, whether a manager or an admin made it. The admin screens
@@ -74,7 +75,6 @@ export function AdminProvider({ children }) {
   const db = {
     venues: collections.venues,
     events: manager.allManagerEvents.map(toAdminEvent),
-    registrations: manager.allManagerRegistrations,
     certificates: allCertificates,
   };
 
@@ -124,9 +124,10 @@ export function AdminProvider({ children }) {
     [db.events]
   );
 
+  // Confirmed tickets, counted by the server for every event it lists.
   const registered = useCallback(
-    (eventId) => db.registrations.filter((r) => r.eventId === eventId && r.status !== "Cancelled").length,
-    [db.registrations]
+    (eventId) => db.events.find((event) => event.id === eventId)?.registeredCount || 0,
+    [db.events]
   );
 
   return (

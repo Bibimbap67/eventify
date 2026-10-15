@@ -158,7 +158,7 @@ const CLICKABLE = 'a[href], button, [role="button"], [role="tab"], [role="switch
 const CLICK_SOUNDS = [
   [".landing-to-top", "whoosh"],
   [".btn-sm--danger, .manager-button--danger, .btn--danger", "thud"],
-  ['.star-btn, .category-pill, .tab-btn, .filter-btn, .day-tab-btn, .settings-tab, [role="tab"], .auth-tabs__tab', "pop"],
+  ['.star-btn, .category-pill, .tab-btn, .filter-btn, .day-tab-btn, [role="tab"], .auth-tabs__tab', "pop"],
   ['[aria-pressed], [role="switch"], input[type="checkbox"], input[type="radio"]', "switch"],
   ['button[type="submit"], .btn--primary, .btn-sm--yellow, .manager-button--primary, .landing-btn--primary, .landing-btn--blue, .btn-ticket-register, .home-search-bar__btn', "thock"],
   ['a[href], [role="link"], .event-card', "snap"],

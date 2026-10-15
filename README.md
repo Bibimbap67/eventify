@@ -61,6 +61,15 @@ http://localhost:3000
 
 ## Run the Tests
 
+The app's tests:
+
 ```bash
 npm test
+```
+
+The server's tests. The ones that check the data rules need a local MongoDB (or `MONGODB_TEST_URI`); they use a
+throwaway `eventify_rules_test` database and are skipped when no MongoDB is running.
+
+```bash
+npm --prefix server test
 ```

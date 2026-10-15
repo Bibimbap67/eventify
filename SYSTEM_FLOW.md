@@ -118,6 +118,9 @@ Anyone can look at events without an account. You only need to log in when you w
 [ Type email and password ]
   |
   v
+< 10 wrong passwords for this email lately? > --Yes--> (STOP) "Too many wrong passwords... Try again in 15 minutes."
+  | No
+  v
 < Email and password correct? > --No--> (STOP) "Incorrect email or password."
   | Yes
   v
@@ -134,6 +137,7 @@ Anyone can look at events without an account. You only need to log in when you w
 
 - The browser shows the login pass every time it asks the server for something.
 - Passwords are saved in a scrambled form (hashed), never as plain text.
+- After 10 wrong passwords for one email, signing in to it waits 15 minutes. Resetting the password ends the wait.
 
 ---
 
@@ -167,7 +171,7 @@ An event moves through these steps. Attendees can only join when it is **Publish
 | Pending | Waiting for the Admin | Set by itself when a Manager makes an event |
 | Approved | Allowed, but not open to join yet | Admin |
 | Published | Open, people can join | Admin |
-| Completed | The event is over | Set by itself when the end time passes, or by the Admin or the event's own Manager |
+| Completed | The event is over | Set by itself when the end time passes, or by the Admin, or by the event's own Manager once the Admin approved it |
 | Cancelled | The event will not happen | Admin, or the event's own Manager |
 | Rejected | The Admin said no. The Admin can undo it: the event goes back to Pending and its Manager gets a notice | Admin |
 | Archived | Old event, put away | Admin |
@@ -177,6 +181,7 @@ An event moves through these steps. Attendees can only join when it is **Publish
 - For an event made by a Manager, "Admin says yes" opens registration right away.
 - Admins can also make events themselves.
 - Deleting an event also deletes its tickets, certificates, sessions, announcements, and feedback.
+- Renaming a venue renames it on the events booked there, so the double-booking check keeps working.
 
 ---
 
@@ -226,7 +231,9 @@ Before a ticket is made, the server checks a few things. An event has either:
 
 - The QR code holds a secret code made by the server. It cannot be guessed.
 - Two people can never get the same seat, even if they click at the same time.
-- An Attendee can cancel their ticket. A cancelled ticket cannot be used again, and its seat opens up for others.
+- An Attendee can cancel their ticket until it is checked in. A cancelled ticket cannot be used again, and its seat opens up for others.
+- When many people sign up for the last seats at once, the earliest sign-ups keep them; the rest get "maximum capacity".
+- Once an event is over, its ticket moves from Upcoming to Past in My Events, marked Attended or Missed.
 - Two events clash only when their times overlap. An event ending at 11:00 and another starting at 11:00 do not clash. The server checks this too, so it cannot be skipped.
 
 ---
@@ -346,7 +353,7 @@ A certificate needs proof that the person stayed, so attendees scan an exit QR o
   v
 [ The server makes the certificate by itself ]
   |
-  +-------> [ "Give Feedback": 1 to 5 stars and a comment ] ---> the organizer reads it
+  +-------> [ "Give Feedback": 1 to 5 stars and a comment, once ] ---> the organizer reads it
   |
   v
 (OK) Attendee sees it on the Certificates page

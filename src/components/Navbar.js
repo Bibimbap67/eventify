@@ -8,6 +8,15 @@ import Icon from "./Icon.js";
 import SoundToggle from "./SoundToggle.js";
 import { avatarUri } from "./avatar.js";
 
+// Each staff role's own area: [path, icon, navbar pill label, profile menu label].
+const WORKSPACES = {
+  admin: ["/admin", "arrow", "Admin", "Admin Dashboard"],
+  manager: ["/manager", "arrow", "Manager workspace", "Event Manager Workspace"],
+  staff: ["/staff", "scan", "Check-in desk", "Check-in Desk"],
+};
+
+const navClass = ({ isActive }) => `navbar__link ${isActive ? "navbar__link--active" : ""}`;
+
 export default function Navbar() {
   const { user, logout } = useAuth();
   const { notifications, registrations, userProfile } = useEventContext();
@@ -22,6 +31,22 @@ export default function Navbar() {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const activeRegsCount = registrations.filter((r) => r.status === "Confirmed").length;
+  const attendee = user?.role === "user";
+  const workspace = WORKSPACES[user?.role];
+
+  // [path, label]; attendees also get their own pages.
+  const links = [
+    ["/", "Home"],
+    ["/events", "Explore Events"],
+    ["/calendar", "Calendar"],
+    ...(attendee ? [["/my-events", "My Events"], ["/schedule", "Schedule"], ["/certificates", "Certificates"]] : []),
+  ];
+  // [path, icon, label] in the profile menu.
+  const menuLinks = [
+    ...(attendee ? [["/my-events", "ticket", "My Registrations"], ["/schedule", "calendar", "My Schedule"], ["/certificates", "certificate", "My Certificates"]] : []),
+    ["/verify", "shield", "Verify a Certificate"],
+    ["/profile", "user", "Profile & Preferences"],
+  ];
 
   // Close menus on outside click
   useEffect(() => {
@@ -37,89 +62,35 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const closeMobile = () => setMobileMenuOpen(false);
+  const closeProfile = () => setProfileOpen(false);
+
   const handleSignOut = () => {
     logout();
     setProfileOpen(false);
     navigate("/login", { replace: true });
   };
 
-  const displayName = userProfile.name || user?.name || "Guest User";
-
   return (
     <header className="navbar">
       {/* Brand Logo */}
-      <Link to="/" className="navbar__brand" onClick={() => setMobileMenuOpen(false)}>
+      <Link to="/" className="navbar__brand" onClick={closeMobile}>
         <Logo />
       </Link>
 
       {/* Main Navigation Links */}
       <nav className={`navbar__links ${mobileMenuOpen ? "navbar__links--open" : ""}`}>
-        <NavLink
-          to="/"
-          end
-          className={({ isActive }) => `navbar__link ${isActive ? "navbar__link--active" : ""}`}
-          onClick={() => setMobileMenuOpen(false)}
-        >
-          Home
-        </NavLink>
-
-        <NavLink
-          to="/events"
-          className={({ isActive }) => `navbar__link ${isActive ? "navbar__link--active" : ""}`}
-          onClick={() => setMobileMenuOpen(false)}
-        >
-          Explore Events
-        </NavLink>
-
-        <NavLink
-          to="/calendar"
-          className={({ isActive }) => `navbar__link ${isActive ? "navbar__link--active" : ""}`}
-          onClick={() => setMobileMenuOpen(false)}
-        >
-          Calendar
-        </NavLink>
-
-        {user?.role === "user" && <>
-          <NavLink
-            to="/my-events"
-            className={({ isActive }) => `navbar__link ${isActive ? "navbar__link--active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            My Events
-            {activeRegsCount > 0 && <span className="nav-counter-pill">{activeRegsCount}</span>}
+        {links.map(([to, label]) => (
+          <NavLink key={to} to={to} end={to === "/"} className={navClass} onClick={closeMobile}>
+            {label}
+            {to === "/my-events" && activeRegsCount > 0 && <span className="nav-counter-pill">{activeRegsCount}</span>}
           </NavLink>
-          <NavLink
-            to="/schedule"
-            className={({ isActive }) => `navbar__link ${isActive ? "navbar__link--active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Schedule
-          </NavLink>
-          <NavLink
-            to="/certificates"
-            className={({ isActive }) => `navbar__link ${isActive ? "navbar__link--active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Certificates
-          </NavLink>
-        </>}
+        ))}
 
-        {user?.role === "admin" && (
-          <Link to="/admin" className="navbar__pill" onClick={() => setMobileMenuOpen(false)}>
-            <Icon name="arrow" size={14} />
-            Admin
-          </Link>
-        )}
-        {user?.role === "manager" && (
-          <Link to="/manager" className="navbar__pill" onClick={() => setMobileMenuOpen(false)}>
-            <Icon name="arrow" size={14} />
-            Manager workspace
-          </Link>
-        )}
-        {user?.role === "staff" && (
-          <Link to="/staff" className="navbar__pill" onClick={() => setMobileMenuOpen(false)}>
-            <Icon name="scan" size={14} />
-            Check-in desk
+        {workspace && (
+          <Link to={workspace[0]} className="navbar__pill" onClick={closeMobile}>
+            <Icon name={workspace[1]} size={14} />
+            {workspace[2]}
           </Link>
         )}
       </nav>
@@ -143,7 +114,7 @@ export default function Navbar() {
           {notifOpen && <NotificationDropdown onClose={() => setNotifOpen(false)} />}
         </div>
 
-        {/* Attendee Profile Menu */}
+        {/* Profile Menu */}
         <div className="menu-wrap" ref={profileRef}>
           <button
             type="button"
@@ -152,71 +123,29 @@ export default function Navbar() {
             aria-label="User Profile"
           >
             <img className="navbar__avatar-img" src={avatarUri(user?.id)} alt="" />
-            <span className="navbar__user-name">{displayName.split(" ")[0]}</span>
+            <span className="navbar__user-name">{userProfile.name.split(" ")[0]}</span>
             <span className="navbar__caret"><Icon name="caret" size={16} /></span>
           </button>
 
           {profileOpen && (
             <div className="dropdown profile-dropdown">
               <div className="profile-dropdown__header">
-                <strong>{displayName}</strong>
-                <small>{userProfile.role || (user?.role === "manager" ? "Event Manager" : user?.role === "admin" ? "Administrator" : "Student Attendee")}</small>
-                <small className="profile-dropdown__email">{userProfile.email || user?.email}</small>
+                <strong>{userProfile.name}</strong>
+                <small>{userProfile.role}</small>
+                <small className="profile-dropdown__email">{userProfile.email}</small>
               </div>
 
-              {user?.role === "user" && <>
-                <Link
-                to="/my-events"
-                onClick={() => setProfileOpen(false)}
-                className="profile-dropdown__link"
-              >
-                <Icon name="ticket" size={17} /> My Registrations
-              </Link>
-              <Link
-                to="/schedule"
-                onClick={() => setProfileOpen(false)}
-                className="profile-dropdown__link"
-              >
-                <Icon name="calendar" size={17} /> My Schedule
-              </Link>
-              <Link
-                to="/certificates"
-                onClick={() => setProfileOpen(false)}
-                className="profile-dropdown__link"
-              >
-                <Icon name="certificate" size={17} /> My Certificates
-              </Link>
-              </>}
-              <Link
-                to="/verify"
-                onClick={() => setProfileOpen(false)}
-                className="profile-dropdown__link"
-              >
-                <Icon name="shield" size={17} /> Verify a Certificate
-              </Link>
-              <Link
-                to="/profile"
-                onClick={() => setProfileOpen(false)}
-                className="profile-dropdown__link"
-              >
-                <Icon name="user" size={17} /> Profile & Preferences
-              </Link>
+              {menuLinks.map(([to, icon, label]) => (
+                <Link key={to} to={to} onClick={closeProfile} className="profile-dropdown__link">
+                  <Icon name={icon} size={17} /> {label}
+                </Link>
+              ))}
 
               <div className="profile-dropdown__divider" />
 
-              {user?.role === "admin" && (
-                <Link to="/admin" onClick={() => setProfileOpen(false)} className="profile-dropdown__link">
-                  Admin Dashboard
-                </Link>
-              )}
-              {user?.role === "manager" && (
-                <Link to="/manager" onClick={() => setProfileOpen(false)} className="profile-dropdown__link">
-                  Event Manager Workspace
-                </Link>
-              )}
-              {user?.role === "staff" && (
-                <Link to="/staff" onClick={() => setProfileOpen(false)} className="profile-dropdown__link">
-                  Check-in Desk
+              {workspace && (
+                <Link to={workspace[0]} onClick={closeProfile} className="profile-dropdown__link">
+                  {workspace[3]}
                 </Link>
               )}
 

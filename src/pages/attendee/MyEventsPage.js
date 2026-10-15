@@ -14,6 +14,7 @@ import { seatOf } from "../../data/seating.js";
 import { isCheckedIn } from "../../data/checkIn.js";
 import { ATTENDEE_TYPE } from "../../data/student.js";
 import { formatTimesIn } from "../../data/time.js";
+import { eventStillOn } from "../../data/eventStatus.js";
 
 const PAGE_SIZE = 10;
 
@@ -27,14 +28,13 @@ export default function MyEventsPage() {
   const [feedbackModalTarget, setFeedbackModalTarget] = useState(null);
   const [cancelModalTarget, setCancelModalTarget] = useState(null);
 
-  // Filter registrations. A ticket for an event the organizer cancelled moves to Cancelled.
-  const calledOff = (r) => events.find((event) => event.id === r.eventId)?.status === "CANCELLED";
-  const upcomingRegs = registrations.filter(
-    (r) => r.status === "Confirmed" && r.attendanceStatus !== "Attended" && !calledOff(r)
-  );
-  const pastRegs = registrations.filter(
-    (r) => r.status === "Confirmed" && r.attendanceStatus === "Attended"
-  );
+  // Filter registrations. A ticket for an event the organizer cancelled moves to Cancelled; once
+  // the event is over (or archived) the ticket moves to Past, attended or missed.
+  const eventOf = (r) => events.find((event) => event.id === r.eventId);
+  const calledOff = (r) => eventOf(r)?.status === "CANCELLED";
+  const attended = (r) => r.attendanceStatus === "Attended";
+  const upcomingRegs = registrations.filter((r) => r.status === "Confirmed" && !attended(r) && eventStillOn(eventOf(r)));
+  const pastRegs = registrations.filter((r) => r.status === "Confirmed" && !calledOff(r) && (attended(r) || !eventStillOn(eventOf(r))));
   const cancelledRegs = registrations.filter((r) => r.status === "Cancelled" || calledOff(r));
   const tabRegs = { upcoming: upcomingRegs, past: pastRegs, cancelled: cancelledRegs }[activeTab];
   const { page, setPage, shown } = usePaged(tabRegs, PAGE_SIZE, activeTab);
@@ -84,7 +84,7 @@ export default function MyEventsPage() {
             className={`tab-btn ${activeTab === "past" ? "tab-btn--active" : ""}`}
             onClick={() => setActiveTab("past")}
           >
-            Past & Attended ({pastRegs.length})
+            Past Events ({pastRegs.length})
           </button>
           <button
             type="button"
@@ -157,20 +157,23 @@ export default function MyEventsPage() {
                         </button>
 
                         {/* Staff scan the pass to check in; the attendee scans the exit QR on the way out. */}
-                        {isCheckedIn(reg) && <ExitScanButton event={events.find((event) => event.id === reg.eventId)} />}
+                        {isCheckedIn(reg) && <ExitScanButton event={eventOf(reg)} />}
 
                         <Link to={`/events/${reg.eventId}`} className="btn-sm">
                           Event Info
                         </Link>
                       </div>
 
-                      <button
-                        type="button"
-                        className="btn-sm btn-sm--danger"
-                        onClick={() => setCancelModalTarget(reg)}
-                      >
-                        Cancel Ticket
-                      </button>
+                      {/* Once checked in the ticket stays: the exit scan needs it for the certificate. */}
+                      {!isCheckedIn(reg) && (
+                        <button
+                          type="button"
+                          className="btn-sm btn-sm--danger"
+                          onClick={() => setCancelModalTarget(reg)}
+                        >
+                          Cancel Ticket
+                        </button>
+                      )}
                     </div>
                   </article>
                 ))}
@@ -185,8 +188,8 @@ export default function MyEventsPage() {
             {pastRegs.length === 0 ? (
               <div className="empty-events-box">
                 <span className="empty-box__icon"><Icon name="certificate" size={28} /></span>
-                <h3>No completed event records</h3>
-                <p>Events you attend and check in for will appear here alongside your official certificates of participation.</p>
+                <h3>No past events yet</h3>
+                <p>Events you registered for move here once they end, with your certificate if you attended.</p>
               </div>
             ) : (
               <div className={`registrations-list${entering ? " stagger" : ""}`}>
@@ -194,7 +197,11 @@ export default function MyEventsPage() {
                   <article key={reg.id} className="registration-card registration-card--past">
                     <div className="reg-card__top">
                       <div className="reg-card__badges">
-                        <span className="sbadge sbadge--active">ATTENDED</span>
+                        {attended(reg)
+                          ? <span className="sbadge sbadge--active">ATTENDED</span>
+                          : isCheckedIn(reg)
+                          ? <span className="sbadge sbadge--checked-in">CHECKED IN · NO EXIT SCAN</span>
+                          : <span className="sbadge sbadge--not-checked-in">MISSED</span>}
                         <span className="sbadge sbadge--confirmed">COMPLETED</span>
                       </div>
                       <span className="reg-card__code">#{reg.ticketCode}</span>
@@ -213,7 +220,7 @@ export default function MyEventsPage() {
                       </div>
                       <div>
                         <small>CHECK-IN TIMESTAMP</small>
-                        <strong>{reg.checkedInAt || "Verified"}</strong>
+                        <strong>{reg.checkedInAt || "—"}</strong>
                       </div>
                     </div>
 
@@ -227,21 +234,26 @@ export default function MyEventsPage() {
 
                     <div className="reg-card__footer">
                       <div className="reg-card__actions">
-                        <Link to="/certificates" className="btn-sm btn-sm--yellow">
-                          <Icon name="certificate" size={16} /> View Certificate
-                        </Link>
-
-                        {!reg.feedback ? (
-                          <button
-                            type="button"
-                            className="btn-sm"
-                            onClick={() => setFeedbackModalTarget(reg)}
-                          >
-                            <Icon name="message" size={16} /> Give Feedback
-                          </button>
-                        ) : (
-                          <span className="feedback-done-chip"><Icon name="check" size={16} /> Feedback Submitted</span>
+                        {attended(reg) && (
+                          <>
+                            <Link to="/certificates" className="btn-sm btn-sm--yellow">
+                              <Icon name="certificate" size={16} /> View Certificate
+                            </Link>
+                            {!reg.feedback ? (
+                              <button
+                                type="button"
+                                className="btn-sm"
+                                onClick={() => setFeedbackModalTarget(reg)}
+                              >
+                                <Icon name="message" size={16} /> Give Feedback
+                              </button>
+                            ) : (
+                              <span className="feedback-done-chip"><Icon name="check" size={16} /> Feedback Submitted</span>
+                            )}
+                          </>
                         )}
+                        {/* The exit scan stays open 2 hours after the end, so a late scan still earns the certificate. */}
+                        {!attended(reg) && isCheckedIn(reg) && eventOf(reg) && <ExitScanButton event={eventOf(reg)} />}
 
                         <Link to={`/events/${reg.eventId}`} className="btn-sm">
                           Event Overview

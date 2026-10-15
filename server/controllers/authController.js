@@ -4,6 +4,7 @@ const User = require("../models/User");
 const { audit, diff } = require("../utils/audit");
 const { sendMail } = require("../utils/mail");
 const { EMAIL_RE, PASSWORD_MIN, PASSWORD_RULE } = require("../utils/input");
+const { isLocked, recordFailure, clearFailures } = require("../utils/loginLimit");
 
 const RESET_TTL_MS = 30 * 60 * 1000;
 const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
@@ -49,10 +50,15 @@ const login = async (req, res) => {
   const email = String(req.body.email || "").trim().toLowerCase();
   const password = String(req.body.password || "");
 
+  if (isLocked(email)) {
+    return res.status(429).json({ message: "Too many wrong passwords for this account. Try again in 15 minutes, or reset your password." });
+  }
   const user = await User.findOne({ email }).select("+password");
   if (!user || !(await user.matchPassword(password))) {
+    recordFailure(email);
     return res.status(401).json({ message: "Incorrect email or password." });
   }
+  clearFailures(email);
 
   if (user.status === "inactive") {
     return res.status(403).json({ message: "This account is inactive. Contact an administrator." });
@@ -157,6 +163,7 @@ const resetPassword = async (req, res) => {
   user.resetTokenHash = undefined; // a link works once
   user.resetTokenExpires = undefined;
   await user.save();
+  clearFailures(user.email); // a new password ends a lock from wrong guesses
   res.json({ ok: true });
 };
 

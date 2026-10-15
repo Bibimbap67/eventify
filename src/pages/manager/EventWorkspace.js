@@ -9,7 +9,7 @@ import {
   CapacityBar, EmptyState, Metric, PanelHeader, PrepChip, SectionHeading, StatusBadge, countdownLabel,
   eventDate, eventRegistrations, getAttendance, plural,
 } from "../../components/ui.js";
-import { PAST_STATUSES } from "../../data/eventStatus.js";
+import { LIVE_STATUSES, PAST_STATUSES } from "../../data/eventStatus.js";
 import {
   BookedTimes, CATEGORIES, OvertimeButtons, PREP_STATUSES, SaveButton, SpeakersField, VenueField, cleanSpeakers, clashOf, useVenueDay,
 } from "../../components/manager/EventFields.js";
@@ -19,6 +19,7 @@ import { AnnouncementComposer, AnnouncementList } from "../../components/manager
 import { FeedbackPanel, ReportPanel } from "../../components/manager/Results.js";
 import { seatOf } from "../../data/seating.js";
 import { formatTime, timeRange } from "../../data/time.js";
+import { summarizeFeedback } from "../../data/feedback.js";
 
 // One event's workspace (/manager/events/:eventId/:tab): overview, details, schedule,
 // participants, announcements, feedback and reports.
@@ -57,6 +58,7 @@ function EventWorkspace({ event, tab }) {
   const eventAnnouncements = announcements.filter((item) => item.eventId === event.id);
   const eventFeedback = feedback.filter((item) => item.eventId === event.id);
   const attendance = getAttendance(event.id, registrations);
+  const feedbackAverage = summarizeFeedback(eventFeedback).average;
   const registrationCount = eventRows.length;
   const seatHolders = Object.fromEntries(eventRows.filter((row) => row.status === "Confirmed" && seatOf(row)).map((row) => [seatOf(row), row.name]));
   const activeTab = WORKSPACE_TABS.some((item) => item.id === tab) ? tab : "overview";
@@ -169,7 +171,7 @@ function EventWorkspace({ event, tab }) {
               tone="violet"
               label="Feedback"
               value={eventFeedback.length}
-              note={eventFeedback.length ? `${(eventFeedback.reduce((sum, item) => sum + item.rating, 0) / eventFeedback.length).toFixed(1)} average rating` : "Available after event"}
+              note={feedbackAverage === null ? "Available after event" : `${feedbackAverage.toFixed(1)} average rating`}
             />
           </div>
           <div className="manager-overview-grid">
@@ -199,7 +201,8 @@ function EventWorkspace({ event, tab }) {
                   </Link>
                 ))}
               </div>
-              {!PAST_STATUSES.includes(event.status) && (
+              {/* Only an approved event can be completed here; a pending or rejected one waits for the admin. */}
+              {LIVE_STATUSES.includes(event.status) && (
                 <button
                   type="button"
                   className="manager-button manager-button--complete"

@@ -14,7 +14,7 @@ const {
 const { seatId, seatIndex, onMap, firstFreeSeat } = require("../utils/seating");
 const { audit, diff } = require("../utils/audit");
 const { checkInOpensAt, opensLabel, toMinutes, formatTime } = require("../utils/checkIn");
-const { PUBLIC_EVENT_STATUS, OPEN_EVENT_STATUS } = require("../utils/eventStatus");
+const { PUBLIC_EVENT_STATUS, OPEN_EVENT_STATUS, managerMayChangeStatus } = require("../utils/eventStatus");
 const { issueCertificates } = require("../utils/certificates");
 const { completeEndedEvents } = require("../utils/autoComplete");
 const { sendMail } = require("../utils/mail");
@@ -32,8 +32,6 @@ const deny = (message = "You do not have permission to change this record.") => 
 
 // Eventify serves NU MOA students only, so every attendee ticket is a student ticket.
 const ATTENDEE_TYPE = "Student Attendee";
-// Status changes a manager may make on their own event without an admin.
-const MANAGER_STATUS_CHANGES = ["Completed", "Cancelled"];
 
 const isAdmin = (user) => user?.role === "admin";
 const isManager = (user) => user?.role === "manager";
@@ -208,10 +206,8 @@ const events = {
     }
     if (!existing) {
       record.status = "Pending"; // new events wait for admin approval
-    } else if (record.status !== existing.status && !MANAGER_STATUS_CHANGES.includes(record.status)) {
-      // A finished event may go to the archive; restoring it is a change back to Completed or Cancelled.
-      const archiving = record.status === "Archived" && MANAGER_STATUS_CHANGES.includes(existing.status);
-      if (!archiving) deny("Only an administrator can approve or publish an event.");
+    } else if (record.status !== existing.status && !managerMayChangeStatus(existing, record.status)) {
+      deny("Only an administrator can approve or publish an event.");
     }
   },
   async remove(user, existing) {
@@ -270,7 +266,7 @@ const registrations = {
   scope: "manager",
   async read(user) {
     if (!user) return null;
-    if (isAdmin(user)) return {};
+    // Admins read registrations a page at a time (GET /api/admin/registrations), so here they get only their own.
     if (isManager(user)) return { eventId: { $in: await ownedEventIds(user) } };
     return { userId: user.id };
   },
@@ -314,8 +310,10 @@ const registrations = {
       EXIT_FIELDS.forEach((key) => { if (existing[key] != null) record[key] = existing[key]; });
       record.checkedInAt = existing.checkedInAt;
       record.checkedInBy = existing.checkedInBy;
-      // An attendee can cancel, but not revive a cancelled ticket or move to another seat.
-      if (!(existing.status === "Confirmed" && record.status === "Cancelled")) record.status = existing.status;
+      // An attendee can cancel, but not once checked in, not revive a cancelled ticket, and not move seats.
+      const cancelling = existing.status === "Confirmed" && record.status === "Cancelled";
+      if (!cancelling) record.status = existing.status;
+      else if (/^(checked in|attended)$/i.test(existing.attendanceStatus || "")) deny("You're already checked in, so this ticket can't be cancelled.");
       record.seat = existing.seat;
       record.seating = existing.seating;
       record.ticketType = existing.ticketType;
@@ -342,6 +340,21 @@ const registrations = {
     record.status = "Confirmed";
     await placeSeat(record, null, { strict: true });
   },
+  // Two sign-ups for the last seat can both pass the count in save(). The earliest tickets keep
+  // their places; a ticket created past the event's capacity is taken back here.
+  async afterCreate(user, created) {
+    if (isAdmin(user) || isManager(user) || created.status !== "Confirmed") return;
+    const event = await Event.findById(created.eventId);
+    if (!event?.capacity) return;
+    const earlier = await Registration.countDocuments({
+      eventId: created.eventId,
+      status: "Confirmed",
+      $or: [{ createdAt: { $lt: created.createdAt } }, { createdAt: created.createdAt, _id: { $lt: created._id } }],
+    });
+    if (earlier < event.capacity) return;
+    await created.deleteOne();
+    deny("Sorry, this event has reached maximum capacity.");
+  },
   async remove(user, existing) {
     if (isAdmin(user)) return;
     if (await ownsEvent(user, existing.eventId)) return;
@@ -366,7 +379,7 @@ const RESOURCES = {
   notifications: {
     model: Notification,
     scope: "attendee",
-    read: (user) => (isAdmin(user) ? {} : user ? { userId: user.id } : null),
+    read: (user) => (user ? { userId: user.id } : null), // admins too: nobody reads another person's inbox
     save(user, record, existing) {
       if (isAdmin(user)) return;
       if (!user || (existing && existing.userId !== user.id)) deny();
@@ -406,10 +419,10 @@ const RESOURCES = {
         throw new HttpError(400, "Ratings go from 1 to 5 stars.");
       }
       if (isAdmin(user) || (await ownsEvent(user, record.eventId))) return;
-      // Attendees may leave one feedback entry for an event they registered for.
+      // Attendees may leave one feedback entry for an event they attended (exit verified).
       if (!user || existing) deny();
-      const ticket = await Registration.findOne({ userId: user.id, eventId: record.eventId });
-      if (!ticket) deny();
+      const ticket = await Registration.findOne({ userId: user.id, eventId: record.eventId, status: "Confirmed", attendanceStatus: "Attended" });
+      if (!ticket) deny("Only attendees whose exit was verified can leave feedback.");
       if (await Feedback.exists({ userId: user.id, eventId: record.eventId })) deny("You already left feedback for this event.");
       record.userId = user.id;
       record.participant = ticket.name;
@@ -419,6 +432,10 @@ const RESOURCES = {
     model: Notification,
     scope: "manager",
     ...managerEventChild(),
+    // Only the event's manager reads them (their workspace's Event updates).
+    async read(user) {
+      return isManager(user) ? { eventId: { $in: await ownedEventIds(user) } } : null;
+    },
     async save(user, record, existing) {
       if (isAdmin(user) || (await ownsEvent(user, record.eventId))) return;
       // Attendee actions (registering, leaving feedback) notify the event's manager.
@@ -430,7 +447,17 @@ const RESOURCES = {
   // Venues: the admin keeps the list (AdminContext), everyone can read it.
   // The audit log is not here on purpose: only the server writes it (utils/audit.js), and
   // admins read it through GET /api/admin/audit-logs, so nobody can edit or delete entries.
-  venues: { model: Venue, ...publicReadAdminWrite },
+  venues: {
+    model: Venue,
+    ...publicReadAdminWrite,
+    // Events keep their venue by name, so a renamed venue renames it on its events too, and the
+    // booking check (checkVenue) keeps finding them.
+    async afterSave(saved) {
+      for (const { before, after } of saved) {
+        if (before && after.name && before.name !== after.name) await Event.updateMany({ venue: before.name }, { $set: { venue: after.name } });
+      }
+    },
+  },
 };
 
 // An admin undid a rejection made by mistake (Rejected -> Pending): the event's manager sees it
@@ -612,7 +639,8 @@ const batch = async (req, res) => {
         existing.overwrite({ ...record, _id: id, createdAt: existing.createdAt });
         await existing.save();
       } else {
-        await model.create({ ...record, _id: id });
+        const created = await model.create({ ...record, _id: id });
+        if (resource.afterCreate) await resource.afterCreate(req.user, created);
       }
       results.push({ op: "save", id, before, after: record });
     } catch (err) {

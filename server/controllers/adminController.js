@@ -78,12 +78,13 @@ const REGISTRATION_SORTS = {
   "-name": { name: -1, _id: 1 },
 };
 
-// ?eventId &status=Confirmed|Pending|Cancelled &attendance=checked-in|not-checked-in
+// ?eventId &userId &status=Confirmed|Pending|Cancelled &attendance=checked-in|not-checked-in
 // &q (name, email, ticket code, student ID) &from &to (registration date, YYYY-MM-DD) &sort &page &limit
 const registrations = async (req, res) => {
   const { page, limit, skip } = paging(req.query);
   const filter = {};
   if (req.query.eventId) filter.eventId = text(req.query.eventId, 120);
+  if (req.query.userId) filter.userId = text(req.query.userId, 120);
   if (["Confirmed", "Pending", "Cancelled"].includes(req.query.status)) filter.status = req.query.status;
   if (req.query.attendance === "checked-in") filter.attendanceStatus = CHECKED_IN;
   else if (req.query.attendance === "not-checked-in") filter.attendanceStatus = { $not: CHECKED_IN };

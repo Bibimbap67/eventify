@@ -9,7 +9,7 @@
 /* Sidebar: a red "Admin" sticker instead of the managers' yellow one */
 .admin .manager-brand > span { color: var(--on-red); background: var(--red); }
 
-.admin-sidebar__foot { display: grid; gap: 10px; }
+.admin .manager-sidebar__foot { display: grid; gap: 10px; }
 .admin .admin-collapse:hover { color: var(--color-cream); background: rgb(255 253 245 / 0.1); }
 .admin .admin-collapse { border-style: dashed; }
 
@@ -31,11 +31,11 @@
   .admin--collapsed .manager-nav__heading { height: 2px; margin: 4px 6px; padding: 0; overflow: hidden; color: transparent; background: rgb(255 253 245 / 0.18); }
   .admin--collapsed .manager-nav__link { position: relative; justify-content: center; padding: 5px 0; }
   .admin--collapsed .manager-nav__badge { position: absolute; top: -6px; right: -4px; min-width: 20px; padding: 0 5px; }
-  .admin--collapsed .admin-sidebar__foot { padding-inline: 12px; }
-  .admin--collapsed .admin-sidebar__foot button { padding: 0; }
+  .admin--collapsed .manager-sidebar__foot { padding-inline: 12px; }
+  .admin--collapsed .manager-sidebar__foot button { padding: 0; }
 
   .admin--collapsed .manager-nav__label,
-  .admin--collapsed .admin-sidebar__foot span {
+  .admin--collapsed .manager-sidebar__foot span {
     position: absolute;
     width: 1px;
     height: 1px;

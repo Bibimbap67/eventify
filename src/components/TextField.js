@@ -14,12 +14,6 @@ export default function TextField({
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === "password";
 
-  // Add the error class only when there is an error
-  let inputClass = "field__input";
-  if (error) {
-    inputClass = "field__input field__input--error";
-  }
-
   return (
     <div className="field">
       <label htmlFor={id} className="field__label">
@@ -30,7 +24,7 @@ export default function TextField({
           id={id}
           name={id}
           type={isPassword && showPassword ? "text" : type}
-          className={inputClass}
+          className={`field__input${error ? " field__input--error" : ""}`}
           value={value}
           onChange={onChange}
           autoComplete={autoComplete}

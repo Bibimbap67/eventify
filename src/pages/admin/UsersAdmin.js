@@ -11,6 +11,7 @@ import { Avatar, SectionHeading, StatusBadge, Table, plural } from "../../compon
 import {
   LoadError, Pagination, ROLES, SearchFilter, formatDate, formatDateTime, roleLabel, toQuery, useApi, useFilters,
 } from "../../components/admin/parts.js";
+import { EMAIL_RE } from "../../data/options.js";
 
 const PAGE_SIZE = 20;
 const DEFAULTS = { role: "", status: "", q: "", sort: "-createdAt", page: "1" };
@@ -23,7 +24,6 @@ const SORTS = [
   ["role", "Role"],
 ];
 const COLUMNS = ["User", "Role", "Status", "Joined", "Actions"];
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PROFILE_FIELDS = [["studentId", "Student ID"], ["department", "Department"], ["program", "Program"], ["yearLevel", "Year level"], ["phone", "Phone"]];
 
 export default function UsersAdmin() {
@@ -228,9 +228,8 @@ function useOwnedEvents(user) {
 }
 
 function UserDetails({ user, self, onClose, onEdit }) {
-  const { db } = useAdmin();
   const owned = useOwnedEvents(user);
-  const registrations = db.registrations.filter((item) => item.userId === user.id && item.status !== "Cancelled").length;
+  const { data: tickets } = useApi(user.role === "user" ? `/admin/registrations?${toQuery({ userId: user.id, status: "Confirmed", limit: 1 })}` : null);
   const facts = [
     ["Email", user.email],
     ["Role", roleLabel(user.role)],
@@ -239,7 +238,7 @@ function UserDetails({ user, self, onClose, onEdit }) {
     ["Last updated", formatDateTime(user.updatedAt)],
     ...PROFILE_FIELDS.filter(([key]) => user[key]).map(([key, label]) => [label, user[key]]),
     ...(user.role === "manager" ? [["Events managed", plural(owned.length, "event")]] : []),
-    ...(user.role === "user" ? [["Active registrations", registrations]] : []),
+    ...(user.role === "user" ? [["Active registrations", tickets ? tickets.total : "…"]] : []),
   ];
   return (
     <Modal title={user.name} onClose={onClose} className="admin-dialog">

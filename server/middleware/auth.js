@@ -8,10 +8,10 @@ async function userFromToken(req) {
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) return null;
   const payload = jwt.verify(token, process.env.JWT_SECRET);
-  const user = await User.findById(payload.id);
+  const user = await User.findById(payload.id).select("+sessionId");
   if (!user || user.status === "inactive") return null;
   // An admin's token works only until the account signs in again somewhere (authController login).
-  if (user.role === "admin" && !(await User.exists({ _id: user._id, sessionId: payload.sid ?? null }))) {
+  if (user.role === "admin" && (user.sessionId ?? null) !== (payload.sid ?? null)) {
     throw new Error(SIGNED_IN_ELSEWHERE);
   }
   return user;

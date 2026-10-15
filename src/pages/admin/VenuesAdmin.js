@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAdmin } from "../../context/AdminContext.js";
+import { useManager } from "../../context/ManagerContext.js";
 import Icon from "../../components/Icon.js";
 import { ConfirmModal, Modal } from "../../components/Modal.js";
 import { TableSkeleton } from "../../components/Skeleton.js";
@@ -12,6 +13,7 @@ const BLANK = { name: "", location: "", capacity: "" };
 
 export default function VenuesAdmin() {
   const { db, venuesReady, add, update, remove, toast } = useAdmin();
+  const { reloadManagerData } = useManager();
   const [filters, setFilters] = useFilters(DEFAULTS);
   const [editing, setEditing] = useState(null); // venue | "new" | null
   const [deleting, setDeleting] = useState(null);
@@ -80,6 +82,8 @@ export default function VenuesAdmin() {
           onSave={(data) => {
             if (editing === "new") add("venues", data);
             else update("venues", editing.id, data);
+            // The server renames the venue on its events too; read them again (after the save) to show it.
+            if (editing !== "new" && data.name !== editing.name) reloadManagerData();
             toast(editing === "new" ? `${data.name} added.` : `${data.name} updated.`);
             setEditing(null);
           }}

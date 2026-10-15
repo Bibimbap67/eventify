@@ -95,14 +95,15 @@ const getTicket = async (req, res) => {
   if (!registration || (req.user.role !== "admin" && registration.userId !== req.user.id)) {
     return res.status(404).json({ message: "Ticket not found." });
   }
+  let fresh = registration;
   if (!registration.ticketToken) {
     // Only fills an empty token, so two tabs opening the pass at once agree on one code.
     await Registration.updateOne(
       { _id: registration._id, ticketToken: null },
       { $set: { ticketToken: crypto.randomBytes(16).toString("hex") } }
     );
+    fresh = await Registration.findById(registration._id);
   }
-  const fresh = await Registration.findById(registration._id);
   res.json({
     qr: QR_PREFIX + fresh.ticketToken,
     attendanceStatus: fresh.attendanceStatus || "Not Checked In",

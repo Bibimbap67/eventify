@@ -3,13 +3,8 @@ import React from "react";
 // The mark: a calendar page with a solid header band, binder rings and a bold check
 // (an event you're confirmed for). The same drawing is public/favicon.svg.
 export default function Logo({ dark = false }) {
-  let logoClass = "logo";
-  if (dark) {
-    logoClass = "logo logo--dark";
-  }
-
   return (
-    <div className={logoClass}>
+    <div className={`logo${dark ? " logo--dark" : ""}`}>
       <span className="logo__mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="24" height="24" focusable="false">
           <rect className="logo__paper" x="3" y="5" width="18" height="16" stroke="currentColor" strokeWidth="2" />

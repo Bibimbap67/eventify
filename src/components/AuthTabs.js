@@ -1,46 +1,22 @@
 import React from "react";
 
+const TABS = [["signin", "SIGN IN"], ["signup", "CREATE ACCOUNT"]];
+
 export default function AuthTabs({ mode, onChange }) {
-  // Class names for each tab
-  let signInClass = "auth-tabs__tab";
-  if (mode === "signin") {
-    signInClass = "auth-tabs__tab auth-tabs__tab--active";
-  }
-
-  let signUpClass = "auth-tabs__tab";
-  if (mode === "signup") {
-    signUpClass = "auth-tabs__tab auth-tabs__tab--active";
-  }
-
-  // Event handlers
-  const handleSignInClick = () => {
-    onChange("signin");
-  };
-
-  const handleSignUpClick = () => {
-    onChange("signup");
-  };
-
   return (
     <div className="auth-tabs" role="tablist" aria-label="Authentication mode" data-mode={mode}>
-      <button
-        role="tab"
-        aria-selected={mode === "signin"}
-        className={signInClass}
-        onClick={handleSignInClick}
-        type="button"
-      >
-        SIGN IN
-      </button>
-      <button
-        role="tab"
-        aria-selected={mode === "signup"}
-        className={signUpClass}
-        onClick={handleSignUpClick}
-        type="button"
-      >
-        CREATE ACCOUNT
-      </button>
+      {TABS.map(([value, label]) => (
+        <button
+          key={value}
+          role="tab"
+          aria-selected={mode === value}
+          className={`auth-tabs__tab${mode === value ? " auth-tabs__tab--active" : ""}`}
+          onClick={() => onChange(value)}
+          type="button"
+        >
+          {label}
+        </button>
+      ))}
     </div>
   );
 }

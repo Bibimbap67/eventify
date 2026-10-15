@@ -19,7 +19,7 @@
    ```
    BrowserRouter
    └─ AuthProvider        → restores the session from the saved token (GET /api/auth/me)
-         └─ ManagerProvider → loads every event (manager- or admin-made) and its registrations/sessions/announcements/feedback/notifications from /api/data/manager-*
+         └─ ManagerProvider → loads the events, registrations, sessions, announcements, feedback and notifications the user may see from /api/data/manager-* (admins read registrations a page at a time from /api/admin instead)
             └─ EventProvider → loads the attendee's certificates and notifications,
                               and DERIVES the public event list from those events
                └─ App      → <Routes>
@@ -47,7 +47,7 @@
    | Zone | Routes | Guard |
    |---|---|---|
    | **Public** | `/` (Home), `/login`, `/events`, `/events/:id`, `/calendar`, `/verify`, `/verify/:credentialId` | None |
-   | **Attendee** (`role: user`) | `/my-events`, `/schedule`, `/attendance`, `/certificates`, `/notifications`, `/profile`, `/workspace`, `/exit/:eventId` (where the exit QR leads) | `requiredRole="user"` |
+   | **Attendee** (`role: user`) | `/my-events`, `/schedule`, `/attendance`, `/certificates`, `/notifications`, `/profile`, `/exit/:eventId` (where the exit QR leads) | `requiredRole="user"` |
    | **Staff** (`role: staff`) | `/staff` (check-in desk + exit QR) | `requiredRole="staff"` |
    | **Admin** (`role: admin`) | `/admin` → Dashboard, `users`, `events`, `venues`, `reports`, `registrations`, `certificates`, `audit-logs`, `settings` (old `attendance`, `sessions`, `announcements`, `feedback` links redirect) | `requiredRole="admin"` + `AdminProvider` + `AdminLayout` (sidebar + `<Outlet/>`) |
    | **Manager** (`role: manager`) | `/manager` → Overview, `events`, `events/:eventId[/:tab]`, `registrations`, `attendance`, `schedule`, `participants`, `announcements`, `feedback`, `reports` | `requiredRole="manager"` + `ManagerLayout` → one page file each in `src/pages/manager/` |

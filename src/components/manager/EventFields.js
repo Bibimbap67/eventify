@@ -3,6 +3,7 @@ import Icon from "../Icon.js";
 import Spinner from "../Spinner.js";
 import { useManager } from "../../context/ManagerContext.js";
 import { EVENT_CATEGORIES } from "../../data/options.js";
+import { LIVE_STATUSES } from "../../data/eventStatus.js";
 import { api } from "../../api.js";
 import { checkInOpensAt, eventEndsAt } from "../../data/checkIn.js";
 import { addMinutes, formatTime, timeRange, toMinutes } from "../../data/time.js";
@@ -139,4 +140,3 @@ export function OvertimeButtons({ event, endTime, onExtend }) {
     </div>
   );
 }
-const LIVE_STATUSES = ["Registration Open", "Published", "Approved", "Registration Closed", "Ongoing"];

@@ -8,8 +8,8 @@ import TextField from "../../components/TextField.js";
 import Button from "../../components/Button.js";
 import Shape from "../../components/landing/Shapes.js";
 import { prefersReducedMotion } from "../../components/Motion.js";
+import { EMAIL_RE } from "../../data/options.js";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STAMP_MS = 700; // time to show the "Admitted" stamp before leaving the page
 const QR_SIZE = 15;
 

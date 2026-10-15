@@ -9,6 +9,7 @@ import { ExitScanButton } from "../../components/attendee/ExitScan.js";
 import { seatOf } from "../../data/seating.js";
 import { attendanceKey, isCheckedIn } from "../../data/checkIn.js";
 import { formatTimesIn } from "../../data/time.js";
+import { eventStillOn } from "../../data/eventStatus.js";
 
 export default function AttendancePage() {
   const entering = useEntering();
@@ -17,7 +18,8 @@ export default function AttendancePage() {
 
   const confirmedRegs = registrations.filter((r) => r.status === "Confirmed" && events.find((event) => event.id === r.eventId)?.status !== "CANCELLED");
   const checkedInCount = confirmedRegs.filter(isCheckedIn).length;
-  const pendingCount = confirmedRegs.length - checkedInCount;
+  // Only an event still to come can be checked in for; a finished one the student missed isn't pending.
+  const pendingCount = confirmedRegs.filter((r) => !isCheckedIn(r) && eventStillOn(events.find((event) => event.id === r.eventId))).length;
 
   return (
     <div className="attendance-page">

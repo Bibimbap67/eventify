@@ -35,6 +35,9 @@ const userSchema = new mongoose.Schema(
         delete ret._id;
         delete ret.__v;
         delete ret.password;
+        delete ret.sessionId; // loaded for the admin sign-in check (middleware/auth.js), never sent out
+        delete ret.resetTokenHash;
+        delete ret.resetTokenExpires;
         return ret;
       },
     },

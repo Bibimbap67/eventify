@@ -1,3 +1,6 @@
+// A plausible email address. Same rule as EMAIL_RE in server/utils/input.js.
+export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export const EVENT_CATEGORIES = [
   "All",
   "Technology",

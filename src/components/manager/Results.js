@@ -1,5 +1,5 @@
 import React from "react";
-import { Pagination, usePaged } from "../admin/parts.js";
+import { Pagination, downloadCsv, usePaged } from "../admin/parts.js";
 import Icon from "../Icon.js";
 import FeedbackSummary, { Stars } from "../FeedbackSummary.js";
 import { EmptyState, Metric, PersonCell, SectionHeading, StatusBadge, countRegistrations, getAttendance, plural } from "../ui.js";
@@ -51,22 +51,14 @@ export function ReportPanel({ event, registrations, feedback, sessions, eyebrow 
   const count = countRegistrations(event.id, registrations);
   const attendance = getAttendance(event.id, registrations);
   const absenceCount = attendance.confirmed.length - attendance.checkedIn.length;
-  const average = feedback.length ? feedback.reduce((sum, item) => sum + item.rating, 0) / feedback.length : null;
+  const { average } = summarizeFeedback(feedback);
 
   function exportCsv() {
-    const rows = [
+    downloadCsv(
+      `${event.id}-report.csv`,
       ["Event", "Registration count", "Capacity", "Checked in", "Absences", "Attendance %", "Feedback average", "Status"],
-      [event.title, count, event.capacity, attendance.checkedIn.length, absenceCount, attendance.percentage, average?.toFixed(1) || "", event.status],
-    ];
-    const csv = rows.map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\r\n");
-    const link = document.createElement("a");
-    const objectUrl = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    link.href = objectUrl;
-    link.download = `${event.id}-report.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      [[event.title, count, event.capacity, attendance.checkedIn.length, absenceCount, attendance.percentage, average?.toFixed(1) || "", event.status]]
+    );
   }
 
   return (
