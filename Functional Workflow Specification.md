@@ -36,7 +36,7 @@
       │
       ▼
    ProtectedRoute check
-      ├─ initializing? ────────► render nothing (wait for session restore)
+      ├─ initializing? ────────► show a loading skeleton (wait for session restore)
       ├─ no user? ─────────────► redirect → /login
       ├─ wrong role? ──────────► admin → /admin, staff → /staff, others → /events
       └─ OK ───────────────────► render page
@@ -46,8 +46,9 @@
 
    | Zone | Routes | Guard |
    |---|---|---|
-   | **Public** | `/` (Home), `/login`, `/events`, `/events/:id`, `/calendar`, `/verify`, `/verify/:credentialId` | None |
-   | **Attendee** (`role: user`) | `/my-events`, `/schedule`, `/attendance`, `/certificates`, `/notifications`, `/profile`, `/exit/:eventId` (where the exit QR leads) | `requiredRole="user"` |
+   | **Public** | `/` (Home), `/login`, `/reset-password/:token` (the link in the reset email), `/events`, `/events/:id`, `/calendar`, `/verify`, `/verify/:credentialId` | None |
+   | **Any signed-in role** | `/profile` (own name, email, password, profile fields) | `ProtectedRoute` with no role |
+   | **Attendee** (`role: user`) | `/my-events`, `/schedule`, `/attendance`, `/certificates`, `/notifications`, `/exit/:eventId` (where the exit QR leads) | `requiredRole="user"` |
    | **Staff** (`role: staff`) | `/staff` (check-in desk + exit QR) | `requiredRole="staff"` |
    | **Admin** (`role: admin`) | `/admin` → Dashboard, `users`, `events`, `venues`, `reports`, `registrations`, `certificates`, `audit-logs`, `settings` (old `attendance`, `sessions`, `announcements`, `feedback` links redirect) | `requiredRole="admin"` + `AdminProvider` + `AdminLayout` (sidebar + `<Outlet/>`) |
    | **Manager** (`role: manager`) | `/manager` → Overview, `events`, `events/:eventId[/:tab]`, `registrations`, `attendance`, `schedule`, `participants`, `announcements`, `feedback`, `reports` | `requiredRole="manager"` + `ManagerLayout` → one page file each in `src/pages/manager/` |
@@ -66,7 +67,11 @@
       └─ token saved in localStorage; every API call sends it as "Authorization: Bearer <token>"
    ```
 
-   Public signup always creates a `user` (attendee). Admin and manager accounts come from `npm run seed` or the Admin > Users page. Inactive accounts cannot sign in.
+   Public signup always creates a `user` (attendee). Admin, manager and staff accounts come from `npm run seed` or the Admin > Users page. Inactive accounts cannot sign in.
+
+   - **Login limit:** after 10 wrong passwords for one email, sign-in for it is refused for 15 minutes (`server/utils/loginLimit.js`). A password reset ends the wait.
+   - **Forgot password:** `POST /api/auth/forgot-password` emails a link to `/reset-password/:token` (works once, for 30 minutes; at most one email a minute per account; the same answer whether or not the email has an account). `POST /api/auth/reset-password` saves the new password.
+   - **One admin session:** signing in as an admin signs that account out on any other device (the token carries a session id the server checks).
 
    ---
 
@@ -97,6 +102,7 @@
       │
       ▼
    FeedbackModal ──► submitFeedback() → routed to manager's feedback list
+      │              (only for an Attended ticket, once per event, ratings 1–5 stars)
       │
       ▼
    NotificationsPage / ProfilePage (mark read, update profile)
@@ -113,23 +119,29 @@
       │
       ├─ Overview      → stats across assigned events
       ├─ My Events ──► createEvent() → status "Pending"
-      │                    │
+      │                    │  server checks: venue from the admin's list, capacity ≤ the venue's,
+      │                    │  date today or later, venue not already booked at that time
       │                    ▼  (waits for Admin approval)
-      │                 Approved / Published → becomes publicly visible
+      │                 Approved → "Registration Open" → becomes publicly visible
       │                    │
       ├─ Event Workspace (/manager/events/:eventId/:tab)
-      │     ├─ Sessions (saveSession / deleteSession)
-      │     ├─ Announcements (addAnnouncement → auto-generates notification when Published)
-      │     ├─ Registrations (updateRegistration: confirm/cancel)
-      │     ├─ Attendance (check-in management; "Mark exited" → POST /api/registrations/:id/exit, audited)
-      │     ├─ Participants / Feedback (attendee submissions)
+      │     ├─ Overview
+      │     ├─ Details (edit the event; Overtime buttons +5/10/20/30 min push the end time back)
+      │     ├─ Schedule (saveSession / deleteSession)
+      │     ├─ Participants (registrations, check-in; "Mark exited" → POST /api/registrations/:id/exit, audited)
+      │     ├─ Announcements (addAnnouncement → when Published, the server notifies and emails every ticket holder)
+      │     ├─ Feedback (attendee submissions)
       │     └─ Reports
       │
-      └─ completeEvent() → status "Completed"
-            └─ attendance is not changed: only exit-verified ("Attended") tickets get certificates
+      ├─ completeEvent() → status "Completed" (only once the Admin approved the event)
+      │     └─ attendance is not changed: only exit-verified ("Attended") tickets get certificates
+      │
+      └─ Cancel (any time) · Archive (a Completed or Cancelled event)
    ```
 
    Lists: Registrations and Participants show 25 a page, past and archived events 12, feedback comments and announcements 10. The event-day check-in roster is never paged.
+
+   Overtime also moves the auto-complete time and the exit verification window, since both follow the event's end time.
 
    ---
 
@@ -160,7 +172,7 @@
 
    ## 🛡️ 7. Admin Workflow (platform-wide jobs only)
 
-   Running a single event (registrations, check-in, sessions, announcements) belongs to its Event Manager; the admin oversees it read-only.
+   Running a single event (registrations, check-in, sessions) belongs to its Event Manager. The admin oversees it; from an event's details the admin can still post announcements, add overtime, and Mark exited a checked-in attendee.
 
    ```
    AdminLayout sidebar (grouped, collapsible)
@@ -173,11 +185,15 @@
       │             │     Saved:   Pending → Registration Open → Completed
       │             │     Admin:   Pending → Published → Completed
       │             │     Public:  REGISTRATION OPEN → COMPLETED
+      │             │  • Approve saves "Registration Open" straight away (AdminContext.toSavedPatch),
+      │             │    so registration opens on approval, for every event
+      │             │  • Cancel (Approved/Published), Archive (Completed/Rejected/Cancelled),
+      │             │    Restore (Archived → the status it had before)
       │             │  • An admin's new event saves through ManagerContext, owned by that admin
       │             │  • Reject has an Undo (toast button, and "Undo rejection" on rejected rows):
       │             │    Rejected → Pending, and the server notifies the event's manager
       │             │  • 25 events a page (Reports too; its totals and CSV cover every event)
-      │             │  • Details (read-only sessions, speakers, announcements): GET /api/admin/events/:id
+      │             │  • Details (read-only sessions and speakers; announcements can be posted, overtime added)
       │             Venues ────────────► AdminContext (venues collection)
       ├─ Oversight  Reports ───────────► GET /api/admin/reports/events (per-event totals, CSV export)
       │             Registrations ─────► GET /api/admin/registrations (read-only, filtered, paged)
@@ -187,7 +203,7 @@
                                          POST /api/auth/password, GET /api/admin/export
    ```
 
-   **Audit log:** written only by the server (`server/utils/audit.js`). The actor comes from the signed-in user's token, the time is the document's `createdAt`, and each entry records its outcome (`success`, `failed` or `denied`). Users, settings, the admin's own profile and password, and every admin write through `/api/data/:resource/batch` are recorded, as are non-admins refused on admin APIs or admin-only records. There is no API to edit or delete entries. `npm run selftest:admin` (in `/server`) checks these rules.
+   **Audit log:** written only by the server (`server/utils/audit.js`). The actor comes from the signed-in user's token, the time is the document's `createdAt`, and each entry records its outcome (`success`, `failed` or `denied`). Users, settings, the admin's own profile and password, and every admin write through `/api/data/:resource/batch` are recorded, as are non-admins refused on admin APIs or admin-only records. There is no API to edit or delete entries. `npm test` (in `/server`, `tests/rules.test.js`) checks these rules.
 
    ---
 
@@ -203,9 +219,9 @@
    | `exitpasses` | `/api/staff/events/:id/exit` (staff only) | server | the current exit QR code of each event, its expiry, and whether exit is running |
    | `certificates` | `certificates` (read-only; the server issues them); public check `GET /api/certificates/verify/:credentialId` | EventContext | issued certificates |
    | `notifications` | `notifications` (scope `attendee`), `manager-notifications` (scope `manager`) | EventContext / ManagerContext | attendee and manager notifications |
-   | `sessions` | `manager-sessions` (the admin-scope `sessions` resource is no longer used by any screen) | ManagerContext | sessions & speakers |
-   | `announcements` | `manager-announcements` (admin-scope `announcements` likewise unused) | ManagerContext | announcements |
-   | `feedback` | `manager-feedback` (admin-scope `feedback` likewise unused) | ManagerContext | feedback ratings and comments |
+   | `sessions` | `manager-sessions` | ManagerContext | sessions & speakers |
+   | `announcements` | `manager-announcements` | ManagerContext | announcements |
+   | `feedback` | `manager-feedback` | ManagerContext | feedback ratings and comments |
    | `venues` | `venues` | AdminContext (managers read the names) | venues |
    | `auditlogs` | read: `GET /api/admin/audit-logs`; written only by the server | server | admin activity log |
    | `settings` | `/api/settings` | AdminContext | one document (`_id: "global"`): organization name, academic term, default capacity |
@@ -214,7 +230,7 @@
 
    **Paging:** lists already in memory use `usePaged` + `Pagination` (`src/components/admin/parts.js`); the bar only shows when a list is longer than one page, and a new search, filter or tab goes back to page 1. Users, Registrations and the Audit log are paged by the server.
 
-   **Cross-context sync:** The public event list is *derived* — `EventContext.events` is a `useMemo` that maps `ManagerContext` events through a status filter (`Registration Open`/`Published`/`Approved`/`Completed` only), so every event appears publicly once approved, whoever made it.
+   **Cross-context sync:** The public event list is *derived* — `EventContext.events` is a `useMemo` that maps `ManagerContext` events through a status filter (`Registration Open`/`Published`/`Approved`/`Completed`, from `SAVED_TO_PUBLIC` in `src/data/eventStatus.js`), so every event appears publicly once approved, whoever made it. A `Cancelled` event is also kept, but only for attendees who held a ticket to it, so they see it was called off.
 
    ---
 

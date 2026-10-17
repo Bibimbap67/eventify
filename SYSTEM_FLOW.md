@@ -29,9 +29,9 @@ Every account has one role. The role decides which pages a person can open.
 | Role | What they can do |
 |---|---|
 | **Attendee** | Find and join events, pick a seat, show a QR ticket, scan the exit QR when leaving, give feedback, get certificates |
-| **Event Manager** | Make events, plan sessions, post announcements, see who joined, mark someone as exited if they couldn't scan, read feedback and reports |
+| **Event Manager** | Make events, plan sessions, post announcements, add overtime, see who joined, mark someone as exited if they couldn't scan, read feedback and reports |
 | **Staff** | Open the check-in desk, scan QR tickets at the door, and show the exit QR when the event ends |
-| **Admin** | Approve or reject events (and undo a rejection), manage users, venues, and settings, and see everything |
+| **Admin** | Approve or reject events (and undo a rejection), manage users, venues, and settings, and see everything. On any event they can also post announcements, add overtime, and mark someone as exited |
 
 > Anyone can sign up, but a new account is always an **Attendee**.
 > Only the Admin can make Event Manager, Staff, or Admin accounts.
@@ -138,26 +138,56 @@ Anyone can look at events without an account. You only need to log in when you w
 - The browser shows the login pass every time it asks the server for something.
 - Passwords are saved in a scrambled form (hashed), never as plain text.
 - After 10 wrong passwords for one email, signing in to it waits 15 minutes. Resetting the password ends the wait.
+- An Admin account can be signed in on one device at a time. Signing in somewhere new signs out the old device.
+
+### Forgot password
+
+```
+[ Click "Forgot password?" and type your email ]
+  |
+  v
+< Email looks right? > --No--> (STOP) "Enter a valid email address."
+  | Yes
+  v
+[ The same message shows either way: "If an account uses that email, we sent it a link..." ]
+  |
+  v
+< Is there an active account with this email? > --No--> nothing is sent
+  | Yes
+  v
+[ Email a reset link (at most one a minute) ]
+  |
+  v
+[ Open the link and type a new password (6 or more characters) ]
+  |
+  v
+< Link used before, or older than 30 minutes? > --Yes--> (STOP) "This reset link is invalid or has expired. Ask for a new one."
+  | No
+  v
+(OK) Password saved. Log in with the new password
+```
 
 ---
 
 ## Flow 3: Life of an event
 
-An event moves through these steps. Attendees can only join when it is **Published**.
+An event moves through these steps. Attendees can only join when it is **Published** (shown as "Registration Open").
 
 ```
 [ Event Manager makes an event ]
   |
+  v
+< Venue from the Admin's list, capacity fits the venue, date today or later, venue free at that time? >
+  |
+  +-- No --> (STOP) Show what to fix
+  |
+  | Yes
   v
 < PENDING: the Admin checks it >
   |
   +-- Admin says no --> REJECTED --(Admin clicks Undo)--> back to PENDING, and the Manager is told
   |
   | Admin says yes
-  v
-[ APPROVED: people see "Opens Soon" ]
-  |
-  | Admin publishes it
   v
 [ PUBLISHED: "Registration Open", people can join ]
   |
@@ -168,19 +198,20 @@ An event moves through these steps. Attendees can only join when it is **Publish
 
 | Status | What it means | Who can set it |
 |---|---|---|
-| Pending | Waiting for the Admin | Set by itself when a Manager makes an event |
-| Approved | Allowed, but not open to join yet | Admin |
-| Published | Open, people can join | Admin |
+| Pending | Waiting for the Admin | Set by itself when an event is made |
+| Published | Open, people can join | Admin (by approving the event) |
 | Completed | The event is over | Set by itself when the end time passes, or by the Admin, or by the event's own Manager once the Admin approved it |
 | Cancelled | The event will not happen | Admin, or the event's own Manager |
 | Rejected | The Admin said no. The Admin can undo it: the event goes back to Pending and its Manager gets a notice | Admin |
-| Archived | Old event, put away | Admin |
+| Archived | Old event, put away. The Admin can restore it to the status it had before | Admin (a completed, rejected or cancelled event), or the event's own Manager (a completed or cancelled event) |
 
 **Good to know**
 
-- For an event made by a Manager, "Admin says yes" opens registration right away.
-- Admins can also make events themselves.
-- Deleting an event also deletes its tickets, certificates, sessions, announcements, and feedback.
+- "Admin says yes" opens registration right away, for every event.
+- Admins can also make events themselves. These also start as Pending.
+- Running late? The Manager (or the Admin) can add 5, 10, 20 or 30 minutes of **overtime**. This moves the end time, so the event completes later and the exit QR window moves with it.
+- Deleting an event also deletes its tickets, certificates, notifications, sessions, announcements, and feedback.
+- One venue holds one event at a time, and an event can't have more people than its venue holds.
 - Renaming a venue renames it on the events booked there, so the double-booking check keeps working.
 
 ---
@@ -255,13 +286,16 @@ Staff scan each ticket with the camera. The server checks the ticket and tells t
 < Is it an Eventify ticket? > --No--> (STOP) "This QR code is not an Eventify ticket."
   | Yes
   v
-< Is the ticket in the system? > --No--> (STOP) "Ticket not found. It may be fake."
+< Is the ticket in the system? > --No--> (STOP) "Ticket not found. It may be fake, or it was reissued."
+  | Yes
+  v
+< Does its event still exist? > --No--> (STOP) "The event on this ticket no longer exists."
   | Yes
   v
 < Is it for this event? > --No--> (STOP) "Wrong event."
   | Yes
   v
-< Is the ticket still Confirmed? > --No--> (STOP) "This ticket was cancelled."
+< Is the ticket still Confirmed? > --No--> (STOP) "This ticket was cancelled." (or "This registration is <status>.")
   | Yes
   v
 < Is the event still open? > --No--> (STOP) "Check-in is closed."
@@ -337,7 +371,7 @@ A certificate needs proof that the person stayed, so attendees scan an exit QR o
 - If two people scan the same code at the same moment, only one gets through. The other scans the new code.
 - A failed scan does **not** use up the code on screen.
 - The staff screen shows how many people have exited, and the last few names.
-- If someone could not scan (for example, their phone died), the event's **Manager** can click **Mark exited** on a checked-in person. It is saved in the activity log with the Manager's name.
+- If someone could not scan (for example, their phone died), the event's **Manager** (or an Admin) can click **Mark exited** on a checked-in person, once exit verification has opened. It is saved in the activity log with their name.
 - Someone who checks in but never exits stays "Checked in" and gets **no certificate**.
 
 ---
@@ -353,7 +387,7 @@ A certificate needs proof that the person stayed, so attendees scan an exit QR o
   v
 [ The server makes the certificate by itself ]
   |
-  +-------> [ "Give Feedback": 1 to 5 stars and a comment, once ] ---> the organizer reads it
+  +-------> [ "Give Feedback": 1 to 5 stars and a comment, once, only after a verified exit ] ---> the organizer reads it
   |
   v
 (OK) Attendee sees it on the Certificates page
@@ -365,6 +399,7 @@ A certificate needs proof that the person stayed, so attendees scan an exit QR o
 - Each person gets only one certificate per event.
 - Only the server makes certificates, using its own records, so nobody can change the name, event or hours on one.
 - The Certificates page has a search (event name, organizer, or credential ID) and shows 10 at a time.
+- When a Manager publishes an announcement, everyone with a ticket gets a notice in Eventify and an email.
 
 ---
 
