@@ -88,8 +88,11 @@ export function CountUp({ value }) {
       // The first frame's timestamp can be slightly before `start`; clamp so it never shows a negative number.
       const t = Math.min(1, Math.max(0, (now - start) / DURATION_COUNT));
       el.textContent = String(Math.round(target * (1 - Math.pow(1 - t, 3))));
-      if (t < 1) frame = requestAnimationFrame(tick);
-      else finished = true;
+      if (t < 1) {
+        frame = requestAnimationFrame(tick);
+      } else {
+        finished = true;
+      }
     };
     el.textContent = "0";
     frame = requestAnimationFrame(tick);

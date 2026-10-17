@@ -135,8 +135,11 @@ export default function EventsPage() {
               onChange={(e) => {
                 setQuery(e.target.value);
                 setSearchParams((prev) => {
-                  if (e.target.value) prev.set("q", e.target.value);
-                  else prev.delete("q");
+                  if (e.target.value) {
+                    prev.set("q", e.target.value);
+                  } else {
+                    prev.delete("q");
+                  }
                   return prev;
                 });
               }}
@@ -169,8 +172,11 @@ export default function EventsPage() {
                 onChange={(e) => {
                   setCategory(e.target.value);
                   setSearchParams((prev) => {
-                    if (e.target.value !== "All") prev.set("category", e.target.value);
-                    else prev.delete("category");
+                    if (e.target.value !== "All") {
+                      prev.set("category", e.target.value);
+                    } else {
+                      prev.delete("category");
+                    }
                     return prev;
                   });
                 }}

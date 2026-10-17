@@ -80,8 +80,11 @@ export default function VenuesAdmin() {
           inUse={editing === "new" ? 0 : eventsAt(editing).length}
           onClose={() => setEditing(null)}
           onSave={(data) => {
-            if (editing === "new") add("venues", data);
-            else update("venues", editing.id, data);
+            if (editing === "new") {
+              add("venues", data);
+            } else {
+              update("venues", editing.id, data);
+            }
             // The server renames the venue on its events too; read them again (after the save) to show it.
             if (editing !== "new" && data.name !== editing.name) reloadManagerData();
             toast(editing === "new" ? `${data.name} added.` : `${data.name} updated.`);
@@ -98,8 +101,9 @@ export default function VenuesAdmin() {
           onCancel={() => setDeleting(null)}
           onConfirm={() => {
             // Checked again in case an event was booked here while the dialog was open.
-            if (upcomingAt(deleting).length) toast(`${deleting.name} is booked for an upcoming event and can't be deleted.`, "error");
-            else {
+            if (upcomingAt(deleting).length) {
+              toast(`${deleting.name} is booked for an upcoming event and can't be deleted.`, "error");
+            } else {
               remove("venues", deleting.id);
               toast(`${deleting.name} deleted.`, "warning");
             }

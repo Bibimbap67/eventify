@@ -51,8 +51,11 @@ export function useFilters(defaults) {
     setParams((current) => {
       const next = new URLSearchParams(current);
       Object.entries(patch).forEach(([key, value]) => {
-        if (value === undefined || value === null || String(value) === String(defaults[key])) next.delete(key);
-        else next.set(key, value);
+        if (value === undefined || value === null || String(value) === String(defaults[key])) {
+          next.delete(key);
+        } else {
+          next.set(key, value);
+        }
       });
       if (!("page" in patch)) next.delete("page");
       return next;
@@ -129,8 +132,11 @@ export function usePaged(items, size, resetKey = "", param = null) {
     if (!param) return;
     setParams((current) => {
       const next = new URLSearchParams(current);
-      if (value > 1) next.set(param, value);
-      else next.delete(param);
+      if (value > 1) {
+        next.set(param, value);
+      } else {
+        next.delete(param);
+      }
       return next;
     }, { replace: true });
   }, [param, resetKey, setParams]);

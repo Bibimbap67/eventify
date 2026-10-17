@@ -89,8 +89,11 @@ export default function QrScanner({ onScan, paused = false }) {
     try {
       const bitmap = await createImageBitmap(file);
       const code = readQr(bitmap, bitmap.width, bitmap.height, 1400, "attemptBoth");
-      if (code) report(code, { force: true });
-      else setError("No QR code found in that image. Try a sharper photo with the whole code in view.");
+      if (code) {
+        report(code, { force: true });
+      } else {
+        setError("No QR code found in that image. Try a sharper photo with the whole code in view.");
+      }
     } catch {
       setError("That file could not be read as an image.");
     }
