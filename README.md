@@ -105,31 +105,14 @@
 ## 🔄 How an event flows
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, Segoe UI, sans-serif","fontSize":"14px","lineColor":"#8a8577","primaryTextColor":"#0a0a0a","edgeLabelBackground":"transparent"},"flowchart":{"curve":"basis","nodeSpacing":40,"rankSpacing":36,"padding":14}}}%%
 flowchart TD
-  subgraph manager["🗂️ EVENT MANAGER"]
-    A["📝 Creates an event"]
-  end
-  subgraph admin["🛡️ ADMIN"]
-    B["✅ Reviews and approves it"]
-  end
-  subgraph student["🧑‍🎓 STUDENT"]
-    C["💺 Registers and picks a seat"] --> D["🎟️ Receives a QR ticket"]
-  end
-  subgraph staff["📷 DOOR STAFF"]
-    E["🔍 Scans the ticket at check-in"] --> F["🚪 Verifies the exit QR"]
-  end
-  A --> B --> C
-  D --> E
-  F --> G(["📜 Certificate + ⭐ feedback"])
-  classDef step fill:#ffffff,stroke:#0a0a0a,stroke-width:1.5px,color:#0a0a0a
-  classDef finish fill:#ffd93d,stroke:#0a0a0a,stroke-width:1.5px,color:#0a0a0a,font-weight:bold
-  class A,B,C,D,E,F step
-  class G finish
-  style manager fill:#fff6d8,stroke:#0a0a0a,stroke-width:1px,color:#0a0a0a
-  style admin fill:#fff6d8,stroke:#0a0a0a,stroke-width:1px,color:#0a0a0a
-  style student fill:#fff6d8,stroke:#0a0a0a,stroke-width:1px,color:#0a0a0a
-  style staff fill:#fff6d8,stroke:#0a0a0a,stroke-width:1px,color:#0a0a0a
+    A([Manager creates event]) --> B{Admin review}
+    B -- Rejected --> A
+    B -- Approved --> C[Registration opens]
+    C --> D[Attendee registers<br/>and picks a seat]
+    D --> E[Staff scans QR ticket<br/>at check-in]
+    E --> F[Exit QR verified]
+    F --> G([Certificate + feedback])
 ```
 
 ## 🧰 Tech stack
