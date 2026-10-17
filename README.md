@@ -12,10 +12,11 @@
 </p>
 
 <p align="center">
-  <a href="https://eventifys.vercel.app"><img src="https://img.shields.io/badge/Live%20demo-eventifys.vercel.app-ffd93d?style=for-the-badge&logo=vercel&logoColor=0a0a0a&labelColor=0a0a0a" alt="Live demo" /></a>
-  <img src="https://img.shields.io/badge/React-19-ffd93d?style=for-the-badge&logo=react&logoColor=ffd93d&labelColor=0a0a0a" alt="React 19" />
-  <img src="https://img.shields.io/badge/Express-5-ffd93d?style=for-the-badge&logo=express&logoColor=ffd93d&labelColor=0a0a0a" alt="Express 5" />
-  <img src="https://img.shields.io/badge/MongoDB-8-ffd93d?style=for-the-badge&logo=mongodb&logoColor=ffd93d&labelColor=0a0a0a" alt="MongoDB" />
+  <a href="https://eventifys.vercel.app"><img src="https://img.shields.io/badge/Live%20demo-eventifys.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live demo" /></a>
+  <img src="https://img.shields.io/badge/Node.js-18%2B-5FA04E?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js 18+" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=white" alt="React 19" />
+  <img src="https://img.shields.io/badge/Express-5-000000?style=for-the-badge&logo=express&logoColor=white" alt="Express 5" />
+  <img src="https://img.shields.io/badge/MongoDB-8-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
 </p>
 
 <p align="center">
