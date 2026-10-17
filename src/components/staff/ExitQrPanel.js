@@ -54,7 +54,7 @@ export default function ExitQrPanel({ event, onExit }) {
     seen.current = exited;
   }, [exited, onExit]);
 
-  const run = async (method) => {
+  const sendExitQr = async (method) => {
     generation.current += 1;
     setBusy(true);
     setError("");
@@ -100,7 +100,7 @@ export default function ExitQrPanel({ event, onExit }) {
                 ))}
               </ol>
             )}
-            <button type="button" className="btn-sm btn-sm--danger" onClick={() => run("DELETE")} disabled={busy}>
+            <button type="button" className="btn-sm btn-sm--danger" onClick={() => sendExitQr("DELETE")} disabled={busy}>
               <Icon name="pause" size={16} /> Stop exit verification
             </button>
           </div>
@@ -111,7 +111,7 @@ export default function ExitQrPanel({ event, onExit }) {
             {event.title} is ending. Show the exit QR at the door so attendees can scan out and get their certificates.
             {" "}{state.exited} of {state.checkedIn} checked-in attendees have exited.
           </p>
-          <button type="button" className="btn-sm btn-sm--yellow exit-panel__start" onClick={() => run("POST")} disabled={busy}>
+          <button type="button" className="btn-sm btn-sm--yellow exit-panel__start" onClick={() => sendExitQr("POST")} disabled={busy}>
             {busy ? <Spinner /> : <Icon name="qr" size={16} />} Start Exit Verification
           </button>
         </>

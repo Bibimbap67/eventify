@@ -118,10 +118,10 @@ export default function VenuesAdmin() {
 function VenueForm({ venue, inUse, onClose, onSave }) {
   const [form, setForm] = useState(venue ? { name: venue.name, location: venue.location || "", capacity: String(venue.capacity || "") } : BLANK);
   const [errors, setErrors] = useState({});
-  const set = (key) => (e) => setForm((current) => ({ ...current, [key]: e.target.value }));
+  const handleChange = (key) => (e) => setForm((current) => ({ ...current, [key]: e.target.value }));
   const renamed = venue && form.name.trim() !== venue.name;
 
-  function submit(e) {
+  function handleSubmit(e) {
     e.preventDefault();
     const next = {};
     if (!form.name.trim()) next.name = "Enter the venue name.";
@@ -134,20 +134,20 @@ function VenueForm({ venue, inUse, onClose, onSave }) {
   return (
     <Modal title={venue ? `Edit ${venue.name}` : "Add venue"} onClose={onClose} className="admin-dialog">
       {(closeAnimated) => (
-        <form className="manager-form" onSubmit={submit} noValidate>
+        <form className="manager-form" onSubmit={handleSubmit} noValidate>
           <label className="manager-field manager-field--wide">
             Venue name
-            <input value={form.name} onChange={set("name")} aria-invalid={Boolean(errors.name)} />
+            <input value={form.name} onChange={handleChange("name")} aria-invalid={Boolean(errors.name)} />
             {errors.name && <small>{errors.name}</small>}
           </label>
           <label className="manager-field">
             Location
-            <input value={form.location} onChange={set("location")} placeholder="e.g. 4th Floor, SIT Building" aria-invalid={Boolean(errors.location)} />
+            <input value={form.location} onChange={handleChange("location")} placeholder="e.g. 4th Floor, SIT Building" aria-invalid={Boolean(errors.location)} />
             {errors.location && <small>{errors.location}</small>}
           </label>
           <label className="manager-field">
             Seating capacity
-            <input type="number" min="1" value={form.capacity} onChange={set("capacity")} aria-invalid={Boolean(errors.capacity)} />
+            <input type="number" min="1" value={form.capacity} onChange={handleChange("capacity")} aria-invalid={Boolean(errors.capacity)} />
             {errors.capacity && <small>{errors.capacity}</small>}
           </label>
           {renamed && inUse > 0 && (

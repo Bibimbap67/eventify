@@ -80,7 +80,7 @@ export default function SettingsPage() {
     setErrors((current) => ({ ...current, [key]: undefined }));
   };
 
-  async function submit(section, check, save, done) {
+  async function saveSection(section, check, save, done) {
     const next = check();
     setErrors(next);
     setServerError((current) => ({ ...current, [section]: "" }));
@@ -98,7 +98,7 @@ export default function SettingsPage() {
 
   const savePlatform = (e) => {
     e.preventDefault();
-    submit(
+    saveSection(
       "platform",
       () => checkPlatform(platform),
       () => saveSettings({ orgName: platform.orgName.trim(), academicTerm: platform.academicTerm.trim(), defaultCapacity: Number(platform.defaultCapacity) }),
@@ -111,7 +111,7 @@ export default function SettingsPage() {
 
   const saveProfile = (e) => {
     e.preventDefault();
-    submit(
+    saveSection(
       "profile",
       () => ({
         ...(!profile.name.trim() && { name: "Enter your full name." }),
@@ -127,7 +127,7 @@ export default function SettingsPage() {
 
   const savePassword = (e) => {
     e.preventDefault();
-    submit(
+    saveSection(
       "security",
       () => ({
         ...(!passwords.current && { current: "Enter your current password." }),

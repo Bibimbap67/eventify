@@ -349,7 +349,7 @@ function EventForm({ event, defaultCapacity, onClose, onSave }) {
     ? { ...event, capacity: String(event.capacity || ""), venueId: event.venueId || db.venues.find((venue) => venue.name === event.venue)?.id || "" }
     : { title: "", category: "Academic", organizer: ORGANIZERS[0], date: "", start: "", end: "", venueId: "", capacity: String(defaultCapacity || ""), seating: "free" }));
   const [errors, setErrors] = useState({});
-  const set = useCallback((key) => (e) => setForm((current) => ({ ...current, [key]: e.target.value })), []);
+  const handleChange = useCallback((key) => (e) => setForm((current) => ({ ...current, [key]: e.target.value })), []);
   const organizers = form.organizer && !ORGANIZERS.includes(form.organizer) ? [form.organizer, ...ORGANIZERS] : ORGANIZERS;
 
   function validate() {
@@ -374,7 +374,7 @@ function EventForm({ event, defaultCapacity, onClose, onSave }) {
     return !Object.keys(next).length;
   }
 
-  function submit(e) {
+  function handleSubmit(e) {
     e.preventDefault();
     if (!validate()) return;
     const { title, category, organizer, date, start, end, venueId, seating } = form;
@@ -392,32 +392,32 @@ function EventForm({ event, defaultCapacity, onClose, onSave }) {
   return (
     <Modal title={event ? `Edit ${event.title}` : "Create event"} onClose={onClose} className="admin-dialog">
       {(closeAnimated) => (
-        <form className="manager-form" onSubmit={submit} noValidate>
+        <form className="manager-form" onSubmit={handleSubmit} noValidate>
           <label className="manager-field manager-field--wide">
             Title
-            <input value={form.title} onChange={set("title")} aria-invalid={Boolean(errors.title)} />
+            <input value={form.title} onChange={handleChange("title")} aria-invalid={Boolean(errors.title)} />
             {errors.title && <small>{errors.title}</small>}
           </label>
           {field("category", "Category", (
-            <select value={form.category || "Academic"} onChange={set("category")}>
+            <select value={form.category || "Academic"} onChange={handleChange("category")}>
               {EVENT_CATEGORIES.filter((item) => item !== "All").map((item) => <option key={item}>{item}</option>)}
             </select>
           ))}
           {field("organizer", "Organizer", (
-            <select value={form.organizer} onChange={set("organizer")}>
+            <select value={form.organizer} onChange={handleChange("organizer")}>
               {organizers.map((name) => <option key={name}>{name}</option>)}
             </select>
           ))}
-          {field("date", "Date", <input type="date" value={form.date} onChange={set("date")} aria-invalid={Boolean(errors.date)} />)}
-          {field("start", "Start", <input type="time" value={form.start} onChange={set("start")} aria-invalid={Boolean(errors.start)} />)}
-          {field("end", "End", <input type="time" value={form.end} onChange={set("end")} aria-invalid={Boolean(errors.end)} />)}
+          {field("date", "Date", <input type="date" value={form.date} onChange={handleChange("date")} aria-invalid={Boolean(errors.date)} />)}
+          {field("start", "Start", <input type="time" value={form.start} onChange={handleChange("start")} aria-invalid={Boolean(errors.start)} />)}
+          {field("end", "End", <input type="time" value={form.end} onChange={handleChange("end")} aria-invalid={Boolean(errors.end)} />)}
           {field("venueId", "Venue", (
-            <select value={form.venueId} onChange={set("venueId")} aria-invalid={Boolean(errors.venueId)}>
+            <select value={form.venueId} onChange={handleChange("venueId")} aria-invalid={Boolean(errors.venueId)}>
               <option value="">Select venue</option>
               {db.venues.map((venue) => <option key={venue.id} value={venue.id}>{venue.name} ({venue.capacity})</option>)}
             </select>
           ))}
-          {field("capacity", "Capacity", <input type="number" min="1" value={form.capacity} onChange={set("capacity")} aria-invalid={Boolean(errors.capacity)} />)}
+          {field("capacity", "Capacity", <input type="number" min="1" value={form.capacity} onChange={handleChange("capacity")} aria-invalid={Boolean(errors.capacity)} />)}
           <div className="manager-field--wide">
             <SeatingField
               value={form.seating}

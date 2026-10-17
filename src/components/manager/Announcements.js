@@ -14,7 +14,7 @@ export function AnnouncementComposer({ eventId, events }) {
   const intent = useRef("Published");
   const patch = (field) => (e) => setForm((current) => ({ ...current, [field]: e.target.value }));
 
-  function submit(e) {
+  function handleSubmit(e) {
     e.preventDefault();
     if (!form.eventId || !form.title.trim() || !form.message.trim()) {
       toast(events ? "Choose an event and enter an announcement title and message." : "Announcement title and message are required.", "error");
@@ -30,7 +30,7 @@ export function AnnouncementComposer({ eventId, events }) {
   }
 
   return (
-    <form className="manager-panel manager-composer" onSubmit={submit}>
+    <form className="manager-panel manager-composer" onSubmit={handleSubmit}>
       <PanelHeader eyebrow="New announcement" title="Tell participants what changed" aside={<span className="manager-muted">Shown on the event page, and sent to every ticket holder as a notification and an email.</span>} />
       <div className="manager-form">
         {events && (

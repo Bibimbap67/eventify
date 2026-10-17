@@ -42,7 +42,7 @@ export default function UsersAdmin() {
   const filtered = filters.role || filters.status || filters.q;
 
   // Sends one change, then refreshes the page of users. Errors come back as the server's message.
-  async function run(request, success) {
+  async function runUserAction(request, success) {
     try {
       await request();
       toast(success);
@@ -178,7 +178,7 @@ export default function UsersAdmin() {
           onClose={close}
           onConfirm={(role) => {
             close();
-            run(() => api(`/users/${target.id}`, { method: "PATCH", body: { role } }), `${target.name} is now ${roleLabel(role)}.`);
+            runUserAction(() => api(`/users/${target.id}`, { method: "PATCH", body: { role } }), `${target.name} is now ${roleLabel(role)}.`);
           }}
         />
       )}
@@ -191,7 +191,7 @@ export default function UsersAdmin() {
           onCancel={close}
           onConfirm={() => {
             close();
-            run(() => api(`/users/${target.id}`, { method: "PATCH", body: { status: "active" } }), `${target.name} is active.`);
+            runUserAction(() => api(`/users/${target.id}`, { method: "PATCH", body: { status: "active" } }), `${target.name} is active.`);
           }}
         />
       ) : (
@@ -202,7 +202,7 @@ export default function UsersAdmin() {
           onCancel={close}
           onConfirm={() => {
             close();
-            run(() => api(`/users/${target.id}`, { method: "PATCH", body: { status: "inactive" } }), `${target.name} is deactivated.`);
+            runUserAction(() => api(`/users/${target.id}`, { method: "PATCH", body: { status: "inactive" } }), `${target.name} is deactivated.`);
           }}
         />
       ))}
@@ -212,7 +212,7 @@ export default function UsersAdmin() {
           onClose={close}
           onConfirm={() => {
             close();
-            run(() => api(`/users/${target.id}`, { method: "DELETE" }), `${target.name}'s account was deleted.`);
+            runUserAction(() => api(`/users/${target.id}`, { method: "DELETE" }), `${target.name}'s account was deleted.`);
           }}
         />
       )}
@@ -275,12 +275,12 @@ function UserForm({ user, onClose, onSaved }) {
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
   const [saving, setSaving] = useState(false);
-  const set = (key) => (e) => {
+  const handleChange = (key) => (e) => {
     setForm((current) => ({ ...current, [key]: e.target.value }));
     setErrors((current) => ({ ...current, [key]: undefined }));
   };
 
-  async function submit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const next = {};
     if (!form.name.trim()) next.name = "Enter the full name.";
@@ -311,20 +311,20 @@ function UserForm({ user, onClose, onSaved }) {
   return (
     <Modal title={editing ? `Edit ${user.name}` : "Add user"} onClose={onClose} className="admin-dialog">
       {(closeAnimated) => (
-        <form className="manager-form" onSubmit={submit} noValidate>
+        <form className="manager-form" onSubmit={handleSubmit} noValidate>
           <label className="manager-field manager-field--wide">
             Full name
-            <input value={form.name} onChange={set("name")} autoComplete="off" aria-invalid={Boolean(errors.name)} />
+            <input value={form.name} onChange={handleChange("name")} autoComplete="off" aria-invalid={Boolean(errors.name)} />
             {errors.name && <small>{errors.name}</small>}
           </label>
           <label className="manager-field manager-field--wide">
             Email
-            <input type="email" value={form.email} onChange={set("email")} autoComplete="off" aria-invalid={Boolean(errors.email)} />
+            <input type="email" value={form.email} onChange={handleChange("email")} autoComplete="off" aria-invalid={Boolean(errors.email)} />
             {errors.email && <small>{errors.email}</small>}
           </label>
           <label className="manager-field manager-field--wide">
             {editing ? "New password (optional)" : "Temporary password"}
-            <input type="password" value={form.password} onChange={set("password")} autoComplete="new-password" aria-invalid={Boolean(errors.password)} />
+            <input type="password" value={form.password} onChange={handleChange("password")} autoComplete="new-password" aria-invalid={Boolean(errors.password)} />
             {errors.password
               ? <small>{errors.password}</small>
               : <span className="admin-hint">{editing ? "Leave empty to keep the current password." : "At least 6 characters. Share it with the user privately."}</span>}
@@ -333,14 +333,14 @@ function UserForm({ user, onClose, onSaved }) {
             <>
               <label className="manager-field">
                 Role
-                <select value={form.role} onChange={set("role")}>
+                <select value={form.role} onChange={handleChange("role")}>
                   {ROLES.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
                 </select>
                 <span className="admin-hint">{ROLES.find((role) => role.value === form.role)?.text}</span>
               </label>
               <label className="manager-field">
                 Status
-                <select value={form.status} onChange={set("status")}>
+                <select value={form.status} onChange={handleChange("status")}>
                   <option value="active">Active: can sign in</option>
                   <option value="inactive">Inactive: can't sign in yet</option>
                 </select>

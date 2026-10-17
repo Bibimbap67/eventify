@@ -14,7 +14,7 @@ export default function CertificateModal({ certificate, onClose }) {
   const organizerLines = String(certificate.organizer || "National University - Mall of Asia").split("·");
   const name = `certificate-${fileSafe(certificate.eventTitle)}`;
 
-  const run = (action) => async () => {
+  const runDownload = (action) => async () => {
     setError("");
     try {
       await action();
@@ -108,10 +108,10 @@ export default function CertificateModal({ certificate, onClose }) {
             <button type="button" className="btn-sm" onClick={close}>
               Close
             </button>
-            <button type="button" className="btn-sm" onClick={run(() => savePng(docRef.current, `${name}.png`))}>
+            <button type="button" className="btn-sm" onClick={runDownload(() => savePng(docRef.current, `${name}.png`))}>
               <Icon name="download" size={16} /> Save as PNG
             </button>
-            <button type="button" className="btn-sm btn-sm--yellow" onClick={run(() => printNode(docRef.current, { size: "A4 landscape", title: name }))}>
+            <button type="button" className="btn-sm btn-sm--yellow" onClick={runDownload(() => printNode(docRef.current, { size: "A4 landscape", title: name }))}>
               <Icon name="print" size={16} /> Print / Save as PDF
             </button>
           </div>

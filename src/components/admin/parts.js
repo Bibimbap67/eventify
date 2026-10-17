@@ -98,7 +98,7 @@ export function Pagination({ page, limit, total, noun, onPage, busy = false, but
   if (pages <= 1) return null;
   const first = (page - 1) * limit + 1;
   const last = Math.min(total, page * limit);
-  const go = (next) => {
+  const goToPage = (next) => {
     onPage(next);
     navRef.current?.previousElementSibling?.scrollIntoView({ block: "start", behavior: prefersReducedMotion() ? "auto" : "smooth" });
   };
@@ -106,11 +106,11 @@ export function Pagination({ page, limit, total, noun, onPage, busy = false, but
     <nav className="admin-pager" aria-label="Pages" ref={navRef}>
       <span className="admin-pager__count">{first}–{last} of {plural(total, noun)}</span>
       <span className="admin-pager__buttons">
-        <button type="button" className={buttonClass} disabled={busy || page <= 1} onClick={() => go(page - 1)}>
+        <button type="button" className={buttonClass} disabled={busy || page <= 1} onClick={() => goToPage(page - 1)}>
           <Icon name="chevron-left" size={16} /> Previous
         </button>
         <span className="admin-pager__page">Page {page} of {pages}</span>
-        <button type="button" className={buttonClass} disabled={busy || page >= pages} onClick={() => go(page + 1)}>
+        <button type="button" className={buttonClass} disabled={busy || page >= pages} onClick={() => goToPage(page + 1)}>
           Next <Icon name="chevron-right" size={16} />
         </button>
       </span>

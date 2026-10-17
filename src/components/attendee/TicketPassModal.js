@@ -56,7 +56,7 @@ export default function TicketPassModal({ registration, onClose }) {
   const checkedIn = attendanceKey(status) !== "waiting";
   const name = `ticket-${fileSafe(registration.eventTitle)}-${fileSafe(registration.ticketCode)}`;
 
-  const run = (action) => async () => {
+  const runDownload = (action) => async () => {
     setError("");
     try {
       await action();
@@ -125,10 +125,10 @@ export default function TicketPassModal({ registration, onClose }) {
             <button type="button" className="btn-sm" onClick={close}>
               Close
             </button>
-            <button type="button" className="btn-sm" disabled={!qr} onClick={run(() => savePng(docRef.current, `${name}.png`))}>
+            <button type="button" className="btn-sm" disabled={!qr} onClick={runDownload(() => savePng(docRef.current, `${name}.png`))}>
               <Icon name="download" size={16} /> Save as PNG
             </button>
-            <button type="button" className="btn-sm btn-sm--yellow" disabled={!qr} onClick={run(() => printNode(docRef.current, { size: "A4 portrait", title: name }))}>
+            <button type="button" className="btn-sm btn-sm--yellow" disabled={!qr} onClick={runDownload(() => printNode(docRef.current, { size: "A4 portrait", title: name }))}>
               <Icon name="print" size={16} /> Print / Save as PDF
             </button>
           </div>

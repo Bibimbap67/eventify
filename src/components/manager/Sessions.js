@@ -43,7 +43,7 @@ export function SessionDialog({ session, events, onClose }) {
   const [saving, runSave] = usePending();
   const patch = (field) => (e) => setDraft((current) => ({ ...current, [field]: e.target.value }));
 
-  function save(e, close) {
+  function handleSubmit(e, close) {
     e.preventDefault();
     if (!draft.title.trim() || !draft.speaker.trim() || !draft.room.trim() || !draft.startTime || !draft.endTime || draft.startTime >= draft.endTime) {
       toast("Add a title, speaker, room, and valid time range.", "error");
@@ -64,7 +64,7 @@ export function SessionDialog({ session, events, onClose }) {
   return (
     <Modal title={draft.id ? "Edit session" : "Add session"} onClose={onClose} className="manager-dialog">
       {(close) => (
-        <form className="manager-form" onSubmit={(e) => save(e, close)}>
+        <form className="manager-form" onSubmit={(e) => handleSubmit(e, close)}>
           {events && (
             <label className="manager-field manager-field--wide">Event
               <select value={draft.eventId} onChange={patch("eventId")}>{events.map((event) => <option key={event.id} value={event.id}>{event.title}</option>)}</select>
