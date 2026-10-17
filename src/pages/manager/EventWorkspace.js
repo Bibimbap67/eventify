@@ -417,7 +417,7 @@ function EventWorkspace({ event, tab }) {
             detail="Changes update the event workspace and its registration limits."
           />
           {running && (
-            <p className="manager-complete-note">
+            <p className="manager-complete-note manager-complete-note--locked">
               <Icon name="hourglass" size={16} /> This event is running, so its details are locked. You can still add
               overtime above or mark it completed.
             </p>
