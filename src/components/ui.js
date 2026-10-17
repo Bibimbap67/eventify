@@ -148,7 +148,12 @@ export function Metric({ icon, tone = "yellow", label, value, note, to }) {
 // Capacity bar: green while there is room, yellow when filling fast, red when (almost) full.
 export function CapacityBar({ value, max, label = "Registration progress" }) {
   const pct = max > 0 ? Math.min(100, Math.round(value / max * 100)) : 0;
-  const level = pct >= 85 ? "high" : pct >= 60 ? "mid" : "low";
+  let level = "low";
+  if (pct >= 85) {
+    level = "high";
+  } else if (pct >= 60) {
+    level = "mid";
+  }
   return (
     <div
       className={`manager-meter manager-meter--${level}`}

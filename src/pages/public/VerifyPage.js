@@ -84,13 +84,20 @@ export default function VerifyPage() {
 
   const { loading, certificate, error } = state;
 
+  let cardClass = "verify-card";
+  if (certificate) {
+    cardClass += " verify-card--ok";
+  } else if (error) {
+    cardClass += " verify-card--bad";
+  }
+
   return (
     <div className="verify-page">
       <Navbar />
       <main className="verify-container">
         <span className="events-hero__eyebrow">CERTIFICATE VERIFICATION</span>
         <h1 className="verify-title">{credentialId}</h1>
-        <section className={`verify-card${certificate ? " verify-card--ok" : error ? " verify-card--bad" : ""}`} aria-live="polite">
+        <section className={cardClass} aria-live="polite">
           {loading ? (
             <p>Checking this credential…</p>
           ) : certificate ? (

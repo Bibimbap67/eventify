@@ -19,8 +19,13 @@ export function eventFacts(event, now = new Date()) {
 
   const left = Math.max(0, (event.capacity || 0) - (event.registered || 0));
   let seats = "";
-  if (event.status === "OPENS SOON") seats = "Opens soon";
-  else if (event.capacity) seats = left === 0 ? "Full" : `${left.toLocaleString()} ${left === 1 ? "seat" : "seats"} left`;
+  if (event.status === "OPENS SOON") {
+    seats = "Opens soon";
+  } else if (event.capacity && left === 0) {
+    seats = "Full";
+  } else if (event.capacity) {
+    seats = `${left.toLocaleString()} ${left === 1 ? "seat" : "seats"} left`;
+  }
 
   return {
     month: valid ? date.toLocaleDateString("en-US", { month: "short" }).toUpperCase() : "",

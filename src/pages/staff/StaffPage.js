@@ -206,9 +206,7 @@ export default function StaffPage() {
                       <td>#{attendee.ticketCode}</td>
                       <td>{attendee.seat || "Free"}</td>
                       <td>
-                        <span className={`sbadge ${attendee.exitedAt ? "sbadge--attended" : isCheckedIn(attendee) ? "sbadge--checked-in" : "sbadge--not-checked-in"}`}>
-                          {attendee.exitedAt ? `Out · ${attendee.exitedAt}` : isCheckedIn(attendee) ? `In · ${attendee.checkedInAt || ""}` : "Not yet"}
-                        </span>
+                        <AttendeeStatus attendee={attendee} />
                       </td>
                     </tr>
                   ))}
@@ -220,4 +218,15 @@ export default function StaffPage() {
       </main>
     </div>
   );
+}
+
+// One attendee's badge in the list: left the venue, inside, or not arrived yet.
+function AttendeeStatus({ attendee }) {
+  if (attendee.exitedAt) {
+    return <span className="sbadge sbadge--attended">Out · {attendee.exitedAt}</span>;
+  }
+  if (isCheckedIn(attendee)) {
+    return <span className="sbadge sbadge--checked-in">In · {attendee.checkedInAt || ""}</span>;
+  }
+  return <span className="sbadge sbadge--not-checked-in">Not yet</span>;
 }

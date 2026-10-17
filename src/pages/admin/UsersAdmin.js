@@ -309,6 +309,8 @@ function UserForm({ user, onClose, onSaved }) {
     }
   }
 
+  const saveLabel = editing ? "Save changes" : "Add user";
+
   return (
     <Modal title={editing ? `Edit ${user.name}` : "Add user"} onClose={onClose} className="admin-dialog">
       {(closeAnimated) => (
@@ -357,7 +359,7 @@ function UserForm({ user, onClose, onSaved }) {
           <div className="manager-form-actions">
             <button type="button" className="manager-button" onClick={closeAnimated}>Cancel</button>
             <button type="submit" className="manager-button manager-button--primary" disabled={saving} aria-busy={saving || undefined}>
-              {saving ? <><Spinner /> Saving…</> : editing ? "Save changes" : "Add user"}
+              {saving ? <><Spinner /> Saving…</> : saveLabel}
             </button>
           </div>
         </form>

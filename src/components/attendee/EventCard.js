@@ -34,7 +34,12 @@ export default function EventCard({ event }) {
   // Past events show how attendees rated them (the server adds this to completed events only).
   const rated = completed && event.feedbackCount > 0;
   const canRegister = event.status === "REGISTRATION OPEN" && spotsLeft > 0 && !isRegistered;
-  const ctaLabel = isRegistered && !past ? "Your ticket" : canRegister ? "Get ticket" : "View event";
+  let ctaLabel = "View event";
+  if (isRegistered && !past) {
+    ctaLabel = "Your ticket";
+  } else if (canRegister) {
+    ctaLabel = "Get ticket";
+  }
 
   // One stamp on the stub says where the event stands; without one, the stub shows spots left.
   let stamp = null;

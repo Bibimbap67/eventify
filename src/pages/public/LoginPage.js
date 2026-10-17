@@ -21,6 +21,13 @@ const MODES = {
   reset: { title: "Choose a new password", lead: "Use at least 6 characters. The link in your email works once.", submit: "SAVE NEW PASSWORD", busy: "SAVING…", tag: "Replacement" },
 };
 
+// Position of row/column `n` inside a corner square of the QR, or -1 outside one.
+function cornerOffset(n) {
+  if (n < 6) return n;
+  if (n > QR_SIZE - 7) return QR_SIZE - 1 - n;
+  return -1;
+}
+
 // The pass preview's QR: three corner squares like a real code, and the rest drawn
 // from the holder text, so the pattern changes as the person types. Decoration only.
 function passCells(text) {
@@ -30,8 +37,8 @@ function passCells(text) {
   const cells = [];
   for (let y = 0; y < QR_SIZE; y += 1) {
     for (let x = 0; x < QR_SIZE; x += 1) {
-      const fx = x < 6 ? x : x > QR_SIZE - 7 ? QR_SIZE - 1 - x : -1;
-      const fy = y < 6 ? y : y > QR_SIZE - 7 ? QR_SIZE - 1 - y : -1;
+      const fx = cornerOffset(x);
+      const fy = cornerOffset(y);
       let on;
       if (fx >= 0 && fy >= 0 && !(x > QR_SIZE - 7 && y > QR_SIZE - 7)) {
         on = fx < 5 && fy < 5 && Math.min(fx, fy, 4 - fx, 4 - fy) !== 1;
