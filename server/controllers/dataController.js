@@ -80,6 +80,11 @@ async function venueBookings(venue, date, excludeId) {
 
 // Only checked when the booking changes, so an older event can still be edited or closed.
 async function checkVenue(record, existing) {
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  if (record.date && record.date !== existing?.date && record.date < today) {
+    throw new HttpError(400, "Pick today or a later date.");
+  }
   if (!record.venue) return;
   const venue = await Venue.findOne({ name: record.venue });
   const resized = !existing || record.venue !== existing.venue || Number(record.capacity) !== Number(existing.capacity);

@@ -65,6 +65,9 @@ export default function ManagerEvents() {
   const setCreating = (open) => setParams(open ? { new: "1" } : {}, { replace: true });
   const patch = (field) => (e) => setForm((current) => ({ ...current, [field]: e.target.value }));
   const venueDay = useVenueDay(form.venue, form.date);
+  // Local date, not toISOString(): that is UTC and lags a day before 8am in PH.
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   const archived = events.filter((event) => event.status === "Archived");
   const inView = useMemo(
@@ -111,6 +114,10 @@ export default function ManagerEvents() {
       !form.organizer.trim()
     ) {
       setFormError("Complete the required fields, including the organizer, and enter a valid time range and capacity.");
+      return;
+    }
+    if (form.date < today) {
+      setFormError("Pick today or a later date.");
       return;
     }
     if (venueDay.capacity && Number(form.capacity) > venueDay.capacity) {
@@ -198,7 +205,7 @@ export default function ManagerEvents() {
             </label>
             <label className="manager-field">
               Date
-              <input type="date" value={form.date} onChange={patch("date")} />
+              <input type="date" value={form.date} min={today} onChange={patch("date")} />
             </label>
             <label className="manager-field">
               Category
