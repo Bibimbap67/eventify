@@ -8,7 +8,13 @@ import { ConfirmModal, Modal } from "../../components/Modal.js";
 import { SeatingField } from "../../components/SeatMap.js";
 import { TableSkeleton, useSkeleton } from "../../components/Skeleton.js";
 import {
-  ArchiveSwitch, CapacityBar, FilterChips, SectionHeading, StatusBadge, Table, plural,
+  ArchiveSwitch,
+  CapacityBar,
+  FilterChips,
+  SectionHeading,
+  StatusBadge,
+  Table,
+  plural,
 } from "../../components/ui.js";
 import { LoadError, Pagination, SearchFilter, formatDay, useApi, useFilters } from "../../components/admin/parts.js";
 import { formatTime, timeRange } from "../../data/time.js";
@@ -29,8 +35,10 @@ const ACTIONS = [
   ["Restore", ["Archived"], (event) => event.archivedFrom || "Completed", false],
 ];
 const CONFIRM = {
-  Reject: (event) => `${event.title} won't be published and nobody can register.${event.createdByAdmin ? "" : " Its manager sees it as rejected in their workspace."}`,
-  Cancel: (event) => `${event.title} is called off. Registration closes and existing tickets stop working at the check-in desk.`,
+  Reject: (event) =>
+    `${event.title} won't be published and nobody can register.${event.createdByAdmin ? "" : " Its manager sees it as rejected in their workspace."}`,
+  Cancel: (event) =>
+    `${event.title} is called off. Registration closes and existing tickets stop working at the check-in desk.`,
 };
 const CLOSED = ["Rejected", "Cancelled", "Archived"];
 const DEFAULTS = { view: "current", status: "", q: "", sort: "soonest", page: "1" };
@@ -49,23 +57,37 @@ export default function EventsAdmin() {
   const archived = db.events.filter((event) => event.status === "Archived");
   const inView = filters.view === "archive" ? archived : db.events.filter((event) => event.status !== "Archived");
   const rows = inView
-    .filter((event) => (!filters.status || event.status === filters.status) && `${event.title} ${event.organizer || ""}`.toLowerCase().includes(q))
+    .filter(
+      (event) =>
+        (!filters.status || event.status === filters.status) &&
+        `${event.title} ${event.organizer || ""}`.toLowerCase().includes(q),
+    )
     .sort((a, b) => (filters.sort === "latest" ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)));
   const page = Math.max(1, Number(filters.page) || 1);
   const onPage = useCallback((value) => setFilters({ page: value }), [setFilters]);
-  const statusOptions = [{ value: "", label: "All", count: inView.length }, ...ADMIN_STATUSES.filter((status) => status !== "Archived").map((status) => ({
-    value: status, label: status, count: inView.filter((event) => event.status === status).length,
-  }))].filter((option) => !option.value || option.count > 0 || option.value === filters.status);
+  const statusOptions = [
+    { value: "", label: "All", count: inView.length },
+    ...ADMIN_STATUSES.filter((status) => status !== "Archived").map((status) => ({
+      value: status,
+      label: status,
+      count: inView.filter((event) => event.status === status).length,
+    })),
+  ].filter((option) => !option.value || option.count > 0 || option.value === filters.status);
 
   function changeStatus(event, label, to) {
     // Archiving remembers the status it came from, so Restore can put the event back exactly.
-    const archiving = to === "Archived" ? { archivedFrom: event.status, archivedAt: new Date().toISOString().slice(0, 10) } : {};
+    const archiving =
+      to === "Archived" ? { archivedFrom: event.status, archivedAt: new Date().toISOString().slice(0, 10) } : {};
     update("events", event.id, { status: to, ...archiving });
     if (to === "Rejected") {
-      toast(`${event.title}: rejected.`, "warning", undefined, { label: "Undo", onClick: () => changeStatus(event, "Undo rejection", "Pending") });
+      toast(`${event.title}: rejected.`, "warning", undefined, {
+        label: "Undo",
+        onClick: () => changeStatus(event, "Undo rejection", "Pending"),
+      });
       return;
     }
-    const done = { Restore: "restored", "Undo rejection": "rejection undone, back to pending" }[label] || to.toLowerCase();
+    const done =
+      { Restore: "restored", "Undo rejection": "rejection undone, back to pending" }[label] || to.toLowerCase();
     toast(`${event.title}: ${done}.`, CLOSED.includes(to) ? "warning" : "success");
   }
 
@@ -75,7 +97,10 @@ export default function EventsAdmin() {
       render: (event) => (
         <span>
           <b>{event.title}</b>
-          <span className="admin-cell-sub">{event.organizer || "—"}{event.createdByAdmin ? " · created by an admin" : ""}</span>
+          <span className="admin-cell-sub">
+            {event.organizer || "—"}
+            {event.createdByAdmin ? " · created by an admin" : ""}
+          </span>
         </span>
       ),
     },
@@ -93,7 +118,9 @@ export default function EventsAdmin() {
       label: "Registered",
       render: (event) => (
         <span className="admin-meter-cell">
-          <span className="manager-mono">{registered(event.id)} / {event.capacity || 0}</span>
+          <span className="manager-mono">
+            {registered(event.id)} / {event.capacity || 0}
+          </span>
           <CapacityBar value={registered(event.id)} max={event.capacity || 0} label={`${event.title} registrations`} />
         </span>
       ),
@@ -103,7 +130,9 @@ export default function EventsAdmin() {
       render: (event) => (
         <span>
           <StatusBadge value={event.status} />
-          {event.status === "Archived" && event.archivedAt && <span className="admin-cell-sub">Since {formatDay(event.archivedAt)}</span>}
+          {event.status === "Archived" && event.archivedAt && (
+            <span className="admin-cell-sub">Since {formatDay(event.archivedAt)}</span>
+          )}
         </span>
       ),
     },
@@ -117,17 +146,27 @@ export default function EventsAdmin() {
               <button
                 key={label}
                 type="button"
-                className={label === "Approve" || label === "Publish"
-                  ? "manager-button manager-button--small manager-button--go"
-                  : `manager-text-button${confirm ? " manager-text-button--danger" : ""}`}
+                className={
+                  label === "Approve" || label === "Publish"
+                    ? "manager-button manager-button--small manager-button--go"
+                    : `manager-text-button${confirm ? " manager-text-button--danger" : ""}`
+                }
                 onClick={() => (confirm ? setConfirming({ event, label, to }) : changeStatus(event, label, to))}
               >
                 {label}
               </button>
             );
           })}
-          <button type="button" className="manager-text-button" onClick={() => setViewing(event)}>Details</button>
-          <button type="button" className="manager-text-button manager-text-button--danger" onClick={() => setConfirming({ event, label: "Delete" })}>Delete</button>
+          <button type="button" className="manager-text-button" onClick={() => setViewing(event)}>
+            Details
+          </button>
+          <button
+            type="button"
+            className="manager-text-button manager-text-button--danger"
+            onClick={() => setConfirming({ event, label: "Delete" })}
+          >
+            Delete
+          </button>
         </span>
       ),
     },
@@ -139,11 +178,11 @@ export default function EventsAdmin() {
         eyebrow="Platform"
         title="Events & approvals"
         detail="Approve or reject events that managers submit, publish them, and keep the calendar tidy. Each event's sessions, registrations and check-in are run by its manager."
-        action={(
+        action={
           <button type="button" className="manager-button manager-button--primary" onClick={() => setEditing("new")}>
             <Icon name="plus" size={16} /> Create event
           </button>
-        )}
+        }
       />
 
       <ArchiveSwitch
@@ -154,7 +193,12 @@ export default function EventsAdmin() {
       />
 
       <div className="manager-toolbar">
-        <SearchFilter label="Search events" placeholder="Search title or organizer" value={filters.q} onSearch={(value) => setFilters({ q: value })} />
+        <SearchFilter
+          label="Search events"
+          placeholder="Search title or organizer"
+          value={filters.q}
+          onSearch={(value) => setFilters({ q: value })}
+        />
         <label className="manager-toolbar__field">
           Sort
           <select value={filters.sort} onChange={(e) => setFilters({ sort: e.target.value })}>
@@ -162,7 +206,14 @@ export default function EventsAdmin() {
             <option value="latest">Date: latest first</option>
           </select>
         </label>
-        {filters.view !== "archive" && <FilterChips label="Filter by status" options={statusOptions} value={filters.status} onChange={(status) => setFilters({ status })} />}
+        {filters.view !== "archive" && (
+          <FilterChips
+            label="Filter by status"
+            options={statusOptions}
+            value={filters.status}
+            onChange={(status) => setFilters({ status })}
+          />
+        )}
       </div>
 
       {loading ? (
@@ -171,9 +222,13 @@ export default function EventsAdmin() {
         <Table
           columns={columns}
           rows={rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)}
-          empty={filters.view === "archive" && !archived.length
-            ? "Nothing archived yet. Archive a completed, rejected or cancelled event to keep it here with its records."
-            : db.events.length ? "No events match these filters." : "No events yet."}
+          empty={
+            filters.view === "archive" && !archived.length
+              ? "Nothing archived yet. Archive a completed, rejected or cancelled event to keep it here with its records."
+              : db.events.length
+                ? "No events match these filters."
+                : "No events yet."
+          }
           emptyIcon="calendar-days"
         />
       )}
@@ -258,7 +313,12 @@ function EventDetails({ event, onClose, onEdit }) {
       {(closeAnimated) => (
         <div className="admin-detail">
           <dl className="manager-definition-list">
-            {facts.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+            {facts.map(([label, value]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
           </dl>
           <OvertimeButtons
             event={event}
@@ -269,7 +329,9 @@ function EventDetails({ event, onClose, onEdit }) {
             }}
           />
 
-          <h3><Icon name="speaker" size={16} /> Speakers</h3>
+          <h3>
+            <Icon name="speaker" size={16} /> Speakers
+          </h3>
           {event.speakers?.length ? (
             <ul className="admin-plain-list">
               {event.speakers.map((speaker, index) => (
@@ -279,37 +341,57 @@ function EventDetails({ event, onClose, onEdit }) {
                 </li>
               ))}
             </ul>
-          ) : <p className="manager-muted">No speakers listed.</p>}
+          ) : (
+            <p className="manager-muted">No speakers listed.</p>
+          )}
 
           {error && <LoadError message={error} onRetry={reload} />}
           {data && (
             <>
               <ul className="admin-summary" aria-label="Registrations and feedback">
-                <li><b>{data.registrations.confirmed}</b> confirmed</li>
-                <li><b>{data.registrations.checkedIn}</b> checked in</li>
-                <li><b>{data.registrations.cancelled}</b> cancelled</li>
-                <li><b>{data.feedback.rating ?? "—"}</b> rating ({data.feedback.responses})</li>
+                <li>
+                  <b>{data.registrations.confirmed}</b> confirmed
+                </li>
+                <li>
+                  <b>{data.registrations.checkedIn}</b> checked in
+                </li>
+                <li>
+                  <b>{data.registrations.cancelled}</b> cancelled
+                </li>
+                <li>
+                  <b>{data.feedback.rating ?? "—"}</b> rating ({data.feedback.responses})
+                </li>
               </ul>
 
-              <h3><Icon name="schedule" size={16} /> Sessions</h3>
+              <h3>
+                <Icon name="schedule" size={16} /> Sessions
+              </h3>
               {data.sessions.length ? (
                 <ul className="admin-plain-list">
                   {data.sessions.map((session) => (
                     <li key={session.id}>
                       <b>{session.title}</b>
                       <small>
-                        {[session.speaker, session.startTime && timeRange(session.startTime, session.endTime, "–"), session.room || session.time]
-                          .filter(Boolean).join(" · ")}
+                        {[
+                          session.speaker,
+                          session.startTime && timeRange(session.startTime, session.endTime, "–"),
+                          session.room || session.time,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </small>
                     </li>
                   ))}
                 </ul>
-              ) : <p className="manager-muted">No sessions yet.</p>}
-
+              ) : (
+                <p className="manager-muted">No sessions yet.</p>
+              )}
             </>
           )}
 
-          <h3><Icon name="megaphone" size={16} /> Announcements</h3>
+          <h3>
+            <Icon name="megaphone" size={16} /> Announcements
+          </h3>
           {announcements.length ? (
             <ul className="admin-plain-list">
               {announcements.map((item) => (
@@ -319,7 +401,9 @@ function EventDetails({ event, onClose, onEdit }) {
                 </li>
               ))}
             </ul>
-          ) : <p className="manager-muted">No announcements yet.</p>}
+          ) : (
+            <p className="manager-muted">No announcements yet.</p>
+          )}
           <AnnouncementComposer eventId={event.id} />
           {!data && !error && <p className="manager-muted">Loading sessions…</p>}
 
@@ -331,7 +415,9 @@ function EventDetails({ event, onClose, onEdit }) {
             <Link className="manager-button" to={`/admin/registrations?eventId=${encodeURIComponent(event.id)}`}>
               <Icon name="clipboard-check" size={16} /> Registrations
             </Link>
-            <button type="button" className="manager-button" onClick={closeAnimated}>Close</button>
+            <button type="button" className="manager-button" onClick={closeAnimated}>
+              Close
+            </button>
             <button type="button" className="manager-button manager-button--primary" onClick={onEdit}>
               <Icon name="edit" size={16} /> Edit event
             </button>
@@ -345,12 +431,29 @@ function EventDetails({ event, onClose, onEdit }) {
 function EventForm({ event, defaultCapacity, onClose, onSave }) {
   const { db, registered } = useAdmin();
   // Manager events store the venue by name; preselect the matching venue.
-  const [form, setForm] = useState(() => (event
-    ? { ...event, capacity: String(event.capacity || ""), venueId: event.venueId || db.venues.find((venue) => venue.name === event.venue)?.id || "" }
-    : { title: "", category: "Academic", organizer: ORGANIZERS[0], date: "", start: "", end: "", venueId: "", capacity: String(defaultCapacity || ""), seating: "free" }));
+  const [form, setForm] = useState(() =>
+    event
+      ? {
+          ...event,
+          capacity: String(event.capacity || ""),
+          venueId: event.venueId || db.venues.find((venue) => venue.name === event.venue)?.id || "",
+        }
+      : {
+          title: "",
+          category: "Academic",
+          organizer: ORGANIZERS[0],
+          date: "",
+          start: "",
+          end: "",
+          venueId: "",
+          capacity: String(defaultCapacity || ""),
+          seating: "free",
+        },
+  );
   const [errors, setErrors] = useState({});
   const handleChange = useCallback((key) => (e) => setForm((current) => ({ ...current, [key]: e.target.value })), []);
-  const organizers = form.organizer && !ORGANIZERS.includes(form.organizer) ? [form.organizer, ...ORGANIZERS] : ORGANIZERS;
+  const organizers =
+    form.organizer && !ORGANIZERS.includes(form.organizer) ? [form.organizer, ...ORGANIZERS] : ORGANIZERS;
 
   function validate() {
     const next = {};
@@ -363,11 +466,15 @@ function EventForm({ event, defaultCapacity, onClose, onSave }) {
     else if (venue && capacity > venue.capacity) next.capacity = `Exceeds the venue's capacity (${venue.capacity}).`;
     if (form.start && form.end && form.end <= form.start) next.end = "End must be after start.";
     if (!next.date && !next.start && !next.end && venue) {
-      const clash = db.events.find((other) => other.id !== form.id
-        && (other.venueId ? other.venueId === venue.id : other.venue === venue.name)
-        && other.date === form.date
-        && !CLOSED.includes(other.status)
-        && form.start < other.end && other.start < form.end);
+      const clash = db.events.find(
+        (other) =>
+          other.id !== form.id &&
+          (other.venueId ? other.venueId === venue.id : other.venue === venue.name) &&
+          other.date === form.date &&
+          !CLOSED.includes(other.status) &&
+          form.start < other.end &&
+          other.start < form.end,
+      );
       if (clash) next.venueId = `Conflict: ${clash.title} uses this venue ${timeRange(clash.start, clash.end, "–")}.`;
     }
     setErrors(next);
@@ -379,7 +486,17 @@ function EventForm({ event, defaultCapacity, onClose, onSave }) {
     // VALIDATION
     if (!validate()) return;
     const { title, category, organizer, date, start, end, venueId, seating } = form;
-    onSave({ title: title.trim(), category: category || "Academic", organizer, date, start, end, venueId, seating, capacity: Number(form.capacity) });
+    onSave({
+      title: title.trim(),
+      category: category || "Academic",
+      organizer,
+      date,
+      start,
+      end,
+      venueId,
+      seating,
+      capacity: Number(form.capacity),
+    });
   }
 
   const field = (key, label, input) => (
@@ -399,26 +516,67 @@ function EventForm({ event, defaultCapacity, onClose, onSave }) {
             <input value={form.title} onChange={handleChange("title")} aria-invalid={Boolean(errors.title)} />
             {errors.title && <small>{errors.title}</small>}
           </label>
-          {field("category", "Category", (
+          {field(
+            "category",
+            "Category",
             <select value={form.category || "Academic"} onChange={handleChange("category")}>
-              {EVENT_CATEGORIES.filter((item) => item !== "All").map((item) => <option key={item}>{item}</option>)}
-            </select>
-          ))}
-          {field("organizer", "Organizer", (
+              {EVENT_CATEGORIES.filter((item) => item !== "All").map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>,
+          )}
+          {field(
+            "organizer",
+            "Organizer",
             <select value={form.organizer} onChange={handleChange("organizer")}>
-              {organizers.map((name) => <option key={name}>{name}</option>)}
-            </select>
-          ))}
-          {field("date", "Date", <input type="date" value={form.date} onChange={handleChange("date")} aria-invalid={Boolean(errors.date)} />)}
-          {field("start", "Start", <input type="time" value={form.start} onChange={handleChange("start")} aria-invalid={Boolean(errors.start)} />)}
-          {field("end", "End", <input type="time" value={form.end} onChange={handleChange("end")} aria-invalid={Boolean(errors.end)} />)}
-          {field("venueId", "Venue", (
+              {organizers.map((name) => (
+                <option key={name}>{name}</option>
+              ))}
+            </select>,
+          )}
+          {field(
+            "date",
+            "Date",
+            <input type="date" value={form.date} onChange={handleChange("date")} aria-invalid={Boolean(errors.date)} />,
+          )}
+          {field(
+            "start",
+            "Start",
+            <input
+              type="time"
+              value={form.start}
+              onChange={handleChange("start")}
+              aria-invalid={Boolean(errors.start)}
+            />,
+          )}
+          {field(
+            "end",
+            "End",
+            <input type="time" value={form.end} onChange={handleChange("end")} aria-invalid={Boolean(errors.end)} />,
+          )}
+          {field(
+            "venueId",
+            "Venue",
             <select value={form.venueId} onChange={handleChange("venueId")} aria-invalid={Boolean(errors.venueId)}>
               <option value="">Select venue</option>
-              {db.venues.map((venue) => <option key={venue.id} value={venue.id}>{venue.name} ({venue.capacity})</option>)}
-            </select>
-          ))}
-          {field("capacity", "Capacity", <input type="number" min="1" value={form.capacity} onChange={handleChange("capacity")} aria-invalid={Boolean(errors.capacity)} />)}
+              {db.venues.map((venue) => (
+                <option key={venue.id} value={venue.id}>
+                  {venue.name} ({venue.capacity})
+                </option>
+              ))}
+            </select>,
+          )}
+          {field(
+            "capacity",
+            "Capacity",
+            <input
+              type="number"
+              min="1"
+              value={form.capacity}
+              onChange={handleChange("capacity")}
+              aria-invalid={Boolean(errors.capacity)}
+            />,
+          )}
           <div className="manager-field--wide">
             <SeatingField
               value={form.seating}
@@ -428,8 +586,12 @@ function EventForm({ event, defaultCapacity, onClose, onSave }) {
             />
           </div>
           <div className="manager-form-actions">
-            <button type="button" className="manager-button" onClick={closeAnimated}>Cancel</button>
-            <button type="submit" className="manager-button manager-button--primary">{event ? "Save changes" : "Create event"}</button>
+            <button type="button" className="manager-button" onClick={closeAnimated}>
+              Cancel
+            </button>
+            <button type="submit" className="manager-button manager-button--primary">
+              {event ? "Save changes" : "Create event"}
+            </button>
           </div>
         </form>
       )}
