@@ -102,7 +102,7 @@ export const clashOf = (bookings, start, end) => bookings.find((booking) => toMi
 export function BookedTimes({ venue, date, bookings }) {
   if (!venue || !date) return null;
   return (
-    <div className="manager-field manager-field--wide manager-booked" aria-live="polite">
+    <div className={`manager-field manager-field--wide manager-booked${bookings.length ? "" : " manager-booked--free"}`} aria-live="polite">
       {bookings.length ? (
         <>
           <strong><Icon name="calendar-clock" size={16} /> Already booked at {venue} that day</strong>

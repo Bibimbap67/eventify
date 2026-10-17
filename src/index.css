@@ -3454,6 +3454,8 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
 /* A venue's taken times on the chosen day (event forms). */
 .manager-booked { padding: 10px 12px; background: #fbf8ee; border: 2px dashed var(--color-black); font: 13px var(--font-body); letter-spacing: 0; text-transform: none; }
 .manager-booked strong, .manager-booked .manager-muted { display: inline-flex; align-items: center; gap: 6px; }
+.manager-booked--free { background: var(--mint-tint); }
+.manager-booked--free svg { color: #15803d; }
 .manager-booked ul { display: grid; gap: 4px; margin: 6px 0 0; padding-left: 22px; }
 /* Overtime: push a running event's end back. */
 .manager-overtime { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; background: var(--tone-warning, #fff3c4); border: 2px solid var(--color-black); font: 700 13px var(--font-body); }
