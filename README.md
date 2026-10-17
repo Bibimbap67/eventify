@@ -42,6 +42,7 @@
         <li>QR ticket for check-in and exit</li>
         <li>Certificates and feedback after the event</li>
       </ul>
+      <br/>
     </td>
     <td width="50%" valign="top">
       <h3>🗂️ For event managers</h3>
@@ -51,6 +52,7 @@
         <li>Session timeline, speakers and announcements</li>
         <li>Registrations, attendance and reports</li>
       </ul>
+      <br/>
     </td>
   </tr>
   <tr>
@@ -62,6 +64,7 @@
         <li>Audit log of every change</li>
         <li>CSV reports across all events</li>
       </ul>
+      <br/>
     </td>
     <td width="50%" valign="top">
       <h3>📷 For door staff</h3>
@@ -70,6 +73,7 @@
         <li>Rotating exit QR to verify who stayed</li>
         <li>Duplicate and too-early scans are refused</li>
       </ul>
+      <br/>
     </td>
   </tr>
 </table>
