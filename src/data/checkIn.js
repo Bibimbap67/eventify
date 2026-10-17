@@ -18,6 +18,9 @@ export const eventEndsAt = (event) => eventTime(event, "endTime");
 // and completing it (server/utils/eventStatus.js).
 export const isRunning = (event, now = Date.now()) =>
   LIVE_STATUSES.includes(event?.status) && Boolean(checkInOpensAt(event) && eventEndsAt(event)) && checkInOpensAt(event) <= now && now < eventEndsAt(event);
+// The status to show: "Ongoing" while it runs. Never saved, since the server lists, registers and
+// checks in by the saved status.
+export const shownStatus = (event) => (isRunning(event) ? "Ongoing" : event.status);
 
 // Exit verification (the staff screen's exit QR) runs from 15 minutes before the event ends until
 // 2 hours after. Mirrors server/utils/checkIn.js. "before" | "open" | "closed", or null without an end time.

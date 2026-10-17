@@ -225,7 +225,7 @@ function EventWorkspace({ event, tab }) {
           />
         </div>
         <div className="manager-workspace-head__side">
-          <StatusBadge value={event.status} />
+          <StatusBadge value={running ? "Ongoing" : event.status} />
           <div className="manager-head-meter">
             <strong>
               {registrationCount}

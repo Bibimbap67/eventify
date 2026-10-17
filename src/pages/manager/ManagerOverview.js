@@ -8,7 +8,7 @@ import {
   eventDate, plural, relativeDay,
 } from "../../components/ui.js";
 import { PAST_STATUSES } from "../../data/eventStatus.js";
-import { isCheckedIn } from "../../data/checkIn.js";
+import { isCheckedIn, shownStatus } from "../../data/checkIn.js";
 import { formatTime, timeRange } from "../../data/time.js";
 
 function greeting() {
@@ -87,7 +87,7 @@ export default function ManagerOverview() {
             </span>
             <span className="manager-next__meter">
               <span><b>{nextCount}</b> / {nextEvent.capacity} registered</span>
-              <StatusBadge value={nextEvent.status} />
+              <StatusBadge value={shownStatus(nextEvent)} />
             </span>
             <CapacityBar value={nextCount} max={nextEvent.capacity} />
           </Link>

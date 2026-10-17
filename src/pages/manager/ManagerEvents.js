@@ -30,6 +30,7 @@ import {
   clashOf,
   useVenueDay,
 } from "../../components/manager/EventFields.js";
+import { shownStatus } from "../../data/checkIn.js";
 import { timeRange } from "../../data/time.js";
 import { Pagination, usePaged } from "../../components/admin/parts.js";
 
@@ -341,7 +342,7 @@ function EventCard({ event, count, speakers }) {
             <span className="manager-kicker">
               {event.category} · {eventDate(event.date, { weekday: "short", month: "short", day: "numeric" })}
             </span>
-            <StatusBadge value={event.status} />
+            <StatusBadge value={shownStatus(event)} />
           </div>
           <h3>{event.title}</h3>
         </div>

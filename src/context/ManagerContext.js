@@ -3,7 +3,7 @@ import { useAuth } from "./AuthContext.js";
 import { api, newId } from "../api.js";
 import { useServerStore } from "./useServerStore.js";
 import { notify } from "../components/Toast.js";
-import { eventEndsAt } from "../data/checkIn.js";
+import { checkInOpensAt, eventEndsAt } from "../data/checkIn.js";
 import { LIVE_STATUSES } from "../data/eventStatus.js";
 
 const ManagerContext = createContext(null);
@@ -40,11 +40,12 @@ export function ManagerProvider({ children }) {
   }, [loadVenues]);
 
   // The server marks an event Completed once its end time passes (server/utils/autoComplete.js).
-  // Reload just after the next one ends, so open screens show it without a page refresh.
+  // Reload just after the next one starts (shown as Ongoing) or ends, so open screens show it
+  // without a page refresh.
   useEffect(() => {
     const ends = data.events
       .filter((event) => LIVE_STATUSES.includes(event.status))
-      .map((event) => eventEndsAt(event)?.getTime())
+      .flatMap((event) => [checkInOpensAt(event)?.getTime(), eventEndsAt(event)?.getTime()])
       .filter((end) => end > Date.now());
     if (!ends.length) return undefined;
     const timer = setTimeout(reload, Math.min(Math.min(...ends) - Date.now() + 5000, 2 ** 31 - 1));

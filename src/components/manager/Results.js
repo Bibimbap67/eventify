@@ -4,6 +4,7 @@ import Icon from "../Icon.js";
 import FeedbackSummary, { Stars } from "../FeedbackSummary.js";
 import { EmptyState, Metric, PersonCell, SectionHeading, StatusBadge, countRegistrations, getAttendance, plural } from "../ui.js";
 import { summarizeFeedback } from "../../data/feedback.js";
+import { shownStatus } from "../../data/checkIn.js";
 
 // After the event: what participants said, and the numbers for one event.
 
@@ -76,7 +77,7 @@ export function ReportPanel({ event, registrations, feedback, sessions, eyebrow 
         <Metric icon="star" tone="violet" label="Feedback" value={average === null ? "—" : average.toFixed(1)} note={plural(feedback.length, "response")} />
       </div>
       <dl className="manager-definition-list manager-definition-list--report">
-        <div><dt>Event status</dt><dd><StatusBadge value={event.status} /></dd></div>
+        <div><dt>Event status</dt><dd><StatusBadge value={shownStatus(event)} /></dd></div>
         <div><dt>Completed</dt><dd>{event.completedAt || "Not completed"}</dd></div>
         <div><dt>Sessions on programme</dt><dd>{sessions.length}</dd></div>
         <div><dt>Attendance summary</dt><dd>{attendance.checkedIn.length} attended · {absenceCount} absent</dd></div>
