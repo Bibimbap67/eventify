@@ -3,9 +3,8 @@ import Icon from "../Icon.js";
 import Spinner from "../Spinner.js";
 import { useManager } from "../../context/ManagerContext.js";
 import { EVENT_CATEGORIES } from "../../data/options.js";
-import { LIVE_STATUSES } from "../../data/eventStatus.js";
 import { api } from "../../api.js";
-import { checkInOpensAt, eventEndsAt } from "../../data/checkIn.js";
+import { isRunning } from "../../data/checkIn.js";
 import { addMinutes, formatTime, timeRange, toMinutes } from "../../data/time.js";
 
 // Form pieces for creating and editing a manager event (My events, and an event's Details tab).
@@ -125,9 +124,7 @@ export function OvertimeButtons({ event, endTime, onExtend }) {
     const timer = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(timer);
   }, []);
-  const timed = { date: event.date, startTime: event.startTime, endTime };
-  const running = LIVE_STATUSES.includes(event.status) && checkInOpensAt(timed) <= now && now < eventEndsAt(timed);
-  if (!running) return null;
+  if (!isRunning({ ...event, endTime }, now)) return null;
   const latest = toMinutes(endTime) >= 23 * 60 + 59;
   return (
     <div className="manager-overtime" role="group" aria-label="Add overtime">

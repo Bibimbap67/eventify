@@ -37,6 +37,7 @@ import { EMPTY_SESSION, SessionDialog, SessionTimeline } from "../../components/
 import { AnnouncementComposer, AnnouncementList } from "../../components/manager/Announcements.js";
 import { FeedbackPanel, ReportPanel } from "../../components/manager/Results.js";
 import { seatOf } from "../../data/seating.js";
+import { isRunning } from "../../data/checkIn.js";
 import { formatTime, timeRange } from "../../data/time.js";
 import { summarizeFeedback } from "../../data/feedback.js";
 
@@ -98,6 +99,7 @@ function EventWorkspace({ event, tab }) {
   };
   const base = `/manager/events/${event.id}`;
   const venueDay = useVenueDay(form.venue, form.date, event.id);
+  const running = isRunning(event);
 
   function patchForm(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -414,7 +416,14 @@ function EventWorkspace({ event, tab }) {
             title="Event details"
             detail="Changes update the event workspace and its registration limits."
           />
+          {running && (
+            <p className="manager-complete-note">
+              <Icon name="hourglass" size={16} /> This event is running, so its details are locked. You can still add
+              overtime above or mark it completed.
+            </p>
+          )}
           <form className="manager-form" onSubmit={saveDetails}>
+            <fieldset className="manager-form__lock" disabled={running}>
             <label className="manager-field manager-field--wide">
               Event title
               <input value={form.title} onChange={(e) => patchForm("title", e.target.value)} />
@@ -506,6 +515,7 @@ function EventWorkspace({ event, tab }) {
                 Discard changes
               </button>
             </div>
+            </fieldset>
           </form>
         </section>
       )}

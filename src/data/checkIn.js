@@ -1,4 +1,5 @@
 import { toMinutes } from "./time.js";
+import { LIVE_STATUSES } from "./eventStatus.js";
 
 // An event's start or end ("startTime" | "endTime") on its date ("YYYY-MM-DD"), in local time.
 // Mirrors server/utils/checkIn.js, which enforces both. Null when the event has no readable time.
@@ -13,6 +14,10 @@ function eventTime(event, field) {
 export const checkInOpensAt = (event) => eventTime(event, "startTime");
 // When the server marks the event Completed, unless the manager adds overtime first.
 export const eventEndsAt = (event) => eventTime(event, "endTime");
+// An approved event between its start and end. The server then refuses edits except overtime
+// and completing it (server/utils/eventStatus.js).
+export const isRunning = (event, now = Date.now()) =>
+  LIVE_STATUSES.includes(event?.status) && Boolean(checkInOpensAt(event) && eventEndsAt(event)) && checkInOpensAt(event) <= now && now < eventEndsAt(event);
 
 // Exit verification (the staff screen's exit QR) runs from 15 minutes before the event ends until
 // 2 hours after. Mirrors server/utils/checkIn.js. "before" | "open" | "closed", or null without an end time.

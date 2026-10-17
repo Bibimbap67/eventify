@@ -79,6 +79,26 @@ describe("data rules (MongoDB)", () => {
     assert.equal((await send(manager, "manager-events", [{ ...open.toJSON(), status: "Completed" }])).code, 200);
   });
 
+  dbTest("a manager can't edit a running event, only add overtime or complete it", async () => {
+    const pad = (n) => String(n).padStart(2, "0");
+    const now = new Date();
+    const at = (min) => { const d = new Date(now.getTime() + min * 60000); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+    // ponytail: skips within ~1h of midnight, where start and end would fall on different dates.
+    if (now.getHours() < 1 || now.getHours() >= 23) return;
+    const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const running = await makeEvent({ date, startTime: at(-30), endTime: at(30) });
+    const base = running.toJSON();
+    const refused = await send(manager, "manager-events", [{ ...base, title: "Renamed" }]);
+    assert.equal(refused.code, 400);
+    assert.match(JSON.stringify(refused.body), /running/);
+    assert.equal((await send(manager, "manager-events", [{ ...base, endTime: at(-10) }])).code, 400);
+    assert.equal((await Event.findById(running._id)).title, base.title);
+    assert.equal((await send(manager, "manager-events", [{ ...base, endTime: at(40) }])).code, 200);
+    assert.equal((await send(manager, "manager-events", [{ ...base, endTime: at(40), status: "Completed" }])).code, 200);
+    const later = await makeEvent();
+    assert.equal((await send(manager, "manager-events", [{ ...later.toJSON(), title: "Renamed" }])).code, 200);
+  });
+
   dbTest("only an attendee whose exit was verified leaves feedback, and only once", async () => {
     const event = await makeEvent({ status: "Completed" });
     const [noShow, came] = [student(1), student(2)];

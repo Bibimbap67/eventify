@@ -1,5 +1,6 @@
 // Event status words in one place. Every event is saved with Title Case words, whoever made
 // it. How the app shows them is in src/data/eventStatus.js.
+const { checkInOpensAt, eventEndsAt } = require("./checkIn");
 
 // Statuses anyone may see. The staff check-in desk lists these events too.
 const PUBLIC_EVENT_STATUS = ["Registration Open", "Published", "Approved", "Completed"];
@@ -21,4 +22,11 @@ function managerMayChangeStatus(event, to) {
   return to === "Archived" && ["Completed", "Cancelled"].includes(event.status);
 }
 
-module.exports = { PUBLIC_EVENT_STATUS, OPEN_EVENT_STATUS, CLOSED_EVENT_STATUS, LIVE_EVENT_STATUS, managerMayChangeStatus };
+// An approved event between its start and end time. Mirrored in src/data/checkIn.js.
+function isRunning(event, now = Date.now()) {
+  const start = checkInOpensAt(event);
+  const end = eventEndsAt(event);
+  return LIVE_EVENT_STATUS.includes(event?.status) && Boolean(start && end) && start <= now && now < end;
+}
+
+module.exports = { PUBLIC_EVENT_STATUS, OPEN_EVENT_STATUS, CLOSED_EVENT_STATUS, LIVE_EVENT_STATUS, managerMayChangeStatus, isRunning };

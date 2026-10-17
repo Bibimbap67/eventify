@@ -14,7 +14,7 @@ const {
 const { seatId, seatIndex, onMap, firstFreeSeat } = require("../utils/seating");
 const { audit, diff } = require("../utils/audit");
 const { checkInOpensAt, opensLabel, toMinutes, formatTime } = require("../utils/checkIn");
-const { PUBLIC_EVENT_STATUS, OPEN_EVENT_STATUS, managerMayChangeStatus } = require("../utils/eventStatus");
+const { PUBLIC_EVENT_STATUS, OPEN_EVENT_STATUS, managerMayChangeStatus, isRunning } = require("../utils/eventStatus");
 const { issueCertificates } = require("../utils/certificates");
 const { completeEndedEvents } = require("../utils/autoComplete");
 const { sendMail } = require("../utils/mail");
@@ -184,6 +184,8 @@ function managerEventChild({ publicRead = false } = {}) {
   };
 }
 
+const RUNNING_LOCKED_FIELDS = ["title", "description", "category", "organizer", "date", "startTime", "venue", "venueId", "capacity", "seating", "requirements", "preparationStatus", "speakers"];
+
 // Every event, whether a manager or an admin made it. An admin's event belongs to that admin
 // (its managerId), so it never shows in a manager's workspace.
 const events = {
@@ -213,6 +215,14 @@ const events = {
       record.status = "Pending"; // new events wait for admin approval
     } else if (record.status !== existing.status && !managerMayChangeStatus(existing, record.status)) {
       deny("Only an administrator can approve or publish an event.");
+    }
+    // Attendees are already in the room, so a running event keeps its details. Overtime (a later
+    // end time) and a status change (complete, cancel) are the only edits.
+    if (existing && isRunning(existing)) {
+      const changed = RUNNING_LOCKED_FIELDS.some((key) => JSON.stringify(record[key] ?? null) !== JSON.stringify(existing[key] ?? null));
+      if (changed || !(toMinutes(record.endTime) >= toMinutes(existing.endTime))) {
+        deny("This event is running, so its details can't be edited. You can still add overtime or mark it completed.");
+      }
     }
   },
   async remove(user, existing) {
