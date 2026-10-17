@@ -3819,11 +3819,13 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
 /* Profile */
 .profile-identity-card { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--space-5); margin-bottom: var(--space-5); padding: var(--space-5); border: var(--border-w) solid var(--line); background: var(--surface); box-shadow: var(--shadow); }
 .profile-avatar-wrap { display: grid; justify-items: center; gap: var(--space-2); }
-.profile-avatar-frame { position: relative; }
+.profile-avatar-frame { position: relative; display: block; padding: 0; border: 0; background: none; color: inherit; font: inherit; }
+.profile-avatar-frame:not(:disabled) { cursor: pointer; }
+.profile-avatar-frame:focus-visible { outline: 3px solid var(--focus-halo); outline-offset: 4px; }
 .profile-large-avatar { display: block; width: 112px; height: 112px; object-fit: cover; border: var(--border-w) solid var(--line); background: var(--color-white); box-shadow: var(--shadow-sm); }
-.profile-avatar-edit { position: absolute; right: -12px; bottom: -12px; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 2px solid var(--line); background: var(--yellow); color: var(--ink); box-shadow: var(--shadow-sm); cursor: pointer; transition: transform var(--duration-press) var(--ease-out), box-shadow var(--duration-press) var(--ease-out); }
-.profile-avatar-edit:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--shadow-ink); }
-.profile-avatar-edit:active { transform: translate(3px, 3px); box-shadow: none; }
+/* Edit mode: a black fade over the photo (inside its border) with a gallery icon and label. */
+.profile-avatar-edit { position: absolute; inset: var(--border-w); display: grid; place-content: center; justify-items: center; gap: 6px; background: rgb(10 10 10 / 0.65); color: var(--color-white); font: var(--text-xs) var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; opacity: 0; pointer-events: none; transition: opacity var(--duration-base) var(--ease-out); }
+.profile-avatar-frame:not(:disabled) .profile-avatar-edit { opacity: 1; }
 
 /* Change profile picture (AvatarPicker.js): a 240px crop square with live previews. */
 .avatar-modal { max-width: 500px; }

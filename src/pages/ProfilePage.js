@@ -96,12 +96,14 @@ export default function ProfilePage() {
         {/* Top Profile Card */}
         <section className="profile-identity-card">
           <div className="profile-avatar-wrap">
-            <span className="profile-avatar-frame">
+            {/* The photo becomes the "change photo" button only while editing the profile. */}
+            <button type="button" className="profile-avatar-frame" disabled={!isEditing} onClick={() => setPickingPhoto(true)} aria-label="Change profile picture">
               <img src={userAvatar(user)} alt="" className="profile-large-avatar" />
-              <button type="button" className="profile-avatar-edit" onClick={() => setPickingPhoto(true)} aria-label="Change profile picture">
-                <Icon name="camera" size={18} />
-              </button>
-            </span>
+              <span className="profile-avatar-edit" aria-hidden="true">
+                <Icon name="image" size={28} />
+                Change photo
+              </span>
+            </button>
             <span className="profile-badge-pill">{userProfile.role}</span>
           </div>
 
