@@ -6,7 +6,7 @@ import Logo from "./Logo.js";
 import NotificationDropdown from "./NotificationDropdown.js";
 import Icon from "./Icon.js";
 import SoundToggle from "./SoundToggle.js";
-import { avatarUri } from "./avatar.js";
+import { userAvatar } from "./avatar.js";
 
 // Each staff role's own area: [path, icon, navbar pill label, profile menu label].
 const WORKSPACES = {
@@ -122,7 +122,7 @@ export default function Navbar() {
             onClick={() => setProfileOpen(!profileOpen)}
             aria-label="User Profile"
           >
-            <img className="navbar__avatar-img" src={avatarUri(user?.id)} alt="" />
+            <img className="navbar__avatar-img" src={userAvatar(user)} alt="" />
             <span className="navbar__user-name">{userProfile.name.split(" ")[0]}</span>
             <span className="navbar__caret"><Icon name="caret" size={16} /></span>
           </button>

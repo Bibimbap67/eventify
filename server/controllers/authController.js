@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { audit, diff } = require("../utils/audit");
 const { sendMail } = require("../utils/mail");
-const { EMAIL_RE, PASSWORD_MIN, PASSWORD_RULE } = require("../utils/input");
+const { EMAIL_RE, PASSWORD_MIN, PASSWORD_RULE, validAvatar } = require("../utils/input");
 const { isLocked, recordFailure, clearFailures } = require("../utils/loginLimit");
 
 const RESET_TTL_MS = 30 * 60 * 1000;
@@ -98,6 +98,9 @@ const updateMe = async (req, res) => {
   const studentId = String(req.body.studentId ?? "").trim();
   if (req.body.studentId !== undefined && studentId && studentId !== user.studentId && !validStudentId(studentId)) {
     return res.status(400).json({ message: "Enter your student ID like 2024-1051423." });
+  }
+  if (req.body.avatar !== undefined && !validAvatar(req.body.avatar)) {
+    return res.status(400).json({ message: "That photo can't be used. Choose a JPG or PNG image and try again." });
   }
   PROFILE_FIELDS.forEach((key) => {
     if (req.body[key] !== undefined) user[key] = String(req.body[key] ?? "");

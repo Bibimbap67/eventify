@@ -3,7 +3,8 @@ import Navbar from "../components/Navbar.js";
 import Spinner from "../components/Spinner.js";
 import Icon from "../components/Icon.js";
 import { notify } from "../components/Toast.js";
-import { avatarUri } from "../components/avatar.js";
+import { avatarUri, userAvatar } from "../components/avatar.js";
+import AvatarPicker from "../components/AvatarPicker.js";
 import { useEventContext } from "../context/EventContext.js";
 import { useAuth } from "../context/AuthContext.js";
 import { ACADEMIC_PROGRAMS, STUDENT_ID_EXAMPLE, departmentOf, formatStudentId, validStudentId } from "../data/student.js";
@@ -24,6 +25,7 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [idError, setIdError] = useState("");
+  const [pickingPhoto, setPickingPhoto] = useState(false);
 
   // Show the saved profile once it loads (or after saving).
   useEffect(() => {
@@ -53,6 +55,11 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const savePhoto = async (avatar) => {
+    await updateProfile({ avatar });
+    notify(avatar ? "Your new profile picture is showing everywhere." : "You're back to your default avatar.", "success", "Profile picture saved");
   };
 
   const confirmedCount = registrations.filter((r) => r.status === "Confirmed").length;
@@ -89,7 +96,12 @@ export default function ProfilePage() {
         {/* Top Profile Card */}
         <section className="profile-identity-card">
           <div className="profile-avatar-wrap">
-            <img src={avatarUri(userProfile.id)} alt="" className="profile-large-avatar" />
+            <span className="profile-avatar-frame">
+              <img src={userAvatar(user)} alt="" className="profile-large-avatar" />
+              <button type="button" className="profile-avatar-edit" onClick={() => setPickingPhoto(true)} aria-label="Change profile picture">
+                <Icon name="camera" size={18} />
+              </button>
+            </span>
             <span className="profile-badge-pill">{userProfile.role}</span>
           </div>
 
@@ -249,6 +261,10 @@ export default function ProfilePage() {
           </form>
         )}
       </main>
+
+      {pickingPhoto && (
+        <AvatarPicker current={user?.avatar} fallback={avatarUri(user?.id)} onSave={savePhoto} onClose={() => setPickingPhoto(false)} />
+      )}
     </div>
   );
 }

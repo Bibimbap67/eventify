@@ -72,7 +72,7 @@ export default function UsersAdmin() {
       label: "User",
       render: (row) => (
         <span className="manager-person">
-          <Avatar name={row.name} seed={row.id} />
+          <Avatar name={row.name} seed={row.id} photo={row.avatar} />
           <span>
             <strong>
               {row.name}

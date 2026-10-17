@@ -199,9 +199,10 @@ export function SearchField({ label, placeholder, value, onChange }) {
 }
 
 // The person's DiceBear face. Pass their account id as `seed` so it matches the face they see
-// in their own navbar; without one (e.g. a feedback name) the name picks the face.
-export function Avatar({ name, seed }) {
-  return <img className="manager-avatar" src={avatarUri(seed || name)} alt="" />;
+// in their own navbar; without one (e.g. a feedback name) the name picks the face. `photo` is the
+// user's own profile picture, when the screen has it.
+export function Avatar({ name, seed, photo }) {
+  return <img className="manager-avatar" src={photo || avatarUri(seed || name)} alt="" />;
 }
 
 export function EmptyState({ icon = "inbox", title, children }) {

@@ -10,7 +10,7 @@ import {
   CircleAlert, Hourglass, UserCheck, Activity, Sun, Sunrise, Moon, Trash2, Inbox, Send,
   Camera, CameraOff, ImageUp, Eye, EyeOff,
   Settings, PanelLeftClose, PanelLeftOpen, RotateCw, KeyRound, Ban, ExternalLink, History, ChevronLeft, ChevronRight,
-  Archive, ArchiveRestore,
+  Archive, ArchiveRestore, ZoomIn, ZoomOut,
 } from "lucide-react";
 
 // Old hand-drawn names are kept so every existing caller still works.
@@ -88,6 +88,8 @@ const ICONS = {
   camera: Camera,
   "camera-off": CameraOff,
   image: ImageUp,
+  zoomIn: ZoomIn,
+  zoomOut: ZoomOut,
   // Password fields
   eye: Eye,
   "eye-off": EyeOff,

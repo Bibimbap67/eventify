@@ -11,3 +11,6 @@ export function avatarUri(seed) {
   if (!drawn.has(key)) drawn.set(key, new Avatar(style, { seed: key, backgroundColor: "#ffffff" }).toDataUri());
   return drawn.get(key);
 }
+
+// A signed-in user's picture: the photo they chose on the Profile page, else their DiceBear face.
+export const userAvatar = (user) => user?.avatar || avatarUri(user?.id);

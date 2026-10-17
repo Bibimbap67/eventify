@@ -3819,7 +3819,33 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
 /* Profile */
 .profile-identity-card { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--space-5); margin-bottom: var(--space-5); padding: var(--space-5); border: var(--border-w) solid var(--line); background: var(--surface); box-shadow: var(--shadow); }
 .profile-avatar-wrap { display: grid; justify-items: center; gap: var(--space-2); }
-.profile-large-avatar { width: 112px; height: 112px; border: var(--border-w) solid var(--line); background: var(--color-white); box-shadow: var(--shadow-sm); }
+.profile-avatar-frame { position: relative; }
+.profile-large-avatar { display: block; width: 112px; height: 112px; object-fit: cover; border: var(--border-w) solid var(--line); background: var(--color-white); box-shadow: var(--shadow-sm); }
+.profile-avatar-edit { position: absolute; right: -12px; bottom: -12px; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 2px solid var(--line); background: var(--yellow); color: var(--ink); box-shadow: var(--shadow-sm); cursor: pointer; transition: transform var(--duration-press) var(--ease-out), box-shadow var(--duration-press) var(--ease-out); }
+.profile-avatar-edit:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--shadow-ink); }
+.profile-avatar-edit:active { transform: translate(3px, 3px); box-shadow: none; }
+
+/* Change profile picture (AvatarPicker.js): a 240px crop square with live previews. */
+.avatar-modal { max-width: 500px; }
+.avatar-picker { display: flex; flex-wrap: wrap; gap: var(--space-5); }
+.avatar-picker__stage { position: relative; width: 240px; height: 240px; overflow: hidden; border: var(--border-w) solid var(--line); background: var(--ink); box-sizing: content-box; touch-action: none; user-select: none; cursor: grab; }
+.avatar-picker__stage:active { cursor: grabbing; }
+.avatar-picker__stage:focus-visible { outline: 3px solid var(--focus-halo); outline-offset: 2px; }
+.avatar-picker__stage--empty { background: var(--bg-2); cursor: default; }
+.avatar-picker__stage img, .avatar-picker__preview img { position: absolute; top: 0; left: 0; max-width: none; transform-origin: 0 0; pointer-events: none; }
+.avatar-picker__preview img.is-fit { position: static; width: 100%; height: 100%; }
+/* Rule-of-thirds lines, to help center a face. */
+.avatar-picker__grid { position: absolute; inset: 0; pointer-events: none; background:
+  linear-gradient(90deg, transparent calc(33.33% - 1px), rgb(255 255 255 / 0.55) calc(33.33% - 1px) 33.33%, transparent 33.33% calc(66.66% - 1px), rgb(255 255 255 / 0.55) calc(66.66% - 1px) 66.66%, transparent 66.66%),
+  linear-gradient(transparent calc(33.33% - 1px), rgb(255 255 255 / 0.55) calc(33.33% - 1px) 33.33%, transparent 33.33% calc(66.66% - 1px), rgb(255 255 255 / 0.55) calc(66.66% - 1px) 66.66%, transparent 66.66%); }
+.avatar-picker__empty { display: grid; place-content: center; justify-items: center; gap: var(--space-2); width: 100%; height: 100%; border: 0; background: none; color: var(--ink); font: 700 var(--text-sm) var(--font-body); cursor: pointer; }
+.avatar-picker__zoom { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-4); width: 246px; }
+.avatar-picker__zoom input { flex: 1; accent-color: var(--ink); }
+.avatar-picker__hint { margin: var(--space-2) 0 0; color: var(--ink-2); font: var(--text-xs) var(--font-mono); text-transform: uppercase; }
+.avatar-picker__side { display: grid; flex: 1; min-width: 150px; align-content: start; gap: var(--space-3); }
+.avatar-picker__label { font: var(--text-xs) var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; }
+.avatar-picker__row { display: flex; align-items: center; gap: var(--space-3); }
+.avatar-picker__preview { position: relative; flex: none; overflow: hidden; border: 2px solid var(--line); background: var(--color-white); }
 .field__note { color: var(--ink-2); font-size: 12px; font-weight: 600; }
 .profile-badge-pill { padding: var(--space-1) var(--space-3); border: 2px solid var(--line); background: var(--yellow); font: 700 var(--text-xs) var(--font-mono); text-align: center; }
 .profile-name-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }

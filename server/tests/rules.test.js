@@ -8,6 +8,7 @@ const assert = require("node:assert/strict");
 const mongoose = require("mongoose");
 const { managerMayChangeStatus } = require("../utils/eventStatus");
 const { MAX_FAILS, LOCK_MS, isLocked, recordFailure, clearFailures } = require("../utils/loginLimit");
+const { validAvatar } = require("../utils/input");
 const { batch, list } = require("../controllers/dataController");
 const { Event, Registration, Feedback, Venue, Notification } = require("../models/records");
 
@@ -30,6 +31,16 @@ test("ten wrong passwords lock that email for 15 minutes", () => {
   assert.equal(isLocked(email, 1), true);
   assert.equal(isLocked(email, LOCK_MS + 1), false);
   clearFailures(email);
+});
+
+test("a profile photo is an image data URL or empty", () => {
+  assert.equal(validAvatar(""), true);
+  assert.equal(validAvatar("data:image/jpeg;base64,/9j/4AAQSkZJRg=="), true);
+  assert.equal(validAvatar("javascript:alert(1)"), false);
+  assert.equal(validAvatar("data:image/svg+xml;base64,PHN2Zz4="), false);
+  assert.equal(validAvatar("https://example.com/me.png"), false);
+  assert.equal(validAvatar(`data:image/png;base64,${"A".repeat(400 * 1024)}`), false);
+  assert.equal(validAvatar(null), false);
 });
 
 describe("data rules (MongoDB)", () => {

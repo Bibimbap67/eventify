@@ -153,7 +153,7 @@ function ProfileMenu({ user, onSignOut }) {
   return (
     <div className="admin-menu" ref={ref}>
       <button type="button" className="admin-profile-button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-haspopup="true">
-        <Avatar name={name} seed={user?.id} />
+        <Avatar name={name} seed={user?.id} photo={user?.avatar} />
         <span className="admin-profile-button__name">{name}</span>
         <Icon name="caret" size={16} />
       </button>

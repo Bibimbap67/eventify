@@ -19,4 +19,10 @@ function paging(query, fallback = 25) {
   return { page, limit, skip: (page - 1) * limit };
 }
 
-module.exports = { EMAIL_RE, PASSWORD_MIN, PASSWORD_RULE, text, searchRegex, paging };
+// A profile photo: "" (back to the default face) or the cropped image the Profile page sends,
+// a JPEG/PNG/WebP data URL. The cap keeps a photo far below the 2mb body limit (a 256px JPEG is ~20 KB).
+const AVATAR_MAX = 300 * 1024;
+const AVATAR_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+=*$/;
+const validAvatar = (value) => value === "" || (typeof value === "string" && value.length <= AVATAR_MAX && AVATAR_RE.test(value));
+
+module.exports = { EMAIL_RE, PASSWORD_MIN, PASSWORD_RULE, text, searchRegex, paging, validAvatar };
