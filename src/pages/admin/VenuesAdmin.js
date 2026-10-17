@@ -123,6 +123,7 @@ function VenueForm({ venue, inUse, onClose, onSave }) {
 
   function handleSubmit(e) {
     e.preventDefault();
+    // VALIDATION
     const next = {};
     if (!form.name.trim()) next.name = "Enter the venue name.";
     if (!form.location.trim()) next.location = "Enter where it is (building and floor).";

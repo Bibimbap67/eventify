@@ -376,6 +376,7 @@ function EventForm({ event, defaultCapacity, onClose, onSave }) {
 
   function handleSubmit(e) {
     e.preventDefault();
+    // VALIDATION
     if (!validate()) return;
     const { title, category, organizer, date, start, end, venueId, seating } = form;
     onSave({ title: title.trim(), category: category || "Academic", organizer, date, start, end, venueId, seating, capacity: Number(form.capacity) });

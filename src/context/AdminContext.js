@@ -78,6 +78,7 @@ export function AdminProvider({ children }) {
     certificates: allCertificates,
   };
 
+  // UPDATE
   const update = useCallback((coll, id, patch) => {
     if (coll === "events") {
       manager.updateEvent(id, toSavedPatch(patch, collections.venues));
@@ -89,6 +90,7 @@ export function AdminProvider({ children }) {
     }));
   }, [collections.venues, manager, setCollections]);
 
+  // CREATE
   const add = useCallback((coll, row) => {
     // An admin's event belongs to the admin, so it never shows in a manager's workspace.
     if (coll === "events") return manager.createEvent({ ...ADMIN_EVENT_DEFAULTS, ...toSavedPatch(row, collections.venues) });
@@ -97,6 +99,7 @@ export function AdminProvider({ children }) {
     return record;
   }, [collections.venues, manager, setCollections]);
 
+  // DELETE
   const remove = useCallback((coll, id) => {
     if (coll === "events") {
       manager.deleteEvent(id);

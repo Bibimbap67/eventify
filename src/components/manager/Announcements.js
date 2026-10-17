@@ -16,6 +16,7 @@ export function AnnouncementComposer({ eventId, events }) {
 
   function handleSubmit(e) {
     e.preventDefault();
+    // VALIDATION
     if (!form.eventId || !form.title.trim() || !form.message.trim()) {
       toast(events ? "Choose an event and enter an announcement title and message." : "Announcement title and message are required.", "error");
       return;

@@ -282,6 +282,7 @@ function UserForm({ user, onClose, onSaved }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    // VALIDATION
     const next = {};
     if (!form.name.trim()) next.name = "Enter the full name.";
     if (!EMAIL_RE.test(form.email.trim())) next.email = "Enter a valid email address.";

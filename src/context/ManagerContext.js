@@ -65,10 +65,12 @@ export function ManagerProvider({ children }) {
     notifications: data.notifications.filter((item) => eventIds.has(item.eventId)),
   }), [data, eventIds, events, venues]);
 
+  // UPDATE EVENT
   const updateEvent = useCallback((eventId, patch) => {
     setData((current) => ({ ...current, events: current.events.map((event) => event.id === eventId ? { ...event, ...patch } : event) }));
   }, [setData]);
 
+  // CREATE EVENT
   const createEvent = useCallback((event) => {
     const newEvent = {
       ...event,
@@ -82,16 +84,19 @@ export function ManagerProvider({ children }) {
     return newEvent;
   }, [managerId, setData]);
 
+  // DELETE EVENT
   // The server deletes the event's registrations, sessions and the rest with it (afterRemove in
   // dataController.js); screens only list records of events that still exist.
   const deleteEvent = useCallback((eventId) => {
     setData((current) => ({ ...current, events: current.events.filter((event) => event.id !== eventId) }));
   }, [setData]);
 
+  // UPDATE REGISTRATION
   const updateRegistration = useCallback((registrationId, patch) => {
     setData((current) => ({ ...current, registrations: current.registrations.map((item) => item.id === registrationId ? { ...item, ...patch } : item) }));
   }, [setData]);
 
+  // CREATE FEEDBACK
   const submitAttendeeFeedback = useCallback((registrationId, response) => {
     const registration = data.registrations.find((item) => item.id === registrationId);
     if (!registration) return false;
@@ -115,6 +120,7 @@ export function ManagerProvider({ children }) {
     return true;
   }, [data.registrations, setData]);
 
+  // CREATE REGISTRATION
   const addAttendeeRegistration = useCallback((registration) => {
     if (!data.events.some((event) => event.id === registration.eventId)) return null;
     const newRegistration = { ...registration };
@@ -126,6 +132,7 @@ export function ManagerProvider({ children }) {
     return newRegistration;
   }, [data.events, setData]);
 
+  // CREATE OR UPDATE SESSION
   const saveSession = useCallback((session) => {
     setData((current) => {
       const existing = current.sessions.some((item) => item.id === session.id);
@@ -135,10 +142,12 @@ export function ManagerProvider({ children }) {
     });
   }, [eventIds, setData]);
 
+  // DELETE SESSION
   const deleteSession = useCallback((sessionId) => {
     setData((current) => ({ ...current, sessions: current.sessions.filter((item) => !eventIds.has(item.eventId) || item.id !== sessionId) }));
   }, [eventIds, setData]);
 
+  // CREATE ANNOUNCEMENT
   const addAnnouncement = useCallback((announcement) => {
     const publishedAt = announcement.status === "Published" ? new Date().toISOString() : "";
     const newAnnouncement = { ...announcement, id: newId("ma"), publishedAt };
@@ -151,10 +160,12 @@ export function ManagerProvider({ children }) {
     }));
   }, [setData]);
 
+  // UPDATE ANNOUNCEMENT
   const updateAnnouncement = useCallback((announcementId, patch) => {
     setData((current) => ({ ...current, announcements: current.announcements.map((item) => item.id === announcementId && eventIds.has(item.eventId) ? { ...item, ...patch, publishedAt: patch.status === "Published" ? new Date().toISOString() : item.publishedAt } : item) }));
   }, [eventIds, setData]);
 
+  // COMPLETE EVENT
   // Attendance isn't touched: only a verified exit (the exit QR, or Mark exited) makes a ticket
   // Attended, and the server issues those certificates as the event completes.
   const completeEvent = useCallback((eventId) => {

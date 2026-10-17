@@ -45,6 +45,7 @@ export function SessionDialog({ session, events, onClose }) {
 
   function handleSubmit(e, close) {
     e.preventDefault();
+    // VALIDATION
     if (!draft.title.trim() || !draft.speaker.trim() || !draft.room.trim() || !draft.startTime || !draft.endTime || draft.startTime >= draft.endTime) {
       toast("Add a title, speaker, room, and valid time range.", "error");
       return;
