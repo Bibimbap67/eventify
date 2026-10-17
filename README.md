@@ -115,11 +115,41 @@ flowchart LR
     F --> G([Certificate + feedback])
 ```
 
-## 🧰 Built with
+## 🧰 Tech stack
 
-<p align="center">
-  <img src="https://skillicons.dev/icons?i=react,nodejs,express,mongodb,vercel&theme=light" alt="React, Node.js, Express, MongoDB, Vercel" />
-</p>
+<h3 align="center">Frontend</h3>
+
+<table align="center">
+  <tr><th></th><th>Technology</th><th>Purpose</th></tr>
+  <tr><td align="center"><img src="https://skillicons.dev/icons?i=react" width="32" alt="" /></td><td><b>React 19</b></td><td>UI library</td></tr>
+  <tr><td align="center"><img src="https://img.shields.io/badge/-Router-CA4245?style=flat-square&logo=reactrouter&logoColor=white" alt="" /></td><td><b>React Router 7</b></td><td>Client-side routing</td></tr>
+  <tr><td align="center"><img src="https://img.shields.io/badge/-CRA-09D3AC?style=flat-square&logo=createreactapp&logoColor=white" alt="" /></td><td><b>Create React App</b></td><td>Dev server, production build and tests</td></tr>
+  <tr><td align="center"><img src="https://img.shields.io/badge/-Lucide-F56565?style=flat-square&logo=lucide&logoColor=white" alt="" /></td><td><b>Lucide React</b></td><td>Icons</td></tr>
+  <tr><td align="center"><img src="https://img.shields.io/badge/-QR-0a0a0a?style=flat-square" alt="" /></td><td><b>qrcode + jsQR</b></td><td>Ticket QR codes and in-browser scanning</td></tr>
+  <tr><td align="center"><img src="https://img.shields.io/badge/-PNG-ffd93d?style=flat-square" alt="" /></td><td><b>html-to-image</b></td><td>Downloadable tickets and certificates</td></tr>
+  <tr><td align="center"><img src="https://img.shields.io/badge/-DiceBear-6366F1?style=flat-square" alt="" /></td><td><b>DiceBear</b></td><td>Generated profile avatars</td></tr>
+  <tr><td align="center"><img src="https://skillicons.dev/icons?i=vercel" width="32" alt="" /></td><td><b>Vercel + Vercel Analytics</b></td><td>Hosting and page analytics</td></tr>
+</table>
+
+<h3 align="center">Backend</h3>
+
+<table align="center">
+  <tr><th></th><th>Technology</th><th>Purpose</th></tr>
+  <tr><td align="center"><img src="https://skillicons.dev/icons?i=nodejs" width="32" alt="" /></td><td><b>Node.js</b></td><td>Runtime environment</td></tr>
+  <tr><td align="center"><img src="https://skillicons.dev/icons?i=express" width="32" alt="" /></td><td><b>Express 5</b></td><td>REST API framework</td></tr>
+  <tr><td align="center"><img src="https://skillicons.dev/icons?i=mongodb" width="32" alt="" /></td><td><b>MongoDB + Mongoose 8</b></td><td>Database &amp; ODM</td></tr>
+  <tr><td align="center"><img src="https://img.shields.io/badge/-JWT-000000?style=flat-square&logo=jsonwebtokens&logoColor=white" alt="" /></td><td><b>JSON Web Tokens</b></td><td>Authentication &amp; role-based access</td></tr>
+  <tr><td align="center"><img src="https://img.shields.io/badge/-bcrypt-338033?style=flat-square" alt="" /></td><td><b>bcryptjs</b></td><td>Password hashing</td></tr>
+  <tr><td align="center"><img src="https://img.shields.io/badge/-Mail-22B573?style=flat-square&logo=maildotru&logoColor=white" alt="" /></td><td><b>Nodemailer</b></td><td>Password-reset emails</td></tr>
+</table>
+
+<h3 align="center">Tooling &amp; testing</h3>
+
+<table align="center">
+  <tr><th></th><th>Technology</th><th>Purpose</th></tr>
+  <tr><td align="center"><img src="https://img.shields.io/badge/-Nodemon-76D04B?style=flat-square&logo=nodemon&logoColor=white" alt="" /></td><td><b>Nodemon</b></td><td>Auto-restart dev server</td></tr>
+  <tr><td align="center"><img src="https://img.shields.io/badge/-ESLint-4B32C3?style=flat-square&logo=eslint&logoColor=white" alt="" /></td><td><b>ESLint</b></td><td>Linting (react-app config)</td></tr>
+  <tr><td align="center"><img src="https://skillicons.dev/icons?i=jest" width="32" alt="" /></td><td><b>Jest + node:test</b></td><td>App and server tests</td></tr></table>
 
 > [!NOTE]
 > A React app (this folder) talks to an Express + MongoDB server (`server/`). See [`SYSTEM_FLOW.md`](SYSTEM_FLOW.md) for how the parts work together.
