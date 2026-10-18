@@ -36,3 +36,11 @@ export async function api(path, { method = "GET", body } = {}) {
 
 // Unique ids for new records (Date.now() alone can collide between two users).
 export const newId = (prefix) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+// Readable event ids for the URL (/events/campus-hackathon-k3f9q2); the code keeps same-name events apart.
+// Set once at creation, so renaming the event never breaks a shared link.
+export const newEventId = (title) => {
+  const name = String(title || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-").slice(0, 50).replace(/^-|-$/g, "");
+  return `${name || "event"}-${Math.random().toString(36).slice(2, 8)}`;
+};

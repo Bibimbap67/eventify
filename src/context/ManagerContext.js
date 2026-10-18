@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "./AuthContext.js";
-import { api, newId } from "../api.js";
+import { api, newId, newEventId } from "../api.js";
 import { useServerStore } from "./useServerStore.js";
 import { notify } from "../components/Toast.js";
 import { checkInOpensAt, eventEndsAt } from "../data/checkIn.js";
@@ -75,7 +75,7 @@ export function ManagerProvider({ children }) {
   const createEvent = useCallback((event) => {
     const newEvent = {
       ...event,
-      id: newId("manager"),
+      id: newEventId(event.title),
       managerId,
       status: "Pending",
       preparationStatus: "Needs attention",

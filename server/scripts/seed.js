@@ -144,6 +144,7 @@ function rand() {
 const between = (min, max) => min + Math.floor(rand() * (max - min + 1));
 const pick = (list) => list[Math.floor(rand() * list.length)];
 const shuffled = (list) => list.map((item) => [rand(), item]).sort((a, b) => a[0] - b[0]).map(([, item]) => item);
+const urlName = (title) => title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const code = (length) => Array.from({ length }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(rand() * 32)]).join("");
 
 const DAY = 864e5;
@@ -206,7 +207,7 @@ async function run() {
     const date = iso(day(offset));
     const proposed = day(offset - between(21, 35));
     const event = {
-      _id: `manager-demo-${String(index + 1).padStart(2, "0")}`,
+      _id: urlName(title), // /events/git-and-github-crash-course; titles are unique, insertMany fails on a repeat
       scope: "manager", managerId: managers[managerKey].id, title, description, category,
       organizer: MANAGERS[managerKey].organizer, date, startTime, endTime, venue: VENUES[venueKey][0],
       capacity: VENUES[venueKey][2], seating: RESERVED_VENUES.includes(venueKey) ? "reserved" : "free",
@@ -228,7 +229,7 @@ async function run() {
     // 2 to 12 days before the event, and never later than today for upcoming events.
     const registered = new Date(Math.min(at(event.date, "10:00") - between(2, 12) * DAY, noon - between(0, 4) * DAY));
     const registration = {
-      _id: `reg-${event._id.slice(-2)}-${student.email.split("@")[0]}`, scope: "manager", userId: student.id,
+      _id: `reg-${event._id}-${student.email.split("@")[0]}`, scope: "manager", userId: student.id,
       eventId: event._id, eventTitle: event.title, name: student.name, email: student.email, studentId: student.studentId,
       date: label(event.date, { month: "short", day: "2-digit", year: "numeric" }).toUpperCase(),
       fullDate: label(event.date, { weekday: "long", month: "long", day: "numeric", year: "numeric" }),
