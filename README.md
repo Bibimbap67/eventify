@@ -183,7 +183,9 @@ JWT_SECRET=any-long-random-text
 
 Optional: `PORT` (default 5000), `CLIENT_URL` (default https://eventifys.vercel.app; set it to http://localhost:3000 locally),
 `JWT_EXPIRES_IN` (default 7d), and `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`
-for password-reset emails (without them the reset link prints in the server console).
+for password-reset and announcement emails (without them the email prints in the server console).
+On hosts that block SMTP ports, such as Render's free plan, set `BREVO_API_KEY` and `MAIL_FROM` instead,
+and emails go through Brevo's HTTP API. `MAIL_FROM` must be a sender verified in Brevo.
 
 </details>
 
