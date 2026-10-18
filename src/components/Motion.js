@@ -137,7 +137,8 @@ export function useDialog(onClose) {
     const trigger = document.activeElement;
     ref.current?.focus({ preventScroll: true });
     const onKey = (e) => {
-      if (e.key === "Escape") closeRef.current();
+      // A dialog opened inside this one (e.g. a photo picker in a form) closes first, alone.
+      if (e.key === "Escape" && !ref.current?.querySelector("[role=dialog]")) closeRef.current();
     };
     window.addEventListener("keydown", onKey);
     return () => {

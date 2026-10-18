@@ -110,6 +110,14 @@ describe("data rules (MongoDB)", () => {
     assert.equal((await send(manager, "manager-events", [{ ...later.toJSON(), title: "Renamed" }])).code, 200);
   });
 
+  dbTest("a speaker photo must be an image the photo picker made", async () => {
+    const event = (await makeEvent()).toJSON();
+    const withPhoto = (photo) => [{ ...event, speakers: [{ name: "Mark Reyes", role: "Engineer", kind: "Speaker", photo }] }];
+    assert.equal((await send(manager, "manager-events", withPhoto("javascript:alert(1)"))).code, 400);
+    assert.equal((await send(manager, "manager-events", withPhoto("data:image/jpeg;base64,/9j/4AAQ"))).code, 200);
+    assert.equal((await Event.findById(event.id)).speakers[0].photo, "data:image/jpeg;base64,/9j/4AAQ");
+  });
+
   dbTest("only an attendee whose exit was verified leaves feedback, and only once", async () => {
     const event = await makeEvent({ status: "Completed" });
     const [noShow, came] = [student(1), student(2)];

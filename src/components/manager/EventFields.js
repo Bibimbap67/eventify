@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import Icon from "../Icon.js";
 import Spinner from "../Spinner.js";
+import AvatarPicker from "../AvatarPicker.js";
+import { avatarUri } from "../avatar.js";
 import { useManager } from "../../context/ManagerContext.js";
 import { EVENT_CATEGORIES } from "../../data/options.js";
 import { api } from "../../api.js";
@@ -13,6 +15,7 @@ export const CATEGORIES = EVENT_CATEGORIES.filter((category) => category !== "Al
 export const PREP_STATUSES = ["Needs attention", "In progress", "On track", "Venue confirmed", "Ready", "Closed out"];
 export const EMPTY_EVENT = { title: "", category: "Academic", description: "", date: "", startTime: "", endTime: "", venue: "", capacity: "", seating: "free", organizer: "", requirements: "", importantDate: "", speakers: [] };
 const SPEAKER_KINDS = ["Speaker", "Guest speaker"];
+const SPEAKER_PREVIEWS = [["Event page", 72], ["Speaker row", 42]];
 
 // A submit button that shows the spinner while its action is pending.
 export function SaveButton({ pending, pendingText = "Saving…", children, onClick }) {
@@ -27,13 +30,15 @@ export function SaveButton({ pending, pendingText = "Saving…", children, onCli
 // an error (null), so the event page never shows a speaker without a role.
 export function cleanSpeakers(rows = []) {
   const speakers = rows
-    .map((row) => ({ name: String(row.name || "").trim(), role: String(row.role || "").trim(), kind: SPEAKER_KINDS.includes(row.kind) ? row.kind : "Speaker" }))
+    .map((row) => ({ name: String(row.name || "").trim(), role: String(row.role || "").trim(), kind: SPEAKER_KINDS.includes(row.kind) ? row.kind : "Speaker", ...(row.photo ? { photo: row.photo } : {}) }))
     .filter((row) => row.name || row.role);
   return speakers.some((row) => !row.name || !row.role) ? null : speakers;
 }
 
-// Speakers and guest speakers: a name, the role shown under it, and which of the two they are.
+// Speakers and guest speakers: a photo (their DiceBear face until one is chosen), a name, the
+// role shown under it, and which of the two they are.
 export function SpeakersField({ value = [], onChange, error }) {
+  const [photoOf, setPhotoOf] = useState(null); // the row whose photo is being changed
   const update = (index, field) => (e) => onChange(value.map((row, i) => (i === index ? { ...row, [field]: e.target.value } : row)));
   return (
     <fieldset className="manager-field manager-field--wide manager-speakers">
@@ -41,6 +46,10 @@ export function SpeakersField({ value = [], onChange, error }) {
       {value.length === 0 && <p className="manager-muted">Add the people presenting: their name, and their role under it.</p>}
       {value.map((row, index) => (
         <div className="manager-speaker-row" key={index}>
+          <button type="button" className="manager-speaker-photo" onClick={() => setPhotoOf(index)} aria-label={`Speaker ${index + 1} photo`}>
+            <img src={row.photo || avatarUri(row.name)} alt="" />
+            <span aria-hidden="true"><Icon name="camera" size={16} /></span>
+          </button>
           <input aria-label={`Speaker ${index + 1} name`} placeholder="Name, e.g. Mark Reyes" value={row.name || ""} onChange={update(index, "name")} />
           <input aria-label={`Speaker ${index + 1} role`} placeholder="Role, e.g. Google AI Automation Engineer" value={row.role || ""} onChange={update(index, "role")} />
           <select aria-label={`Speaker ${index + 1} type`} value={row.kind || "Speaker"} onChange={update(index, "kind")}>
@@ -55,6 +64,16 @@ export function SpeakersField({ value = [], onChange, error }) {
       <button type="button" className="manager-button manager-button--small" onClick={() => onChange([...value, { name: "", role: "", kind: "Speaker" }])}>
         <Icon name="plus" size={16} /> Add speaker
       </button>
+      {photoOf !== null && (
+        <AvatarPicker
+          title="Speaker photo"
+          previews={SPEAKER_PREVIEWS}
+          current={value[photoOf]?.photo}
+          fallback={avatarUri(value[photoOf]?.name)}
+          onSave={async (photo) => onChange(value.map((row, i) => (i === photoOf ? { ...row, photo } : row)))}
+          onClose={() => setPhotoOf(null)}
+        />
+      )}
     </fieldset>
   );
 }

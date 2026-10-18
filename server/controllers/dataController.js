@@ -18,6 +18,7 @@ const { PUBLIC_EVENT_STATUS, OPEN_EVENT_STATUS, managerMayChangeStatus, isRunnin
 const { issueCertificates } = require("../utils/certificates");
 const { completeEndedEvents } = require("../utils/autoComplete");
 const { sendMail } = require("../utils/mail");
+const { validAvatar } = require("../utils/input");
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -201,6 +202,10 @@ const events = {
     return { $or: [visible, { status: "Cancelled", _id: { $in: theirs } }] };
   },
   async save(user, record, existing) {
+    // A speaker photo is the cropped image AvatarPicker sends, like a profile photo.
+    if (Array.isArray(record.speakers) && record.speakers.some((speaker) => speaker?.photo !== undefined && !validAvatar(speaker.photo))) {
+      throw new HttpError(400, "A speaker photo can't be used. Choose a JPG or PNG image and try again.");
+    }
     await checkSeating(record, existing);
     await checkVenue(record, existing);
     if (isAdmin(user)) return;

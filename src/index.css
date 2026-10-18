@@ -1281,6 +1281,7 @@ textarea {
 .speaker-avatar {
   width: 72px;
   height: 72px;
+  object-fit: cover;
   border: 2px solid var(--color-black);
   flex-shrink: 0;
   box-shadow: var(--shadow-sm);
@@ -3466,12 +3467,18 @@ a.manager-next:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--
 .manager-speakers legend { margin-bottom: 6px; padding: 0; }
 .manager-speakers .manager-muted { margin: 0; font: 13px var(--font-body); letter-spacing: 0; text-transform: none; }
 .manager-speakers > .manager-button { justify-self: start; }
-.manager-speaker-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) 150px auto; align-items: center; gap: 8px; }
+.manager-speaker-row { display: grid; grid-template-columns: 42px minmax(0, 1fr) minmax(0, 1.5fr) 150px auto; align-items: center; gap: 8px; }
 @media (max-width: 720px) {
-  .manager-speaker-row { grid-template-columns: minmax(0, 1fr) auto; }
-  .manager-speaker-row > :nth-child(2), .manager-speaker-row > :nth-child(3) { grid-column: 1; }
-  .manager-speaker-row > button { grid-column: 2; grid-row: 1; }
+  .manager-speaker-row { grid-template-columns: 42px minmax(0, 1fr) auto; }
+  .manager-speaker-row > :nth-child(3), .manager-speaker-row > :nth-child(4) { grid-column: 2; }
+  .manager-speaker-row > button:last-child { grid-column: 3; grid-row: 1; }
 }
+/* The speaker's photo: hover or focus fades it with a camera, and a click opens AvatarPicker. */
+.manager-speaker-photo { position: relative; align-self: start; width: 42px; height: 42px; padding: 0; overflow: hidden; border: 2px solid var(--color-black); background: var(--color-white); cursor: pointer; }
+.manager-speaker-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.manager-speaker-photo span { position: absolute; inset: 0; display: grid; place-items: center; background: rgb(10 10 10 / 0.65); color: var(--color-white); opacity: 0; transition: opacity var(--duration-fast) var(--ease-out); }
+.manager-speaker-photo:not(:disabled):is(:hover, :focus-visible) span { opacity: 1; }
+.manager-speaker-photo:disabled { cursor: default; }
 .modal.manager-dialog { max-width: 600px; }
 
 /* Tables */

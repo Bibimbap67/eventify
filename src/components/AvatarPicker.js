@@ -25,7 +25,7 @@ function zoomAround(view, z, size) {
 // Change profile picture: choose a photo, then drag and zoom until the square shows the part you
 // want, with the profile and navbar sizes previewed live. onSave gets a 256px JPEG data URL, or ""
 // for the default DiceBear face (`fallback`).
-export default function AvatarPicker({ current, fallback, onSave, onClose }) {
+export default function AvatarPicker({ title = "Change profile picture", previews = PREVIEWS, current, fallback, onSave, onClose }) {
   const [src, setSrc] = useState(current || "");
   const [size, setSize] = useState(null); // the photo's natural size once it loads
   const [view, setView] = useState({ x: 0, y: 0, z: 1 });
@@ -116,7 +116,7 @@ export default function AvatarPicker({ current, fallback, onSave, onClose }) {
   };
 
   return (
-    <Modal title="Change profile picture" onClose={onClose} className="avatar-modal">
+    <Modal title={title} onClose={onClose} className="avatar-modal">
       {(close) => (
         <>
           <div className="avatar-picker">
@@ -154,7 +154,7 @@ export default function AvatarPicker({ current, fallback, onSave, onClose }) {
 
             <div className="avatar-picker__side">
               <span className="avatar-picker__label">Preview</span>
-              {PREVIEWS.map(([label, px]) => (
+              {previews.map(([label, px]) => (
                 <div className="avatar-picker__row" key={label}>
                   <span className="avatar-picker__preview" style={{ width: px, height: px }}>
                     {src && size ? <img src={src} alt="" style={placed(px)} /> : <img className="is-fit" src={fallback} alt="" />}

@@ -345,7 +345,7 @@ export default function EventDetail() {
                     {event.speakers.map((sp) => (
                       <article key={sp.id} className="speaker-card">
                         <div className="speaker-card__header">
-                          <img className="speaker-avatar" src={avatarUri(sp.name)} alt="" />
+                          <img className="speaker-avatar" src={sp.photo || avatarUri(sp.name)} alt="" />
                           <div className="speaker-card__meta">
                             <span className={`speaker-kind${sp.kind === "Guest speaker" ? " speaker-kind--guest" : ""}`}>{sp.kind || "Speaker"}</span>
                             <h4 className="speaker-name">{sp.name}</h4>
