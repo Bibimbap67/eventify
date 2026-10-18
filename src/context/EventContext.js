@@ -31,7 +31,6 @@ function blankProfile(user) {
     department: user?.department || "",
     program: user?.program || "",
     phone: user?.phone || "",
-    avatar: user?.avatar || "",
     yearLevel: user?.yearLevel || "",
   };
 }
